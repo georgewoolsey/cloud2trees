@@ -1,0 +1,28 @@
+Package: cloud2trees
+Type: Package
+Title: Point Cloud Data to Forest Inventory Tree List
+Version: 0.1.0
+Author: George Woolsey, Colorado State University
+Maintainer: <george.woolsey@colostate.edu>
+Description: Extract a tree list, CHM, DTM, and more from .las|.laz point cloud data
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Suggests: knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
+Depends: 
+    sf,
+    lidR,
+    dplyr,
+    tidyr,
+    R (>= 2.10)
+Imports: ggplot2, 
+    raster,
+    sp,
+    xml2,
+    clue,
+    httr,
+    stringr,
+    methods
