@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+*.aux.xml
+.DS_Store
+extdata/

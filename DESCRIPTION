@@ -1,28 +1,28 @@
-Package: cloud2trees
 Type: Package
+Package: cloud2trees
 Title: Point Cloud Data to Forest Inventory Tree List
 Version: 0.1.0
 Author: George Woolsey, Colorado State University
 Maintainer: <george.woolsey@colostate.edu>
-Description: Extract a tree list, CHM, DTM, and more from .las|.laz point cloud data
-License: MIT
-Encoding: UTF-8
-LazyData: true
-Suggests: knitr,
+Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
+    cloud data. Point cloud data can be from a LiDAR sensor or
+    photogrammetry (i.e. structure from motion).
+License: MIT + file LICENSE
+Depends: 
+    R (>= 4.0)
+Imports: 
+    dplyr,
+    lidR,
+    magrittr,
+    purrr,
+    sf,
+    tidyr
+Suggests: 
+    knitr,
     rmarkdown,
     testthat
-VignetteBuilder: knitr
-Depends: 
-    sf,
-    lidR,
-    dplyr,
-    tidyr,
-    R (>= 2.10)
-Imports: ggplot2, 
-    raster,
-    sp,
-    xml2,
-    clue,
-    httr,
-    stringr,
-    methods
+VignetteBuilder: 
+    knitr
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
