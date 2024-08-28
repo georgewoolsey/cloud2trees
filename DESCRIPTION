@@ -15,8 +15,12 @@ Imports:
     lidR,
     magrittr,
     purrr,
+    rlas,
     sf,
-    tidyr
+    stringr,
+    tidyr,
+    tools,
+    utils
 Suggests: 
     knitr,
     rmarkdown,

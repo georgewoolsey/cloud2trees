@@ -8,7 +8,7 @@
 #' To estimate individual tree DBH based on the point cloud detected tree height models are fit to FIA plot data within a buffer of the point cloud boundary.
 #' FIA plots are identified using TreeMap 2016, a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
 #' @examples
-#'  \donttest{
+#'  \dontrun{
 #'  get_treemap()
 #'  }
 #' @export
