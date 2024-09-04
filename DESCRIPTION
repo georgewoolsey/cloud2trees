@@ -12,6 +12,7 @@ Depends:
     R (>= 4.0)
 Imports: 
     dplyr,
+    ggplot2,
     lidR,
     magrittr,
     purrr,
@@ -20,7 +21,8 @@ Imports:
     stringr,
     tidyr,
     tools,
-    utils
+    utils,
+    viridis
 Suggests: 
     knitr,
     rmarkdown,

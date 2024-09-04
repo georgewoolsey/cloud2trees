@@ -7,7 +7,7 @@
 reproject_las(filepath, new_crs = NA, old_crs = NA, outdir = getwd())
 }
 \arguments{
-\item{filepath}{the .las|.laz file path}
+\item{filepath}{the full file path of the .las|.laz file}
 
 \item{new_crs}{crs to change to as an epsg numerical code}
 

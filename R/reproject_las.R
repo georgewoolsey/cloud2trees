@@ -3,7 +3,7 @@
 #' Function to reproject las data using `lidR` but be careful! This is inefficient and potentially causes inaccuracies due to transformations (see reference).
 #' @references https://gis.stackexchange.com/questions/371566/can-i-re-project-an-las-file-in-lidr
 #'
-#' @param filepath the .las|.laz file path
+#' @param filepath the full file path of the .las|.laz file
 #' @param new_crs crs to change to as an epsg numerical code
 #' @param old_crs crs to change from as an epsg numerical code
 #' @param outdir where to save this re-projected .las file
