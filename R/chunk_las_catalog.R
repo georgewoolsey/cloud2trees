@@ -28,7 +28,7 @@
 #'  }
 #' @export
 #'
-chunk_las_catalog = function(
+chunk_las_catalog <- function(
   folder
   , outfolder = getwd()
   , accuracy_level = 2
@@ -292,6 +292,7 @@ chunk_las_catalog = function(
           round(digits = 2),0.01)
         , filtered_pts_m2 = pts_m2*pts_m2_factor_ctg
         , processing_grid_tot_pts = sum(pts)
+        , normalization_accuracy = accuracy_level
       ) %>%
       dplyr::ungroup()
 

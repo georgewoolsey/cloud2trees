@@ -12,9 +12,13 @@
 #'
 #' @return A `lasR` pipeline
 #'
+#' @references
+#' https://r-lidar.github.io/lidRbook/norm.html
+#' https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414
+#'
 #' @keywords internal
 #'
-lasr_dtm_norm = function(
+lasr_dtm_norm <- function(
   dtm_file_name
   , frac_for_tri = 1
   , dtm_res = 1
@@ -25,14 +29,15 @@ lasr_dtm_norm = function(
     ####
     # set filter based on # points
     ####
-    filter_for_dtm = paste0(
+    filter_for_dtm <- paste0(
       "-drop_noise -keep_class 2 -keep_class 9 -keep_random_fraction "
       , ifelse(frac_for_tri>=1, "1", scales::comma(frac_for_tri, accuracy = 0.01))
     )
     ####
     # triangulate with filter
+    # produces a triangulation of the ground points (meshed DTM)
     ####
-    lasr_triangulate = lasR::triangulate(
+    lasr_triangulate <- lasR::triangulate(
       # class 2 = ground; class 9 = water
       filter = filter_for_dtm
       , max_edge = 0
@@ -42,7 +47,7 @@ lasr_dtm_norm = function(
       # , ofile = paste0(config$las_denoise_dir, "/", "*_tri.gpkg")
     )
   # rasterize the result of the Delaunay triangulation
-    lasr_dtm = lasR::rasterize(
+    lasr_dtm <- lasR::rasterize(
       res = dtm_res
       , operators = lasr_triangulate
       , filter = lasR::drop_noise()
@@ -66,17 +71,17 @@ lasr_dtm_norm = function(
         ## to recall that all interpolation methods are interpolation and by definition
         ## make guesses with different strategies. Thus by “exact” we mean “continuous”.
     if(as.numeric(norm_accuracy) %in% c(2,3)){
-      lasr_normalize = lasR::transform_with(
+      lasr_normalize <- lasR::transform_with(
         stage = lasr_triangulate
         , operator = "-"
       )
     }else{
-      lasr_normalize = lasR::transform_with(
+      lasr_normalize <- lasR::transform_with(
         stage = lasr_dtm
         , operator = "-"
       )
     }
   # pipeline
-  pipeline = lasr_triangulate + lasr_dtm + lasr_normalize
+  pipeline <- lasr_triangulate + lasr_dtm + lasr_normalize
   return(pipeline)
 }

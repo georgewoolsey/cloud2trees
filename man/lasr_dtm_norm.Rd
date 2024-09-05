@@ -24,4 +24,8 @@ A \code{lasR} pipeline
 \description{
 Combining DTM and normalize step using \code{lasR} functionality
 }
+\references{
+https://r-lidar.github.io/lidRbook/norm.html
+https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414
+}
 \keyword{internal}
