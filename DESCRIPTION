@@ -13,10 +13,12 @@ Depends:
 Imports: 
     dplyr,
     ggplot2,
+    lasR,
     lidR,
     magrittr,
     purrr,
     rlas,
+    scales,
     sf,
     stringr,
     tidyr,

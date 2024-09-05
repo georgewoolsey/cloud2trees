@@ -15,10 +15,10 @@
 #' @keywords internal
 #'
 lasr_dtm_norm = function(
-  dtm_file_name = paste0(config$delivery_dir, "/dtm_", desired_dtm_res, "m.tif")
+  dtm_file_name
   , frac_for_tri = 1
-  , dtm_res = desired_dtm_res
-  , norm_accuracy = accuracy_level
+  , dtm_res = 1
+  , norm_accuracy = 2
 ){
   # perform Delaunay triangulation
     # tri = lasR::triangulate(filter = "-keep_class 2 -keep_class 9 -keep_random_fraction 0.01")
