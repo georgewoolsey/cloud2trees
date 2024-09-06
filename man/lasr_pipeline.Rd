@@ -21,7 +21,7 @@ lasr_pipeline(
 \arguments{
 \item{processing_grid_num}{numeric. processing_grid column in the data.frame created via \code{chunk_las_catalog}}
 
-\item{process_data}{dataframe. data.frame created via \code{chunk_las_catalog}}
+\item{process_data}{data.frame. data.frame created via \code{chunk_las_catalog}}
 
 \item{keep_intrmdt}{logical. this process writes intermediate data to the disk, keep those intermediate files (classfied, normalized, stem las files)?}
 
@@ -42,7 +42,7 @@ lasr_pipeline(
 \item{normalize_dir}{string. The path of a folder to write the normalized .las files to.}
 }
 \value{
-A \code{lasR} pipeline
+A \code{lasR} pipeline answer list
 }
 \description{
 Create lasR pipeline to process a las grid tile created via \code{chunk_las_catalog}

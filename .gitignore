@@ -4,4 +4,15 @@
 .Ruserdata
 *.aux.xml
 .DS_Store
-extdata/
+inst/extdata/treemap/
+point_cloud_processing_delivery/
+point_cloud_processing_temp/
+*.las
+*.laz
+*.tiff
+*.tif
+!inst/*.las
+!inst/*.laz
+!inst/*.tiff
+!inst/*.tif
+point_cloud_processing.R

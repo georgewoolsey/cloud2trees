@@ -3,7 +3,7 @@
 #' Create lasR pipeline to process a las grid tile created via `chunk_las_catalog`
 #'
 #' @param processing_grid_num numeric. processing_grid column in the data.frame created via `chunk_las_catalog`
-#' @param process_data dataframe. data.frame created via `chunk_las_catalog`
+#' @param process_data data.frame. data.frame created via `chunk_las_catalog`
 #' @param keep_intrmdt logical. this process writes intermediate data to the disk, keep those intermediate files (classfied, normalized, stem las files)?
 #' @param dtm_res_m numeric. The desired resolution of the DTM produced in meters.
 #' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
@@ -17,7 +17,7 @@
 #' @references
 #' https://r-lidar.github.io/lasR/index.html
 #'
-#' @return A `lasR` pipeline
+#' @return A `lasR` pipeline answer list
 #'
 #' @keywords internal
 #'
@@ -86,7 +86,6 @@ lasr_pipeline <- function(
         , iterations = 500L
         , time_step = 0.65
         , class = 2L
-        , filter = "-drop_noise -drop_duplicates"
       )
     ###################
     # denoise
