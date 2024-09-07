@@ -1,12 +1,13 @@
-#' use lasR to create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference).
+#' @title Create CHM and apply pits and spikes filling via `lasR`
+#'
 #' @description
-#' Create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference)
+#' use `lasR` to create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference).
 #'
 #' @param chm_file_name string. Where to write the CHM.
 #' @param chm_res numeric. The desired resolution of the CHM produced in meters.
 #' @param min_height_m numeric. Set the minimum height (m) for individual tree detection
 #' @param max_height_m numeric. Set the maximum height (m) for the canopy height model
-#' @param lap_sz numeric. Size of the Laplacian filter kernel (integer value, in pixels) for `lasR::pit_fill`
+#' @param lap_sz numeric. Size of the Laplacian filter kernel (integer value, in pixels) for [lasR::pit_fill()]
 #'
 #' @references
 #' https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e

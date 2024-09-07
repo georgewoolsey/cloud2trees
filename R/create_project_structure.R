@@ -10,7 +10,7 @@
 #'
 #' @keywords internal
 #'
-create_project_structure = function(
+create_project_structure <- function(
     output_dir, input_las_dir,
     input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
 ){

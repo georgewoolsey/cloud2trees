@@ -2,7 +2,7 @@
 % Please edit documentation in R/lasr_pipeline.R
 \name{lasr_pipeline}
 \alias{lasr_pipeline}
-\title{Create lasR pipeline to process a las grid tile created via \code{chunk_las_catalog}}
+\title{Create lasR pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}}
 \usage{
 lasr_pipeline(
   processing_grid_num = 1,
@@ -19,9 +19,9 @@ lasr_pipeline(
 )
 }
 \arguments{
-\item{processing_grid_num}{numeric. processing_grid column in the data.frame created via \code{chunk_las_catalog}}
+\item{processing_grid_num}{numeric. processing_grid column in the data.frame created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}}
 
-\item{process_data}{data.frame. data.frame created via \code{chunk_las_catalog}}
+\item{process_data}{data.frame. data.frame created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}}
 
 \item{keep_intrmdt}{logical. this process writes intermediate data to the disk, keep those intermediate files (classfied, normalized, stem las files)?}
 
@@ -45,7 +45,7 @@ lasr_pipeline(
 A \code{lasR} pipeline answer list
 }
 \description{
-Create lasR pipeline to process a las grid tile created via \code{chunk_las_catalog}
+Create lasR pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
 }
 \references{
 https://r-lidar.github.io/lasR/index.html

@@ -2,7 +2,7 @@
 % Please edit documentation in R/lasr_chm.R
 \name{lasr_chm}
 \alias{lasr_chm}
-\title{use lasR to create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference).}
+\title{Create CHM and apply pits and spikes filling via \code{lasR}}
 \usage{
 lasr_chm(
   chm_file_name,
@@ -21,13 +21,13 @@ lasr_chm(
 
 \item{max_height_m}{numeric. Set the maximum height (m) for the canopy height model}
 
-\item{lap_sz}{numeric. Size of the Laplacian filter kernel (integer value, in pixels) for \code{lasR::pit_fill}}
+\item{lap_sz}{numeric. Size of the Laplacian filter kernel (integer value, in pixels) for \code{\link[lasR:pit_fill]{lasR::pit_fill()}}}
 }
 \value{
 A \code{lasR} pipeline
 }
 \description{
-Create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference)
+use \code{lasR} to create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference).
 }
 \references{
 https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e
