@@ -74,7 +74,11 @@ cloud2raster <- function(
   # Tile raw las files to work with smaller chunks
   ######################################
   chunk_las_catalog_ans <- chunk_las_catalog(
-    folder = config$input_las_dir
+    folder = ifelse(
+      config$is_input_file_list == T
+      , input_las_dir
+      , config$input_las_dir
+    )
     , outfolder = config$las_grid_dir
     , accuracy_level = accuracy_level
     , max_ctg_pts = max_ctg_pts

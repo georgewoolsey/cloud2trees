@@ -23,6 +23,20 @@ create_project_structure <- function(
   ){
     stop("Treemap data has not been downloaded to package contents. Use `get_treemap()` first.")
   }
+  # check if folder contains las files directly
+    chk <- input_las_dir %>%
+      tolower() %>%
+      basename() %>%
+      stringr::str_detect(".*\\.(laz|las)$")
+    # if it's a file or file list...get the directory
+    if(max(chk)==1){
+      input <- input_las_dir %>%
+      stringr::str_subset(".*\\.(laz|las)$") %>%
+      dirname() %>%
+      normalizePath()
+    }else{ # otherwise just list the folder
+      input <- normalizePath(input_las_dir)
+    }
 
   ###___________________________________________________###
   ### Set output delivery directory
@@ -50,34 +64,24 @@ create_project_structure <- function(
   dir.create(las_stem_dir, showWarnings = FALSE)
   dir.create(stem_poly_tile_dir, showWarnings = FALSE)
   ###______________________________###
-  ### Set names of the directories ###
+  ### create return ###
   ###______________________________###
-  names(output_dir) <- "output_dir"
-  names(input_las_dir) <- "input_las_dir"
-  names(input_treemap_dir) <- "input_treemap_dir"
-  names(delivery_dir) <- "delivery_dir"
-  names(temp_dir) <- "temp_dir"
-  names(las_grid_dir) <- "las_grid_dir"
-  names(las_classify_dir) <- "las_classify_dir"
-  names(las_normalize_dir) <- "las_normalize_dir"
-  names(dtm_dir) <- "dtm_dir"
-  names(chm_dir) <- "chm_dir"
-  names(las_stem_norm_dir) <- "las_stem_norm_dir"
-  names(las_stem_dir) <- "las_stem_dir"
-  names(stem_poly_tile_dir) <- "stem_poly_tile_dir"
-
-  ###______________________________###
-  ### Append to output config list ###
-  ###______________________________###
-
-  config <- cbind(
-    output_dir, input_las_dir, input_treemap_dir
-    , delivery_dir, temp_dir, las_grid_dir, las_classify_dir
-    , las_normalize_dir, dtm_dir, chm_dir
-    , las_stem_norm_dir, las_stem_dir, stem_poly_tile_dir
+  config <- dplyr::tibble(
+    output_dir = output_dir
+    , input_las_dir = input
+    , input_treemap_dir = input_treemap_dir
+    , delivery_dir = delivery_dir
+    , temp_dir = temp_dir
+    , las_grid_dir = las_grid_dir
+    , las_classify_dir = las_classify_dir
+    , las_normalize_dir = las_normalize_dir
+    , dtm_dir = dtm_dir
+    , chm_dir = chm_dir
+    , las_stem_norm_dir = las_stem_norm_dir
+    , las_stem_dir = las_stem_dir
+    , stem_poly_tile_dir = stem_poly_tile_dir
+    , is_input_file_list = max(chk)==1
   )
-
-  config <- as.data.frame(config)
 
   #config
   # remove all files in delivery and temp
