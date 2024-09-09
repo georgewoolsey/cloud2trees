@@ -18,7 +18,8 @@ cloud2raster(
   dtm_res_m = 1,
   chm_res_m = 0.25,
   min_height = 2,
-  max_height = 70
+  max_height = 70,
+  overwrite = TRUE
 )
 }
 \arguments{
@@ -26,7 +27,7 @@ cloud2raster(
 
 \item{input_las_dir}{directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
 
-\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{get_treemap()} first.}
+\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 
 \item{accuracy_level}{numeric. Choose processing accuracy.
 accuracy_level = 1 uses DTM to height normalize the points
@@ -52,6 +53,8 @@ accuracy_level = 3 uses triangulation with very high point density (100 pts/m2) 
 \item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
 
 \item{max_height}{numeric. Set the maximum height (m) for the canopy height model}
+
+\item{overwrite}{logical. Should the output files in the \code{point_cloud_processing_delivery} directory from previous iterations be deleted?}
 }
 \value{
 Returns the goods.

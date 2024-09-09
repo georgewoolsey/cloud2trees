@@ -22,6 +22,7 @@
 #' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
 #' @param min_height numeric. Set the minimum height (m) for individual tree detection
 #' @param max_height numeric. Set the maximum height (m) for the canopy height model
+#' @param overwrite logical. Should the output files in the `point_cloud_processing_delivery` directory from previous iterations be deleted?
 #'
 #' @references
 #' https://r-lidar.github.io/lasR/index.html
@@ -54,28 +55,69 @@ cloud2raster <- function(
   , chm_res_m = 0.25
   , min_height = 2
   , max_height = 70
+  , overwrite = TRUE
 ){
   ######################################
-  # execute pipeline
+  # Configure File Structure
   ######################################
-    # set lasR parallel processing options as of lasR 0.4.2
+  config <- create_project_structure(output_dir, input_las_dir)
+
+  # remove all files in delivery and temp
+  list.files(config$temp_dir, recursive = T, full.names = T) %>%
+      purrr::map(file.remove)
+  if(overwrite == TRUE){
+    list.files(config$delivery_dir, recursive = T, full.names = T) %>%
+        purrr::map(file.remove)
+  }
+
+  ######################################
+  # Tile raw las files to work with smaller chunks
+  ######################################
+  chunk_las_catalog_ans <- chunk_las_catalog(
+    folder = config$input_las_dir
+    , outfolder = config$las_grid_dir
+    , accuracy_level = accuracy_level
+    , max_ctg_pts = max_ctg_pts
+    , max_area_m2 = max_area_m2
+    , transform = transform
+    , new_crs = new_crs
+    , old_crs = old_crs
+  )
+
+  ######################################
+  # execute lasR pipeline
+  ######################################
+    # set lasR parallel processing options as of lasR 0.10.1
       lasR::set_parallel_strategy(
         strategy = lasR::concurrent_points(
-            ncores = max(lasR::ncores()-1, lasR::half_cores())
+            ncores = max(lasR::ncores()-2, lasR::half_cores())
           )
       )
 
     # create safe function to capture error and map over
-      safe_lasr_pipeline = purrr::safely(lasr_pipeline)
+      # lasr_pipeline <- lasr_pipeline() # is this needed?
+      safe_lasr_pipeline <- purrr::safely(lasr_pipeline)
 
     # map over processing grids
-      lasr_ans_list =
-        process_data$processing_grid %>%
+      lasr_ans_list <-
+        chunk_las_catalog_ans$process_data$processing_grid %>%
         unique() %>%
-        purrr::map(safe_lasr_pipeline)
+        purrr::map(\(x) safe_lasr_pipeline(
+          processing_grid_num = x
+          , process_data = chunk_las_catalog_ans$process_data
+          , keep_intrmdt = keep_intrmdt
+          , dtm_res_m = dtm_res_m
+          , chm_res_m = chm_res_m
+          , min_height = min_height
+          , max_height = max_height
+          , dtm_dir = config$dtm_dir
+          , chm_dir = config$chm_dir
+          , classify_dir = config$las_classify_dir
+          , normalize_dir = config$las_normalize_dir
+        ))
 
     # check for errors other than too few points for triangulation which happens on edge chunks with few points and also those with copious noise
-      error_list_temp =
+      error_list_temp <-
         lasr_ans_list %>%
         purrr::transpose() %>%
         purrr::pluck("error") %>%
@@ -83,7 +125,7 @@ cloud2raster <- function(
         purrr::pluck("message")
 
       if(length(error_list_temp)>0){
-        has_errors_temp = error_list_temp %>%
+        has_errors_temp <- error_list_temp %>%
           dplyr::tibble() %>%
           dplyr::rename(message=1) %>%
           dplyr::mutate(
@@ -100,13 +142,10 @@ cloud2raster <- function(
             )
           ) %>%
           dplyr::filter(keep_it==T)
-      }else{has_errors_temp = dplyr::tibble()}
+      }else{has_errors_temp <- dplyr::tibble()}
 
     if(nrow(has_errors_temp)>0){stop("lasR processing failed due to:\n", has_errors_temp$message[1])}
 
-    # clean up
-      remove(list = ls()[grep("_temp",ls())])
-      gc()
   ###################################
   # lasR cleanup and polish
   ###################################
@@ -114,41 +153,14 @@ cloud2raster <- function(
     # DTM
     ###############
       # output name
-      dtm_file_name = paste0(config$delivery_dir, "/dtm_", desired_dtm_res, "m.tif")
+      dtm_file_name <- paste0(config$delivery_dir, "/dtm_", dtm_res_m, "m.tif")
       # read
-      rast_list_temp = list.files(config$dtm_dir, pattern = ".*\\.(tif|tiff)$", full.names = T) %>% purrr::map(function(x){terra::rast(x)})
+      rast_list_temp <- list.files(config$dtm_dir, pattern = ".*\\.(tif|tiff)$", full.names = T) %>%
+        purrr::map(function(x){terra::rast(x)})
       # mosaic
-      dtm_rast = terra::sprc(rast_list_temp) %>% terra::mosaic(fun = "mean")
-      # # fill empty cells
-      #   #### this is not needed anymore as empty cells resulting from rasterizing with a triangulation are fixed
-      #   #### see: https://github.com/r-lidar/lasR/issues/18
-      #   dtm_rast = dtm_rast %>%
-      #     terra::crop(
-      #       las_ctg@data$geometry %>%
-      #         sf::st_union() %>%
-      #         terra::vect() %>%
-      #         terra::project(terra::crs(dtm_rast))
-      #     ) %>%
-      #     terra::mask(
-      #       las_ctg@data$geometry %>%
-      #         sf::st_union() %>%
-      #         terra::vect() %>%
-      #         terra::project(terra::crs(dtm_rast))
-      #     ) %>%
-      #     terra::focal(
-      #       w = 3
-      #       , fun = "mean"
-      #       , na.rm = T
-      #       # na.policy Must be one of:
-      #         # "all" (compute for all cells)
-      #         # , "only" (only for cells that are NA)
-      #         # , or "omit" (skip cells that are NA).
-      #       , na.policy = "only"
-      #     )
-      #   # dtm_rast %>% terra::crs()
-      #   # dtm_rast %>% terra::plot()
+      dtm_rast <- terra::sprc(rast_list_temp) %>% terra::mosaic(fun = "mean")
       # set crs
-        terra::crs(dtm_rast) = proj_crs
+        terra::crs(dtm_rast) <- chunk_las_catalog_ans$process_data$proj_crs[1]
       # write to delivery directory
         terra::writeRaster(
           dtm_rast
@@ -159,23 +171,24 @@ cloud2raster <- function(
     # chm
     ###############
       # output name
-      chm_file_name = paste0(config$delivery_dir, "/chm_", desired_chm_res, "m.tif")
+      chm_file_name <- paste0(config$delivery_dir, "/chm_", chm_res_m, "m.tif")
       # read
-      rast_list_temp = list.files(config$chm_dir, pattern = ".*\\.(tif|tiff)$", full.names = T) %>% purrr::map(function(x){terra::rast(x)})
+      rast_list_temp <- list.files(config$chm_dir, pattern = ".*\\.(tif|tiff)$", full.names = T) %>%
+        purrr::map(function(x){terra::rast(x)})
       # mosaic
-      chm_rast = terra::sprc(rast_list_temp) %>% terra::mosaic(fun = "max")
+      chm_rast <- terra::sprc(rast_list_temp) %>% terra::mosaic(fun = "max")
       # set crs
-      terra::crs(chm_rast) = proj_crs
+      terra::crs(chm_rast) <- chunk_las_catalog_ans$process_data$proj_crs[1]
       # fill empty cells
         # this helps to smooth out tile gaps which leads to too many trees being detected during itd
-        chm_rast = chm_rast %>%
+        chm_rast <- chm_rast %>%
           terra::crop(
-            las_ctg@data$geometry %>%
+            chunk_las_catalog_ans$las_ctg@data$geometry %>%
               sf::st_union() %>%
               terra::vect()
           ) %>%
           terra::mask(
-            las_ctg@data$geometry %>%
+            chunk_las_catalog_ans$las_ctg@data$geometry %>%
               sf::st_union() %>%
               terra::vect()
           ) %>%
@@ -205,32 +218,16 @@ cloud2raster <- function(
         las_file_list = list.files(config$las_classify_dir, pattern = ".*\\.(laz|las)$", full.names = T)
       )
       # normalize
-      normalize_flist = create_lax_for_tiles(
+      normalize_flist <- create_lax_for_tiles(
         las_file_list = list.files(config$las_normalize_dir, pattern = ".*\\.(laz|las)$", full.names = T)
       )
 
-    # clean up
-      remove(list = ls()[grep("_temp",ls())])
-      gc()
-
-    # # # plots
-    # dtm_rast %>%
-    #   # terra::aggregate(fact = 4) %>%
-    #   as.data.frame(xy = T) %>%
-    #   dplyr::rename(f=3) %>%
-    #   ggplot() +
-    #     geom_tile(aes(x=x,y=y,fill=f)) +
-    #     geom_sf(data = las_ctg@data$geometry, fill = NA) +
-    #     scale_fill_viridis_c(option = "viridis") +
-    #     labs(fill = "meters") +
-    #     theme_void()
-    # chm_rast %>%
-    #   as.data.frame(xy = T) %>%
-    #   dplyr::rename(f=3) %>%
-    #   ggplot() +
-    #     geom_tile(aes(x=x,y=y,fill=f)) +
-    #     geom_sf(data = las_ctg@data$geometry, fill = NA) +
-    #     scale_fill_viridis_c(option = "plasma") +
-    #     labs(fill = "meters") +
-    #     theme_void()
+    # return
+    return(list(
+      dtm_rast = dtm_rast
+      , chm_rast = chm_rast
+      , config = config
+      , chunk_las_catalog_ans = chunk_las_catalog_ans
+      , normalize_flist = normalize_flist
+    ))
 }

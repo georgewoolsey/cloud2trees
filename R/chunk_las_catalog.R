@@ -293,6 +293,7 @@ chunk_las_catalog <- function(
         , filtered_pts_m2 = pts_m2*pts_m2_factor_ctg
         , processing_grid_tot_pts = sum(pts)
         , normalization_accuracy = accuracy_level
+        , proj_crs = proj_crs
       ) %>%
       dplyr::ungroup()
 
@@ -327,5 +328,6 @@ chunk_las_catalog <- function(
       process_data = process_data
       , grid_subset_switch = grid_subset_switch
       , plt = plt
+      , las_ctg = las_ctg
     ))
 }

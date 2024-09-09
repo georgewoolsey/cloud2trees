@@ -6,7 +6,7 @@ testthat::test_that("chunk_las_catalog() returns a list with three named items",
         stringr::str_subset("mixedconifer")
       , outfolder = getwd()
     )
-    , n = 3
+    , n = 4
   )
   testthat::expect_named(
     object = chunk_las_catalog(
@@ -15,6 +15,6 @@ testthat::test_that("chunk_las_catalog() returns a list with three named items",
         stringr::str_subset("mixedconifer")
       , outfolder = getwd()
     )
-    , expected = c("process_data", "grid_subset_switch", "plt")
+    , expected = c("process_data", "grid_subset_switch", "plt", "las_ctg")
   )
 })

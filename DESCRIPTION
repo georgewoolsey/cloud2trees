@@ -21,6 +21,7 @@ Imports:
     scales,
     sf,
     stringr,
+    terra,
     tidyr,
     tools,
     utils,

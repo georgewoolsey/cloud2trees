@@ -1,10 +1,11 @@
-#' create project structure
+#' Create project structure
+#'
 #' @description
 #' Function to generate nested project directories based on the user-defined directory to create output file structure
 #'
 #' @param output_dir parent directory where new folders `point_cloud_processing_delivery` and `point_cloud_processing_temp` will be written for exports
 #' @param input_las_dir directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one
-#' @param input_treemap_dir directory where Treemap 2016 exists. Use `get_treemap()` first.
+#' @param input_treemap_dir directory where Treemap 2016 exists. Use [get_treemap()] first.
 #'
 #' @return A data.frame.
 #'

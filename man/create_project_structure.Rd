@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_project_structure.R
 \name{create_project_structure}
 \alias{create_project_structure}
-\title{create project structure}
+\title{Create project structure}
 \usage{
 create_project_structure(
   output_dir,
@@ -15,7 +15,7 @@ create_project_structure(
 
 \item{input_las_dir}{directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
 
-\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{get_treemap()} first.}
+\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 }
 \value{
 A data.frame.
