@@ -35,8 +35,17 @@
 #'
 #' @examples
 #'  \dontrun{
-#'  f <- "../lasdata"
-#'  chunk_las_catalog(folder = f, outfolder = getwd())
+#'  o <- "../data"
+#'  i <- "../data/lasdata"
+#'  r <- cloud2trees::cloud2raster(output_dir = o, input_las_dir = i)
+#'  r %>% names()
+#'  r$dtm_rast %>% terra::plot()
+#'  r$chm_rast %>% terra::plot()
+#'  r$create_project_structure_ans %>% dplyr::glimpse()
+#'  r$chunk_las_catalog_ans$process_data %>% dplyr::glimpse()
+#'  r$chunk_las_catalog_ans$grid_subset_switch
+#'  r$chunk_las_catalog_ans$las_ctg@data %>% dplyr::glimpse()
+#'  r$normalize_flist
 #'  }
 #' @export
 #'
@@ -230,7 +239,7 @@ cloud2raster <- function(
     return(list(
       dtm_rast = dtm_rast
       , chm_rast = chm_rast
-      , config = config
+      , create_project_structure_ans = config
       , chunk_las_catalog_ans = chunk_las_catalog_ans
       , normalize_flist = normalize_flist
     ))

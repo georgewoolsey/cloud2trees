@@ -36,7 +36,7 @@ accuracy_level = 3 uses triangulation with very high point density (100 pts/m2) 
 \item{old_crs}{string. crs to change from as an epsg numerical code}
 }
 \value{
-A list of 1) \code{process_data} an sf object; 2) \code{grid_subset_switch} indicator if chunks were created; 3) \code{plt} a ggplot object
+A list of 1) \code{process_data} an sf object; 2) \code{is_chunked_grid} indicator if chunks were created; 3) \code{plt} a ggplot object
 }
 \description{
 Function to tile raw \code{.las}|\code{.laz} files to work with smaller chunks based on point density and coverage area

@@ -19,7 +19,7 @@
 #' @description
 #' Function to tile raw `.las`|`.laz` files to work with smaller chunks based on point density and coverage area
 #'
-#' @return A list of 1) `process_data` an sf object; 2) `grid_subset_switch` indicator if chunks were created; 3) `plt` a ggplot object
+#' @return A list of 1) `process_data` an sf object; 2) `is_chunked_grid` indicator if chunks were created; 3) `plt` a ggplot object
 #'
 #' @examples
 #'  \dontrun{
@@ -211,7 +211,7 @@ chunk_las_catalog <- function(
         las_file_list = list.files(normalizePath(outfolder), pattern = ".*\\.(laz|las)$", full.names = T)
       )
       # switch for processing grid subsets
-      grid_subset_switch <- T
+      is_chunked_grid <- T
     }else if( # retile whole catalog if high overlap
       ctg_chunk_data$chunk_overlap[1] > 0
       & ctg_chunk_data$pct_overlap[1] > 0.1
@@ -233,10 +233,10 @@ chunk_las_catalog <- function(
         las_file_list = list.files(normalizePath(outfolder), pattern = ".*\\.(laz|las)$", full.names = T)
       )
       # switch for processing grid subsets
-      grid_subset_switch <- F
-    }else{grid_subset_switch <- F}
+      is_chunked_grid <- F
+    }else{is_chunked_grid <- F}
       # flist_temp
-      # grid_subset_switch
+      # is_chunked_grid
       # plot(lidR::readLAScatalog(flist_temp))
 
       # lidR::readLAScatalog(flist_temp)@data %>%
@@ -252,7 +252,7 @@ chunk_las_catalog <- function(
       dplyr::ungroup() %>%
       dplyr::mutate(
         processing_grid = dplyr::case_when(
-          grid_subset_switch == T ~ dplyr::row_number()
+          is_chunked_grid == T ~ dplyr::row_number()
           , T ~ 1
         )
         , area_m2 = sf::st_area(geometry) %>% as.numeric()
@@ -326,7 +326,7 @@ chunk_las_catalog <- function(
   # return
     return(list(
       process_data = process_data
-      , grid_subset_switch = grid_subset_switch
+      , is_chunked_grid = is_chunked_grid
       , plt = plt
       , las_ctg = las_ctg
     ))

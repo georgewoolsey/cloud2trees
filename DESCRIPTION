@@ -24,6 +24,7 @@ Imports:
     terra,
     tidyr,
     tools,
+    TreeLS,
     utils,
     viridis
 Suggests: 

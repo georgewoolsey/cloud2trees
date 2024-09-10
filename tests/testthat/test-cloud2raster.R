@@ -9,7 +9,7 @@ testthat::test_that("cloud2raster() returns a list with 5 named items", {
     )
     , expected = c("dtm_rast"
       , "chm_rast"
-      , "config"
+      , "create_project_structure_ans"
       , "chunk_las_catalog_ans"
       , "normalize_flist")
   )
