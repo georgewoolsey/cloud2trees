@@ -49,9 +49,7 @@ create_project_structure <- function(
   las_normalize_dir <- file.path(temp_dir, "02_normalize")
   dtm_dir <- file.path(temp_dir, "03_dtm")
   chm_dir <- file.path(temp_dir, "04_chm")
-  las_stem_norm_dir <- file.path(temp_dir, "05_stem_norm")
-  las_stem_dir <- file.path(temp_dir, "06_las_stem")
-  stem_poly_tile_dir <- file.path(temp_dir, "07_stem_poly_tile")
+  treels_dir <- file.path(temp_dir, "05_treels")
   ### Create the directories
   dir.create(delivery_dir, showWarnings = FALSE)
   dir.create(temp_dir, showWarnings = FALSE)
@@ -60,9 +58,7 @@ create_project_structure <- function(
   dir.create(las_normalize_dir, showWarnings = FALSE)
   dir.create(dtm_dir, showWarnings = FALSE)
   dir.create(chm_dir, showWarnings = FALSE)
-  dir.create(las_stem_norm_dir, showWarnings = FALSE)
-  dir.create(las_stem_dir, showWarnings = FALSE)
-  dir.create(stem_poly_tile_dir, showWarnings = FALSE)
+  dir.create(treels_dir, showWarnings = FALSE)
   ###______________________________###
   ### create return ###
   ###______________________________###
@@ -77,9 +73,7 @@ create_project_structure <- function(
     , las_normalize_dir = las_normalize_dir
     , dtm_dir = dtm_dir
     , chm_dir = chm_dir
-    , las_stem_norm_dir = las_stem_norm_dir
-    , las_stem_dir = las_stem_dir
-    , stem_poly_tile_dir = stem_poly_tile_dir
+    , treels_dir = treels_dir
     , is_input_file_list = max(chk)==1
   )
 
