@@ -17,7 +17,7 @@
 #' * Perform DBH estimation using [TreeLS::tlsInventory()] with the [TreeLS::shapeFit()] algorithm
 #'
 #' @param folder string. The path of a folder containing a set of las/laz files. Can also be a vector of file paths.
-#' @param outfolder string. The path of a folder to write the tiled las and vector files to
+#' @param outfolder string. The path of a folder to write the tiled vector files to
 #' @param min_height numeric. Set the minimum height (m) for individual tree detection
 #' @param max_dbh numeric. Set the largest tree diameter (m) expected in the point cloud
 #' @param chunk_these logical. Do the las/laz files need to be tiled to work with smaller subsets? See `is_chunked_grid` in [chunk_las_catalog()]

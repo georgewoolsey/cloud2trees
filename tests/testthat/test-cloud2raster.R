@@ -5,7 +5,7 @@ testthat::test_that("cloud2raster() returns a list with 5 named items", {
         tolower() %>%
         stringr::str_subset("mixedconifer") %>%
         stringr::str_subset(".*\\.(laz|las)$")
-      , output_dir = getwd()
+      , output_dir = tempdir()
     )
     , expected = c("dtm_rast"
       , "chm_rast"

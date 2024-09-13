@@ -63,8 +63,7 @@ create_project_structure <- function(
   ### create return ###
   ###______________________________###
   config <- dplyr::tibble(
-    output_dir = output_dir
-    , input_las_dir = input
+    input_las_dir = input
     , input_treemap_dir = input_treemap_dir
     , delivery_dir = delivery_dir
     , temp_dir = temp_dir

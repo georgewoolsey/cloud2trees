@@ -7,6 +7,6 @@ testthat::test_that("treels_stem_dbh() returns a data.frame", {
         stringr::str_subset(".*\\.(laz|las)$")
       , outfolder = getwd()
     )
-    , class = "data.frame"
+    , class = c("sf", "data.frame")
   )
 })

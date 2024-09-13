@@ -43,7 +43,7 @@
 #'  r$chm_rast %>% terra::plot()
 #'  r$create_project_structure_ans %>% dplyr::glimpse()
 #'  r$chunk_las_catalog_ans$process_data %>% dplyr::glimpse()
-#'  r$chunk_las_catalog_ans$grid_subset_switch
+#'  r$chunk_las_catalog_ans$is_chunked_grid
 #'  r$chunk_las_catalog_ans$las_ctg@data %>% dplyr::glimpse()
 #'  r$normalize_flist
 #'  }

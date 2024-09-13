@@ -12,6 +12,7 @@ Depends:
     R (>= 4.0)
 Imports: 
     dplyr,
+    ForestTools,
     ggplot2,
     lasR,
     lidR,
@@ -23,6 +24,7 @@ Imports:
     stringr,
     terra,
     tidyr,
+    tidyselect,
     tools,
     TreeLS,
     utils,

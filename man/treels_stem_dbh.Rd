@@ -15,7 +15,7 @@ treels_stem_dbh(
 \arguments{
 \item{folder}{string. The path of a folder containing a set of las/laz files. Can also be a vector of file paths.}
 
-\item{outfolder}{string. The path of a folder to write the tiled las and vector files to}
+\item{outfolder}{string. The path of a folder to write the tiled vector files to}
 
 \item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
 

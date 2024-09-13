@@ -8,7 +8,7 @@ testthat::test_that("lasr_pipeline() returns a list", {
             list.files(system.file(package = "lidR", "extdata/"), recursive = T, full.names = T) %>%
               tolower() %>%
               stringr::str_subset("mixedconifer")
-          , outfolder = getwd()
+          , outfolder = tempdir()
         )[["process_data"]]
     )
     , type = "list"
