@@ -49,7 +49,7 @@ The order of operations is:
 }
 
 Note, this function does not estimate DBH for the detected trees and only returns tree location, crown area, and height information.
-To estimate tree DBH from the detected tree heights see \code{\link[=heights2dbh]{heights2dbh()}}.
+To estimate tree DBH from the detected tree heights see \code{\link[=trees_dbh]{trees_dbh()}}.
 }
 \examples{
  \dontrun{
@@ -61,5 +61,5 @@ To estimate tree DBH from the detected tree heights see \code{\link[=heights2dbh
  }
 }
 \references{
-https://r-lidar.github.io/lidRbook/itd.html
+\url{https://r-lidar.github.io/lidRbook/itd.html}
 }

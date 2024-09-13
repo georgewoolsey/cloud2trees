@@ -3,7 +3,7 @@
 #' @param las_file_list a list of .las|.laz files with full directory path
 #'
 #' @references
-#' https://r-lidar.github.io/lidRbook/spatial-indexing.html
+#' [https://r-lidar.github.io/lidRbook/spatial-indexing.html](https://r-lidar.github.io/lidRbook/spatial-indexing.html)
 #'
 #' @description
 #' Function to create spatial index files .lax for .las|.laz files to speed up processing

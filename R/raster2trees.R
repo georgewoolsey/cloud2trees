@@ -9,7 +9,7 @@
 #' * Delineate tree crowns using [ForestTools::mcws()]
 #'
 #' Note, this function does not estimate DBH for the detected trees and only returns tree location, crown area, and height information.
-#' To estimate tree DBH from the detected tree heights see [heights2dbh()].
+#' To estimate tree DBH from the detected tree heights see [trees_dbh()].
 #'
 #' @param chm_rast raster. A  raster from `terra` or `stars`representing a canopy height model
 #' @param outfolder string. The path of a folder to write the crown vector data to
@@ -23,7 +23,7 @@
 #' @param tempdir string. Directory to write intermediate files. Intermediate files are only created for large rasters too big to fit in memory.
 #'
 #' @references
-#' https://r-lidar.github.io/lidRbook/itd.html
+#' [https://r-lidar.github.io/lidRbook/itd.html](https://r-lidar.github.io/lidRbook/itd.html)
 #'
 #' @return Returns a spatial data frame of individual tree crown vectors detected using the CHM.
 #' The tree top point coordinates are located in the `tree_x` and `tree_y` columns.

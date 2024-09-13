@@ -48,6 +48,6 @@ A \code{lasR} pipeline answer list
 Create lasR pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
 }
 \references{
-https://r-lidar.github.io/lasR/index.html
+\url{https://r-lidar.github.io/lasR/index.html}
 }
 \keyword{internal}

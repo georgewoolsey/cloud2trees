@@ -25,8 +25,8 @@
 #' @param overwrite logical. Should the output files in the `point_cloud_processing_delivery` directory from previous iterations be deleted?
 #'
 #' @references
-#' https://r-lidar.github.io/lasR/index.html
-#' https://r-lidar.github.io/lidRbook/norm.html
+#' [https://r-lidar.github.io/lasR/index.html](https://r-lidar.github.io/lasR/index.html)
+#' [https://r-lidar.github.io/lidRbook/norm.html](https://r-lidar.github.io/lidRbook/norm.html)
 #'
 #'
 #' @return Returns the goods.

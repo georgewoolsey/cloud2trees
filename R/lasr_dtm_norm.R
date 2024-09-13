@@ -13,8 +13,8 @@
 #' @return A `lasR` pipeline
 #'
 #' @references
-#' https://r-lidar.github.io/lidRbook/norm.html
-#' https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414
+#' [https://r-lidar.github.io/lidRbook/norm.html](https://r-lidar.github.io/lidRbook/norm.html)
+#' [https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414](https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414)
 #'
 #' @keywords internal
 #'

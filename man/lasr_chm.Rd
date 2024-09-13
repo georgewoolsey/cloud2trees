@@ -30,6 +30,6 @@ A \code{lasR} pipeline
 use \code{lasR} to create CHM and apply pits and spikes filling for raster based on St-Onge 2008 (see reference).
 }
 \references{
-https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e
+\url{https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e}
 }
 \keyword{internal}

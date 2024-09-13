@@ -10,7 +10,7 @@
 #' @param lap_sz numeric. Size of the Laplacian filter kernel (integer value, in pixels) for [lasR::pit_fill()]
 #'
 #' @references
-#' https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e
+#' [https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=81365288221f3ac34b51a82e2cfed8d58defb10e)
 #'
 #' @return A `lasR` pipeline
 #'

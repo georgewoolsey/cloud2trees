@@ -93,6 +93,6 @@ The order of operations is:
  }
 }
 \references{
-https://r-lidar.github.io/lasR/index.html
-https://r-lidar.github.io/lidRbook/norm.html
+\url{https://r-lidar.github.io/lasR/index.html}
+\url{https://r-lidar.github.io/lidRbook/norm.html}
 }

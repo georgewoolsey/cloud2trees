@@ -23,7 +23,7 @@
 #' @param chunk_these logical. Do the las/laz files need to be tiled to work with smaller subsets? See `is_chunked_grid` in [chunk_las_catalog()]
 #'
 #' @references
-#' https://github.com/tiagodc/TreeLS
+#' [https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)
 #'
 #' @return Returns an `sf` data.frame with TreeLS detected trees and DBH estimated directly from the point cloud.
 #' Exports files in the

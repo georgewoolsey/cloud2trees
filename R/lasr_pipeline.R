@@ -16,7 +16,7 @@
 #' @param normalize_dir string. The path of a folder to write the normalized .las files to.
 #'
 #' @references
-#' https://r-lidar.github.io/lasR/index.html
+#' [https://r-lidar.github.io/lasR/index.html](https://r-lidar.github.io/lasR/index.html)
 #'
 #' @return A `lasR` pipeline answer list
 #'

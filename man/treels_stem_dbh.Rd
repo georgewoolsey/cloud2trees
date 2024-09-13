@@ -55,5 +55,5 @@ The order of operations is:
  }
 }
 \references{
-https://github.com/tiagodc/TreeLS
+\url{https://github.com/tiagodc/TreeLS}
 }

@@ -48,6 +48,6 @@ Function to tile raw \code{.las}|\code{.laz} files to work with smaller chunks b
  }
 }
 \references{
-https://r-lidar.github.io/lidRbook/norm.html
-https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414
+\url{https://r-lidar.github.io/lidRbook/norm.html}
+\url{https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414}
 }

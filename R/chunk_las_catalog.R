@@ -13,8 +13,8 @@
 #' @param old_crs string. crs to change from as an epsg numerical code
 #'
 #' @references
-#' https://r-lidar.github.io/lidRbook/norm.html
-#' https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414
+#' [https://r-lidar.github.io/lidRbook/norm.html](https://r-lidar.github.io/lidRbook/norm.html)
+#' [https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414](https://github.com/r-lidar/lasR/issues/18#issuecomment-2027818414)
 #'
 #' @description
 #' Function to tile raw `.las`|`.laz` files to work with smaller chunks based on point density and coverage area

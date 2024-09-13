@@ -22,6 +22,6 @@ A character
 Function to reproject las data using \code{lidR} but be careful! This is inefficient and potentially causes inaccuracies due to transformations (see reference).
 }
 \references{
-https://gis.stackexchange.com/questions/371566/can-i-re-project-an-las-file-in-lidr
+\url{https://gis.stackexchange.com/questions/371566/can-i-re-project-an-las-file-in-lidr}
 }
 \keyword{internal}
