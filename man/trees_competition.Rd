@@ -2,7 +2,7 @@
 % Please edit documentation in R/trees_competition.R
 \name{trees_competition}
 \alias{trees_competition}
-\title{Use a CHM raster to detect individual trees}
+\title{Calculate competition metrics for a tree list}
 \usage{
 trees_competition(
   tree_list,

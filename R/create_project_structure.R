@@ -16,10 +16,10 @@ create_project_structure <- function(
     input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
 ){
   # check treemap data... see get_treemap()
-  f <- toupper(list.files(input_treemap_dir))
+  f <- tolower(list.files(normalizePath(input_treemap_dir)))
   if(length(f)==0){f <- ""}
   if(
-    max(grepl("TREEMAP2016.TIF", f))==0 | max(grepl("TREEMAP2016_TREE_TABLE.CSV", f))==0
+    max(grepl("treemap2016.tif", f))==0 | max(grepl("treemap2016_tree_table.csv", f))==0
   ){
     stop("Treemap data has not been downloaded to package contents. Use `get_treemap()` first.")
   }

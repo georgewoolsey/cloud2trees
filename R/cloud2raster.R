@@ -9,7 +9,7 @@
 #' * Classify the point cloud using [lasR::classify_with_csf()]
 #' * Remove outlier points using [lasR::classify_with_ivf()]
 #' * Produce a triangulation of the ground points (meshed DTM) using [lasR::triangulate()]
-#' * Rasterize the result of the Delaunay triangulation using [lasR::rasterize()]
+#' * Rasterize the result of the Delaunay triangulation using [lasR::rasterize()] to create a DTM
 #' * Height normalize the point cloud using either the DTM or the triangulation [lasR::transform_with()]
 #' * Use the height normalized point cloud to create the CHM based on the highest point in a pixel using [lasR::rasterize()]
 #' * Pits and spikes filling of the CHM raster using [lasR::pit_fill()]
@@ -26,7 +26,7 @@
 #'
 #' @references
 #' [https://r-lidar.github.io/lasR/index.html](https://r-lidar.github.io/lasR/index.html)
-#' [https://r-lidar.github.io/lidRbook/norm.html](https://r-lidar.github.io/lidRbook/norm.html)
+#' [https://r-lidar.github.io/lidRbook/normalization.html](https://r-lidar.github.io/lidRbook/normalization.html)
 #'
 #'
 #' @return Returns the goods.

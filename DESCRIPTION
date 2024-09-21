@@ -18,6 +18,7 @@ Imports:
     lidR,
     magrittr,
     purrr,
+    randomForest,
     readr,
     rlas,
     scales,

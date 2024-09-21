@@ -70,7 +70,7 @@ The order of operations is:
 \item Classify the point cloud using \code{\link[lasR:classify_with_csf]{lasR::classify_with_csf()}}
 \item Remove outlier points using \code{\link[lasR:classify_with_ivf]{lasR::classify_with_ivf()}}
 \item Produce a triangulation of the ground points (meshed DTM) using \code{\link[lasR:triangulate]{lasR::triangulate()}}
-\item Rasterize the result of the Delaunay triangulation using \code{\link[lasR:rasterize]{lasR::rasterize()}}
+\item Rasterize the result of the Delaunay triangulation using \code{\link[lasR:rasterize]{lasR::rasterize()}} to create a DTM
 \item Height normalize the point cloud using either the DTM or the triangulation \code{\link[lasR:transform_with]{lasR::transform_with()}}
 \item Use the height normalized point cloud to create the CHM based on the highest point in a pixel using \code{\link[lasR:rasterize]{lasR::rasterize()}}
 \item Pits and spikes filling of the CHM raster using \code{\link[lasR:pit_fill]{lasR::pit_fill()}}
@@ -94,5 +94,5 @@ The order of operations is:
 }
 \references{
 \url{https://r-lidar.github.io/lasR/index.html}
-\url{https://r-lidar.github.io/lidRbook/norm.html}
+\url{https://r-lidar.github.io/lidRbook/normalization.html}
 }
