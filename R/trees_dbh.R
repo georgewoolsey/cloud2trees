@@ -30,14 +30,29 @@
 #' @param outfolder string. The path of a folder to write the model data to
 #'
 #' @references
-#' [https://doi.org/10.2737/RDS-2021-0074](https://doi.org/10.2737/RDS-2021-0074)
+#' * [https://doi.org/10.2737/RDS-2021-0074](https://doi.org/10.2737/RDS-2021-0074)
 #' Riley, Karin L.; Grenfell, Isaac C.; Finney, Mark A.; Shaw, John D. 2021. TreeMap 2016: A tree-level model of the forests of the conterminous United States circa 2016. Fort Collins, CO: Forest Service Research Data Archive.
+#'
+#' * [https://doi.org/10.3390/f13122077](https://doi.org/10.3390/f13122077)
+#' Tinkham et al. (2022). Modeling the missing DBHs: Influence of model form on UAV DBH characterization. Forests, 13(12), 2077.
 #'
 #' @return Returns a spatial data frame of individual trees.
 #'
 #' @examples
 #'  \dontrun{
-#'  o <- "../data"
+#'  # example tree list
+#'  tl <- dplyr::tibble(
+#'      treeID = c(1:21)
+#'      , tree_x = rnorm(n=21, mean = 458064, sd = 11)
+#'      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
+#'      , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
+#'    )
+#'  # call the function
+#'  tl_dbh <- trees_dbh(tree_list = tl, crs = "32613")
+#'  # what?
+#'  tl_dbh %>% class()
+#'  tl_dbh %>% dplyr::select(tidyselect::contains("dbh_cm")) %>% dplyr::glimpse()
+#'  tl_dbh %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=dbh_cm))
 #'  }
 #' @export
 #'
@@ -52,6 +67,28 @@ trees_dbh <- function(
   , outfolder = tempdir()
 ) {
   ##################################
+  # ensure that tree height data exists
+  ##################################
+  f <- tree_list %>% names()
+  if(length(f)==0){f <- ""}
+  if(
+    max(grepl("tree_height_m", f))==0
+  ){
+    stop(paste0(
+      "`tree_list` data must contain `tree_height_m` column to estimate DBH."
+      , "\nRename the height column if it exists and ensure it is in meters."
+    ))
+  }
+  if(
+    max(grepl("treeID", f))==0
+  ){
+    stop(paste0(
+      "`tree_list` data must contain `treeID` column to estimate DBH."
+      , "\nProvide the `treeID` as a unique identifier of individual trees."
+    ))
+  }
+
+  ##################################
   # convert to spatial points data
   ##################################
   if(inherits(tree_list, "sf")){
@@ -61,6 +98,7 @@ trees_dbh <- function(
         dplyr::mutate(
           tree_x = sf::st_coordinates(.)[,1]
           , tree_y = sf::st_coordinates(.)[,2]
+          , treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m)
         )
     }else{ # if spatial but not points, drop geom and set to points
       if(
@@ -72,6 +110,7 @@ trees_dbh <- function(
           dplyr::mutate(
             tree_x = sf::st_coordinates(.)[,1]
             , tree_y = sf::st_coordinates(.)[,2]
+            , treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m)
           )
       }
       tree_tops <- tree_list %>%
@@ -79,7 +118,8 @@ trees_dbh <- function(
         sf::st_as_sf(
           coords = c("tree_x", "tree_y"), crs = sf::st_crs(tree_list)
           , remove = F
-        )
+        ) %>%
+        dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
     }
   }else{ # not spatial data
     # convert from data.frame to spatial points
@@ -94,21 +134,15 @@ trees_dbh <- function(
         coords = c("tree_x", "tree_y")
         , crs = paste0( "EPSG:", readr::parse_number(as.character(crs)) )
         , remove = F
-      )
+      ) %>%
+      dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
   }
 
-  ##################################
-  # ensure that tree height data exists
-  ##################################
-  f <- tree_tops %>% names()
-  if(length(f)==0){f <- ""}
+  # check for duplicate treeID
   if(
-    max(grepl("tree_height_m", f))==0
+    nrow(tree_tops) != length(unique(tree_tops$treeID))
   ){
-    stop(paste0(
-      "`tree_list` data must contain `tree_height_m` column to estimate DBH."
-      , "\nRename the height column if it exists and ensure it is in meters."
-    ))
+    stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
   }
 
   ##################################
@@ -455,28 +489,32 @@ trees_dbh <- function(
             & stem_dbh_cm > 0
             & stem_dbh_cm >= fia_est_dbh_cm_lower
             & stem_dbh_cm <= fia_est_dbh_cm_upper
-          ) %>%
-          dplyr::group_by(treeID) %>%
-          # select the minimum difference to regional dbh estimate
-          dplyr::filter(
-            fia_est_dbh_pct_diff==min(fia_est_dbh_pct_diff)
-          ) %>%
-          # just take one if same dbh
-          dplyr::filter(
-            dplyr::row_number()==1
-          ) %>%
-          dplyr::ungroup() %>%
-          dplyr::select(c(
-            treeID # id
-            , stem_dbh_cm # y
-            # x vars
-            , tree_height_m
-            , tree_x
-            , tree_y
-            # , crown_area_m2
-            # , tidyselect::starts_with("min_crown_ht_m")
-            # , tidyselect::starts_with("comp_")
-          ))
+          )
+        if(nrow(dbh_training_data_temp)>0){
+          # filter it again
+          dbh_training_data_temp <- dbh_training_data_temp %>%
+            dplyr::group_by(treeID) %>%
+            # select the minimum difference to regional dbh estimate
+            dplyr::filter(
+              fia_est_dbh_pct_diff==min(fia_est_dbh_pct_diff, na.rm = T)
+            ) %>%
+            # just take one if same dbh
+            dplyr::filter(
+              dplyr::row_number()==1
+            ) %>%
+            dplyr::ungroup() %>%
+            dplyr::select(c(
+              treeID # id
+              , stem_dbh_cm # y
+              # x vars
+              , tree_height_m
+              , tree_x
+              , tree_y
+              # , crown_area_m2
+              # , tidyselect::starts_with("min_crown_ht_m")
+              # , tidyselect::starts_with("comp_")
+            ))
+        }
       ###__________________________________________________________###
       ### Build regional model to estimate missing DBHs using SfM DBHs
       ###__________________________________________________________###

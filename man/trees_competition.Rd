@@ -42,7 +42,19 @@ Competition metrics returned include:
 }
 \examples{
  \dontrun{
- hey <- 1
+ # example tree list
+ tl <- dplyr::tibble(
+     treeID = c(1:21)
+     , tree_x = rnorm(n=21, mean = 458064, sd = 11)
+     , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
+     , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
+   )
+ # call the function
+ tl_comp <- trees_competition(tree_list = tl, crs = "32613")
+ # what?
+ tl_comp \%>\% class()
+ tl_comp \%>\% dplyr::select(tidyselect::starts_with("comp_")) \%>\% dplyr::glimpse()
+ tl_comp \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=comp_dist_to_nearest_m))
  }
 }
 \references{

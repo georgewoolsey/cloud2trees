@@ -2,7 +2,6 @@
 % Please edit documentation in R/cloud2trees-package.R
 \docType{package}
 \name{cloud2trees-package}
-\alias{cloud2trees}
 \alias{cloud2trees-package}
 \title{cloud2trees: Point Cloud Data to Forest Inventory Tree List}
 \description{

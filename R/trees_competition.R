@@ -27,7 +27,19 @@
 #'
 #' @examples
 #'  \dontrun{
-#'  hey <- 1
+#'  # example tree list
+#'  tl <- dplyr::tibble(
+#'      treeID = c(1:21)
+#'      , tree_x = rnorm(n=21, mean = 458064, sd = 11)
+#'      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
+#'      , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
+#'    )
+#'  # call the function
+#'  tl_comp <- trees_competition(tree_list = tl, crs = "32613")
+#'  # what?
+#'  tl_comp %>% class()
+#'  tl_comp %>% dplyr::select(tidyselect::starts_with("comp_")) %>% dplyr::glimpse()
+#'  tl_comp %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=comp_dist_to_nearest_m))
 #'  }
 #' @export
 #'
@@ -39,19 +51,43 @@ trees_competition <- function(
   , search_dist_max = 10
 ) {
   ##################################
+  # ensure that tree height data exists
+  ##################################
+  f <- tree_list %>% names()
+  if(length(f)==0){f <- ""}
+  if(
+    max(grepl("tree_height_m", f))==0
+  ){
+    stop(paste0(
+      "`tree_list` data must contain `tree_height_m` column to estimate DBH."
+      , "\nRename the height column if it exists and ensure it is in meters."
+    ))
+  }
+  if(
+    max(grepl("treeID", f))==0
+  ){
+    stop(paste0(
+      "`tree_list` data must contain `treeID` column to estimate DBH."
+      , "\nProvide the `treeID` as a unique identifier of individual trees."
+    ))
+  }
+
+  ##################################
   # convert to spatial points data
   ##################################
   if(inherits(tree_list, "sf")){
     # if points, just use it
     if( min(sf::st_is(tree_list, type = c("POINT", "MULTIPOINT"))) == 1 ){
-      tree_tops <- tree_list
+      tree_tops <- tree_list %>%
+        dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
     }else{ # if spatial but not points, drop geom and set to points
       tree_tops <- tree_list %>%
         sf::st_drop_geometry() %>%
         sf::st_as_sf(
           coords = c("tree_x", "tree_y"), crs = sf::st_crs(tree_list)
           , remove = F
-        )
+        ) %>%
+        dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
     }
   }else{ # not spatial data
     # convert from data.frame to spatial points
@@ -66,7 +102,15 @@ trees_competition <- function(
         coords = c("tree_x", "tree_y")
         , crs = paste0( "EPSG:", readr::parse_number(as.character(crs)) )
         , remove = F
-      )
+      ) %>%
+      dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
+  }
+
+  # check for duplicate treeID
+  if(
+    nrow(tree_tops) != length(unique(tree_tops$treeID))
+  ){
+    stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
   }
 
   ####################################################################
@@ -118,7 +162,7 @@ trees_competition <- function(
       dplyr::group_by(treeID,tree_height_m) %>%
       dplyr::summarise(
         n_trees = dplyr::n()
-        , max_tree_height_m = max(comp_tree_height_m)
+        , max_tree_height_m = max(comp_tree_height_m, na.rm = T)
       ) %>%
       dplyr::ungroup() %>%
       dplyr::left_join(

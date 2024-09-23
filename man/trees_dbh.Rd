@@ -59,10 +59,26 @@ If training data is provided in \code{treels_dbh_locations} as returned from \co
 }
 \examples{
  \dontrun{
- o <- "../data"
+ # example tree list
+ tl <- dplyr::tibble(
+     treeID = c(1:21)
+     , tree_x = rnorm(n=21, mean = 458064, sd = 11)
+     , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
+     , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
+   )
+ # call the function
+ tl_dbh <- trees_dbh(tree_list = tl, crs = "32613")
+ # what?
+ tl_dbh \%>\% class()
+ tl_dbh \%>\% dplyr::select(tidyselect::contains("dbh_cm")) \%>\% dplyr::glimpse()
+ tl_dbh \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=dbh_cm))
  }
 }
 \references{
-\url{https://doi.org/10.2737/RDS-2021-0074}
+\itemize{
+\item \url{https://doi.org/10.2737/RDS-2021-0074}
 Riley, Karin L.; Grenfell, Isaac C.; Finney, Mark A.; Shaw, John D. 2021. TreeMap 2016: A tree-level model of the forests of the conterminous United States circa 2016. Fort Collins, CO: Forest Service Research Data Archive.
+\item \url{https://doi.org/10.3390/f13122077}
+Tinkham et al. (2022). Modeling the missing DBHs: Influence of model form on UAV DBH characterization. Forests, 13(12), 2077.
+}
 }
