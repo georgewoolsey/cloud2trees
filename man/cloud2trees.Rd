@@ -96,7 +96,7 @@ Exports files of the goods to new folders "point_cloud_processing_delivery" and 
 }
 \description{
 \code{cloud2trees()} is an all-in-one function to process raw .las|.laz files
-to generate a CHM raster (.tif), a DTM raster (.tif), and a tree list with tree location, height, and DBH
+to generate a CHM raster (.tif), a DTM raster (.tif), and a tree list with tree location, height, and DBH.
 The order of operations is:
 \itemize{
 \item Generate a CHM from the point cloud using \code{\link[=cloud2raster]{cloud2raster()}}
