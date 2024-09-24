@@ -110,6 +110,24 @@ See the documentation for each individual function called for more details.
 }
 \examples{
  \dontrun{
- o <- "hey"
+ # test las file but this could also be a directory path with >1 .las|.laz files
+ i <- list.files(system.file(package = "lidR", "extdata/"), recursive = T, full.names = T) \%>\%
+     tolower() \%>\%
+     stringr::str_subset("mixedconifer") \%>\%
+     stringr::str_subset(".*\\\\.(laz|las)$")
+ # run it
+ cloud2trees_ans <- cloud2trees::cloud2trees(output_dir = tempdir(), input_las_dir = i)
+ # what is it?
+ cloud2trees_ans \%>\% names()
+ # there's a DTM
+ cloud2trees_ans$dtm_rast \%>\% terra::plot()
+ # there's a CHM
+ cloud2trees_ans$chm_rast \%>\% terra::plot()
+ # there are tree crowns
+ cloud2trees_ans$crowns_sf \%>\% dplyr::glimpse()
+ cloud2trees_ans$crowns_sf \%>\% ggplot2::ggplot() + ggplot2::geom_sf(mapping = ggplot2::aes(fill = tree_height_m))
+ # there are tree top points
+ cloud2trees_ans$treetops_sf \%>\% dplyr::glimpse()
+ cloud2trees_ans$treetops_sf \%>\% ggplot2::ggplot() + ggplot2::geom_sf(mapping = ggplot2::aes(color = tree_height_m))
  }
 }

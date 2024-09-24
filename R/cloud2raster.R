@@ -35,16 +35,26 @@
 #'
 #' @examples
 #'  \dontrun{
-#'  o <- "../data"
-#'  i <- "../data/lasdata"
-#'  r <- cloud2trees::cloud2raster(output_dir = o, input_las_dir = i)
+#'  # test las file but this could also be a directory path with >1 .las|.laz files
+#'  i <- list.files(system.file(package = "lidR", "extdata/"), recursive = T, full.names = T) %>%
+#'      tolower() %>%
+#'      stringr::str_subset("mixedconifer") %>%
+#'      stringr::str_subset(".*\\.(laz|las)$")
+#'  # run it
+#'  r <- cloud2trees::cloud2raster(output_dir = tempdir(), input_las_dir = i)
+#'  # what is it?
 #'  r %>% names()
+#'  # there's a DTM
 #'  r$dtm_rast %>% terra::plot()
+#'  # there's a CHM
 #'  r$chm_rast %>% terra::plot()
+#'  # there's a data.frame with the file structure for the project
 #'  r$create_project_structure_ans %>% dplyr::glimpse()
+#'  # there's a information detailing how the point cloud was processed
 #'  r$chunk_las_catalog_ans$process_data %>% dplyr::glimpse()
 #'  r$chunk_las_catalog_ans$is_chunked_grid
 #'  r$chunk_las_catalog_ans$las_ctg@data %>% dplyr::glimpse()
+#'  # there's a list of the height normalized .las files created
 #'  r$normalize_flist
 #'  }
 #' @export
@@ -237,8 +247,8 @@ cloud2raster <- function(
 
     # return
     return(list(
-      dtm_rast = dtm_rast
-      , chm_rast = chm_rast
+      dtm_rast = terra::rast(dtm_file_name)
+      , chm_rast = terra::rast(chm_file_name)
       , create_project_structure_ans = config
       , chunk_las_catalog_ans = chunk_las_catalog_ans
       , normalize_flist = normalize_flist

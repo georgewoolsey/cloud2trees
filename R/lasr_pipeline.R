@@ -153,7 +153,7 @@ lasr_pipeline <- function(
   }
   # message
   message(
-    "starting lasR processing of processing grid "
+    "starting point cloud processing to CHM of grid "
     , processing_grid_num
     , " ("
     , process_data %>%
