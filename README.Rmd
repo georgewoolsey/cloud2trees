@@ -22,18 +22,18 @@ library(magrittr)
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify *conifer* forest structure and may not be applicable for other uses.
+The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify *conifer* forest structure and may not be appropriate for other uses.
 
-* [Swayze, Neal C., and Wade T. Tinkham. "Application of unmanned aerial system structure from motion point cloud detected tree heights and stem diameters to model missing stem diameters." MethodsX 9 (2022): 101729.](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10655866445299954513)
-* [Tinkham, Wade T., Neal C. Swayze, Chad M. Hoffman, Lauren E. Lad, and Mike A. Battaglia. "Modeling the missing DBHs: Influence of model form on UAV DBH characterization." Forests 13, no. 12 (2022): 2077.](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=14807895789640069059)
-* [Creasy, Matthew B., Wade T. Tinkham, Chad M. Hoffman, and Jody C. Vogeler. "Potential for individual tree monitoring in ponderosa pine dominated forests using unmanned aerial system structure from motion point clouds." Canadian Journal of Forest Research 51, no. 8 (2021): 1093-1105.](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10356932785437169630)
-* [Kane, Van R., Bryce N. Bartl-Geller, Gina R. Cova, Caden P. Chamberlain, Liz van Wagtendonk, and Malcolm P. North. "Where are the large trees? A census of Sierra Nevada large trees to determine their frequency and spatial distribution across three large landscapes." Forest Ecology and Management 546 (2023): 121351.](https://scholar.google.com/scholar?cluster=18100846251549158494&hl=en&as_sdt=0,6)
+* Swayze, Neal C., and Wade T. Tinkham. ["Application of unmanned aerial system structure from motion point cloud detected tree heights and stem diameters to model missing stem diameters."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10655866445299954513) MethodsX 9 (2022): 101729.
+* Tinkham, Wade T., Neal C. Swayze, Chad M. Hoffman, Lauren E. Lad, and Mike A. Battaglia. ["Modeling the missing DBHs: Influence of model form on UAV DBH characterization."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=14807895789640069059) Forests 13, no. 12 (2022): 2077.
+* Creasy, Matthew B., Wade T. Tinkham, Chad M. Hoffman, and Jody C. Vogeler. ["Potential for individual tree monitoring in ponderosa pine dominated forests using unmanned aerial system structure from motion point clouds."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10356932785437169630) Canadian Journal of Forest Research 51, no. 8 (2021): 1093-1105.
+* Kane, Van R., Bryce N. Bartl-Geller, Gina R. Cova, Caden P. Chamberlain, Liz van Wagtendonk, and Malcolm P. North. ["Where are the large trees? A census of Sierra Nevada large trees to determine their frequency and spatial distribution across three large landscapes."](https://scholar.google.com/scholar?cluster=18100846251549158494&hl=en&as_sdt=0,6) Forest Ecology and Management 546 (2023): 121351.
 
 ## Installation
 
-The `cloud2trees` package relies on the `lasR` package which must be manually installed first.
+The `cloud2trees` package relies on the `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) which must be manually installed first.
 
-You can install the development version of cloud2trees from [GitHub](https://github.com/) with:
+You can install the development version of `cloud2trees` from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("pak")
@@ -312,7 +312,7 @@ raster2trees_ans %>%
 
 If we already have a list of trees with tree coordinate and tree height data, we can estimate tree DBH using a site-specific allometric equation based on FIA data with the `trees_dbh()` function.
 
-We just need to pass A data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
+We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
 
 ```{r}
 # a fake tree list

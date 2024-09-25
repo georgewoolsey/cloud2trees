@@ -7,7 +7,7 @@ Maintainer: <george.woolsey@colostate.edu>
 Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
     cloud data. Point cloud data can be from a LiDAR sensor or
     photogrammetry (i.e. structure from motion).
-License: MIT + file LICENSE
+License: GPL (>= 3)
 Depends: 
     R (>= 4.0)
 Imports: 
