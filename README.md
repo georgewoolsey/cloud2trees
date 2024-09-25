@@ -36,11 +36,17 @@ may not be applicable for other uses.
 
 ## Installation
 
+The `cloud2trees` package relies on the `lasR` package which must be
+manually installed first.
+
 You can install the development version of cloud2trees from
 [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("pak")
+# first install lasR
+pak::pak("r-lidar/lasR", upgrade = TRUE)
+# get cloud2trees
 pak::pak("georgewoolsey/cloud2trees")
 ```
 
@@ -63,6 +69,13 @@ You must first download the FIA data (~3 GB) using `get_treemap()`.
 library(cloud2trees)
 # download the TreeMap data
 cloud2trees::get_treemap()
+```
+
+We’ll be using the `tidyverse` in the examples below.
+
+``` r
+# install.packages("tidyverse")
+library(tidyverse)
 ```
 
 ## Extract Trees from Point Cloud: Default
@@ -104,7 +117,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2trees_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -114,7 +127,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2trees_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
 
 A spatial data frame with tree crown polygons is returned.
 
@@ -161,7 +174,7 @@ cloud2trees_ans$crowns_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
 
 A spatial data frame with tree top points is returned.
 
@@ -206,7 +219,7 @@ cloud2trees_ans$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
 
 It is also the case that the points in `cloud2trees_ans$treetops_sf`
 will match to exactly one crown polygon in `cloud2trees_ans$crowns_sf`.
@@ -220,7 +233,7 @@ ggplot2::ggplot() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
 
 ## Extract Trees from Point Cloud: Custom
 
@@ -275,15 +288,15 @@ cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> $ tree_y                    <dbl> 3813011, 3813011, 3813011, 3813011, 3813011,…
 #> $ crown_area_m2             <dbl> 6.7500, 3.3750, 9.2500, 3.5000, 0.9375, 0.31…
 #> $ geometry                  <GEOMETRY [m]> POLYGON ((481280.5 3813011,..., POL…
-#> $ fia_est_dbh_cm            <dbl> 51.285168, 39.532102, 47.923580, 32.229123, …
-#> $ fia_est_dbh_cm_lower      <dbl> 24.081755, 18.766229, 22.494876, 15.288653, …
-#> $ fia_est_dbh_cm_upper      <dbl> 87.58011, 66.60983, 81.36263, 53.65521, 39.1…
-#> $ dbh_cm                    <dbl> 51.285168, 39.532102, 47.923580, 32.229123, …
+#> $ fia_est_dbh_cm            <dbl> 51.067988, 39.641035, 47.814280, 32.289969, …
+#> $ fia_est_dbh_cm_lower      <dbl> 24.027566, 18.831833, 22.478941, 15.071167, …
+#> $ fia_est_dbh_cm_upper      <dbl> 85.49331, 65.89392, 80.37195, 54.68077, 39.5…
+#> $ dbh_cm                    <dbl> 51.067988, 39.641035, 47.814280, 32.289969, …
 #> $ is_training_data          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
-#> $ dbh_m                     <dbl> 0.51285168, 0.39532102, 0.47923580, 0.322291…
-#> $ radius_m                  <dbl> 0.25642584, 0.19766051, 0.23961790, 0.161145…
-#> $ basal_area_m2             <dbl> 0.206572949, 0.122741010, 0.180380003, 0.081…
-#> $ basal_area_ft2            <dbl> 2.22355122, 1.32118423, 1.94161035, 0.878133…
+#> $ dbh_m                     <dbl> 0.51067988, 0.39641035, 0.47814280, 0.322899…
+#> $ radius_m                  <dbl> 0.25533994, 0.19820518, 0.23907140, 0.161449…
+#> $ basal_area_m2             <dbl> 0.204827079, 0.123418384, 0.179558146, 0.081…
+#> $ basal_area_ft2            <dbl> 2.20475868, 1.32847548, 1.93276389, 0.881452…
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_trees_per_ha         <dbl> 990.0593, 990.0593, 2227.6334, 5445.3261, 54…
@@ -318,7 +331,7 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-16-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-17-1.png" width="100%" />
 
 We can also plot height and diameter of trees spatially and we’ll use
 the `patchwork` package to combine our plots.
@@ -345,7 +358,7 @@ plt_dbh <-
 plt_ht + plt_dbh
 ```
 
-<img src="man/figures/README-unnamed-chunk-17-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-18-1.png" width="100%" />
 
 Let’s plot the distance to the nearest tree that we obtained by turning
 on the `estimate_tree_competition` parameter in the `cloud2trees()`
@@ -361,7 +374,7 @@ cloud2trees_ans_c$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-18-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-19-1.png" width="100%" />
 
 ## Extract Raster Data from Point Cloud
 
@@ -380,7 +393,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2raster_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-20-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-21-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -390,7 +403,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2raster_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-21-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
 
 ## Extract Trees from Raster Data
 
@@ -434,7 +447,7 @@ raster2trees_ans %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-24-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-25-1.png" width="100%" />
 
 ## Estimate Tree DBH for a Tree List
 
@@ -470,19 +483,19 @@ tl_dbh %>% dplyr::glimpse()
 #> Rows: 21
 #> Columns: 16
 #> $ treeID                 <chr> "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…
-#> $ tree_x                 <dbl> 458061.8, 458059.0, 458060.6, 458065.2, 458056.…
-#> $ tree_y                 <dbl> 4450056, 4450079, 4450068, 4450069, 4450067, 44…
-#> $ tree_height_m          <dbl> 7.449492, 5.595917, 4.652368, 2.994578, 5.73889…
-#> $ geometry               <POINT [m]> POINT (458061.8 4450056), POINT (458059 4…
-#> $ fia_est_dbh_cm         <dbl> 12.216955, 8.935930, 7.433770, 4.865285, 9.0855…
-#> $ fia_est_dbh_cm_lower   <dbl> 5.302711, 3.991435, 3.365342, 2.179260, 4.07210…
-#> $ fia_est_dbh_cm_upper   <dbl> 21.215207, 15.258311, 12.935828, 8.441506, 15.8…
-#> $ dbh_cm                 <dbl> 12.216955, 8.935930, 7.433770, 4.865285, 9.0855…
+#> $ tree_x                 <dbl> 458087.0, 458077.7, 458063.4, 458074.6, 458059.…
+#> $ tree_y                 <dbl> 4450059, 4450080, 4450078, 4450059, 4450069, 44…
+#> $ tree_height_m          <dbl> 2.406320, 4.533074, 1.828790, 25.491535, 3.2426…
+#> $ geometry               <POINT [m]> POINT (458087 4450059), POINT (458077.7 4…
+#> $ fia_est_dbh_cm         <dbl> 4.112722, 7.127610, 3.372527, 62.556074, 5.1951…
+#> $ fia_est_dbh_cm_lower   <dbl> 1.803768, 3.124309, 1.499538, 27.957672, 2.3087…
+#> $ fia_est_dbh_cm_upper   <dbl> 7.081214, 12.317969, 5.851294, 108.689043, 9.15…
+#> $ dbh_cm                 <dbl> 4.112722, 7.127610, 3.372527, 62.556074, 5.1951…
 #> $ is_training_data       <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…
-#> $ dbh_m                  <dbl> 0.12216955, 0.08935930, 0.07433770, 0.04865285,…
-#> $ radius_m               <dbl> 0.06108478, 0.04467965, 0.03716885, 0.02432642,…
-#> $ basal_area_m2          <dbl> 0.0117223809, 0.0062714713, 0.0043401840, 0.001…
-#> $ basal_area_ft2         <dbl> 0.126179709, 0.067506117, 0.046717741, 0.020011…
+#> $ dbh_m                  <dbl> 0.04112722, 0.07127610, 0.03372527, 0.62556074,…
+#> $ radius_m               <dbl> 0.02056361, 0.03563805, 0.01686263, 0.31278037,…
+#> $ basal_area_m2          <dbl> 0.001328460, 0.003990045, 0.000893307, 0.307346…
+#> $ basal_area_ft2         <dbl> 0.014299545, 0.042948840, 0.009615556, 3.308282…
 #> $ ptcld_extracted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 #> $ ptcld_predicted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 ```
@@ -500,7 +513,7 @@ tl_dbh %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-28-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-29-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -531,4 +544,4 @@ plt_dbh2 <-
 plt_ht2 + plt_dbh2
 ```
 
-<img src="man/figures/README-unnamed-chunk-29-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />

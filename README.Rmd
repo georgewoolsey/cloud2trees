@@ -31,10 +31,15 @@ The goal of cloud2trees is to provide accessible routines for processing point c
 
 ## Installation
 
+The `cloud2trees` package relies on the `lasR` package which must be manually installed first.
+
 You can install the development version of cloud2trees from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("pak")
+# first install lasR
+pak::pak("r-lidar/lasR", upgrade = TRUE)
+# get cloud2trees
 pak::pak("georgewoolsey/cloud2trees")
 ```
 
@@ -50,6 +55,13 @@ You must first download the FIA data (~3 GB) using `get_treemap()`.
 library(cloud2trees)
 # download the TreeMap data
 cloud2trees::get_treemap()
+```
+
+We'll be using the `tidyverse` in the examples below.
+
+```{r}
+# install.packages("tidyverse")
+library(tidyverse)
 ```
 
 ## Extract Trees from Point Cloud: Default
