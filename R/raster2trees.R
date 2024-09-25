@@ -42,13 +42,13 @@
 raster2trees <- function(
   chm_rast
   , outfolder
-  , ws = function(x){
-      y <- dplyr::case_when(
+  , ws = function(x) {
+      y = dplyr::case_when(
         is.na(x) ~ 1e-3 # requires non-null
         , x < 0 ~ 1e-3 # requires positive
-        , x < 2 ~ 1 # set lower bound
-        , x > 30 ~ 5  # set upper bound
-        , TRUE ~ 0.75 + (x * 0.14)
+        , x < 2.5 ~ 1 # set lower bound
+        , x > 40 ~ 6.7  # set upper bound
+        , TRUE ~ exp( (0.0446*x) + (x^-0.555) ) # used gamma regression so exp the result
       )
       return(y)
     }
