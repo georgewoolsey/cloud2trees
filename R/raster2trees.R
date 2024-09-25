@@ -43,7 +43,7 @@ raster2trees <- function(
   chm_rast
   , outfolder
   , ws = function(x) {
-      y = dplyr::case_when(
+      y <- dplyr::case_when(
         is.na(x) ~ 1e-3 # requires non-null
         , x < 0 ~ 1e-3 # requires positive
         , x < 2.5 ~ 1 # set lower bound

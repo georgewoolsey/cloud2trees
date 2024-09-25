@@ -36,10 +36,7 @@
 #' @examples
 #'  \dontrun{
 #'  # test las file but this could also be a directory path with >1 .las|.laz files
-#'  i <- list.files(system.file(package = "lidR", "extdata/"), recursive = T, full.names = T) %>%
-#'      tolower() %>%
-#'      stringr::str_subset("mixedconifer") %>%
-#'      stringr::str_subset(".*\\.(laz|las)$")
+#'  i <- system.file("extdata", "MixedConifer.laz", package="lidR")
 #'  # run it
 #'  cloud2trees_ans <- cloud2trees::cloud2trees(output_dir = tempdir(), input_las_dir = i)
 #'  # what is it?

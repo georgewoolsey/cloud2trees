@@ -8,8 +8,8 @@ raster2trees(
   chm_rast,
   outfolder,
   ws = function(x) {
-     y = dplyr::case_when(is.na(x) ~ 0.001, x < 0 ~ 0.001, x < 2.5 ~
-    1, x > 40 ~ 6.7, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
+     y <- dplyr::case_when(is.na(x) ~ 0.001, x < 0 ~ 0.001, x < 2.5
+    ~ 1, x > 40 ~ 6.7, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
      return(y)
  },
   min_height = 2,
