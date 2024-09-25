@@ -21,7 +21,10 @@ create_project_structure <- function(
   if(
     max(grepl("treemap2016.tif", f))==0 | max(grepl("treemap2016_tree_table.csv", f))==0
   ){
-    stop("Treemap data has not been downloaded to package contents. Use `get_treemap()` first.")
+    stop(paste0(
+      "Treemap data has not been downloaded to package contents. Use `get_treemap()` first."
+      , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
+    ))
   }
   # check if folder contains las files directly
     chk <- input_las_dir %>%

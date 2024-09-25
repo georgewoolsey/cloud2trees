@@ -243,7 +243,7 @@ cloud2trees <- function(
   ####################################################################
   # start time
   xx5_trees_dbh <- Sys.time()
-  if(estimate_tree_dbh==T & estimate_dbh_from_cloud==T){
+  if(estimate_dbh_from_cloud==T){
     # message
     message(
       "starting trees_dbh() step at ..."
