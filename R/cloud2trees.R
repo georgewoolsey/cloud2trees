@@ -47,10 +47,12 @@
 #'  cloud2trees_ans$chm_rast %>% terra::plot()
 #'  # there are tree crowns
 #'  cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
-#'  cloud2trees_ans$crowns_sf %>% ggplot2::ggplot() + ggplot2::geom_sf(mapping = ggplot2::aes(fill = tree_height_m))
+#'  cloud2trees_ans$crowns_sf %>% ggplot2::ggplot() +
+#'   ggplot2::geom_sf(mapping = ggplot2::aes(fill = tree_height_m))
 #'  # there are tree top points
 #'  cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
-#'  cloud2trees_ans$treetops_sf %>% ggplot2::ggplot() + ggplot2::geom_sf(mapping = ggplot2::aes(color = tree_height_m))
+#'  cloud2trees_ans$treetops_sf %>% ggplot2::ggplot() +
+#'   ggplot2::geom_sf(mapping = ggplot2::aes(color = tree_height_m))
 #'  }
 #' @export
 #'

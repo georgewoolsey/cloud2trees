@@ -96,8 +96,17 @@ chunk_las_catalog <- function(
     if(is.na(crs_list_temp) & !is.na(new_crs) & !is.null(new_crs)){
       crs_list_temp <- new_crs
       sf::st_crs(las_ctg) <- paste0("EPSG:", new_crs)
+    }else if(is.na(crs_list_temp)){
+      # try to pull the epsg another way if still NA
+      n_crs <- get_horizontal_crs(las_ctg)
+      if(!is.na(n_crs)){
+        las_ctg <- las_ctg %>% sf::st_set_crs(n_crs)
+        crs_list_temp <- sf::st_crs(las_ctg)$epsg
+      }else{
+        stop("No CRS defined...try setting the parameter `new_crs` if known")
+      }
     }
-
+    # set crs for use in project
     if(length(unique(crs_list_temp))>1){
       stop("The raw las files have multiple CRS settings. Confine las files in `folder` to files with same CRS or re-generate las files with same projection.")
     }else{
@@ -330,4 +339,47 @@ chunk_las_catalog <- function(
       , plt = plt
       , las_ctg = las_ctg
     ))
+}
+###_____________________________________________________###
+### Intermediate functions ###
+###_____________________________________________________###
+
+###___________________________________________###
+# Retrieve the horizontal component of a compound CRS.
+# The object x can be an 'sf' package 'crs' object or any
+# spatial object from which a CRS can be queried using the
+# sf::st_crs function.
+###___________________________________________###
+get_horizontal_crs <- function(x) {
+  xcrs <- sf::st_crs(x)
+  if (is.na(xcrs)) stop("No CRS defined...try setting the parameter `new_crs` if known")
+
+  wkt <- sf::st_as_text(xcrs)
+
+  if (!grepl("COMPD_CS", wkt)) {
+    # Should just be a horizontal CRS - simply return it
+    xcrs
+  } else {
+    # Extract the horizontal component
+    i <- regexpr("PROJCS\\[", wkt)
+    wkt <- base::substring(wkt, i)
+
+    # Match square brackets to discard any trailing
+    # component (e.g. the vertical CRS)
+    wkt_chars <- base::strsplit(wkt, "")[[1]]
+    level <- 1
+    k <- base::match("[", wkt_chars)
+    while (level > 0) {
+      k <- k + 1
+      if (wkt_chars[k] == '[') {
+        level <- level + 1
+      } else if (wkt_chars[k] == ']') {
+        level <- level - 1
+      }
+    }
+
+    wkt <- base::substring(wkt, 1, k)
+    # return
+    return(sf::st_crs(wkt))
+  }
 }
