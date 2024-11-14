@@ -15,7 +15,9 @@ Imports:
     dplyr,
     ForestTools,
     ggplot2,
+    LadderFuelsR (>= 0.0.7),
     lasR (>= 0.10.1),
+    leafR (>= 0.3.5),
     lidR,
     magrittr,
     posterior,
@@ -40,6 +42,8 @@ Suggests:
 VignetteBuilder: 
     knitr
 Remotes: 
+    github::DRAAlmeida/leafR,
+    github::olgaviedma/LadderFuelsR,
     github::r-lidar/lasR,
     github::tiagodc/TreeLS
 Config/testthat/edition: 3

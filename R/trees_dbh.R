@@ -144,6 +144,23 @@ trees_dbh <- function(
   ){
     stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
   }
+  # get rid of columns we'll create
+    tree_tops <- tree_tops %>%
+      # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+      dplyr::select( -dplyr::any_of(c(
+        "hey_xxxxxxxxxx"
+        , "fia_est_dbh_cm"
+        , "fia_est_dbh_cm_lower"
+        , "fia_est_dbh_cm_upper"
+        , "dbh_cm"
+        , "is_training_data"
+        , "dbh_m"
+        , "radius_m"
+        , "basal_area_m2"
+        , "basal_area_ft2"
+        , "ptcld_extracted_dbh_cm"
+        , "ptcld_predicted_dbh_cm"
+      )))
 
   ##################################
   # check for treels_dbh_locations

@@ -10,6 +10,7 @@
 #' * Quantify individual tree competition metrics using [trees_competition()] (*if set to TRUE*)
 #' * Extract tree DBH values from the normalized point cloud using [treels_stem_dbh()] (*if set to TRUE*)
 #' * Model tree DBH values using [trees_dbh()] (*if set to TRUE*)
+#' * Extract tree CBH values from the normalized point cloud and estimate missing values using [trees_cbh()] (*if set to TRUE*)
 #'
 #' See the documentation for each individual function called for more details.
 #'
@@ -27,6 +28,26 @@
 #' @param competition_buffer_m number. Set buffer around tree (m) to calculate competition metrics
 #' @param search_dist_max number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
 #' If no competition trees are found within this distance, the return column `comp_dist_to_nearest_m` = `search_dist_max` parameter.
+#' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
+#' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
+#'   proportion of the trees to attempt to extract a CBH from the point cloud for.
+#'   If neither are supplied, `tree_sample_n = 500` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
+#' @param cbh_which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
+#' * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
+#' * "highest" - Height of the CBH of the segmented tree based on the maximum distance found in its profile
+#' * "max_lad" - Height of the CBH of the segmented tree based on the maximum LAD percentage
+#' @param cbh_estimate_missing_cbh logical. even if the `tree_sample_prop` parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
+#' Should the missing CBH values be estimated using the tree height and location information based on trees for which CBH is successfully extracted?
+#' @param cbh_min_vhp_n numeric. the minimum number of vertical height profiles (VHPs) needed to estimate a CBH.
+#' @param cbh_voxel_grain_size_m numeric. horizontal resolution (suggested 1 meter for lad profiles and 10 meters for LAI maps). See `grain.size` in [leafR::lad.voxels()]
+#' @param cbh_dist_btwn_bins_m numeric. value for the actual height bin step (in meters). See `step` in [LadderFuelsR::get_gaps_fbhs()]
+#' @param cbh_min_fuel_layer_ht_m numeric. value for the actual minimum base height (in meters). See `min_height` in [LadderFuelsR::get_gaps_fbhs()]
+#' @param cbh_lad_pct_gap numeric. value of the percentile threshold used to identify gaps (default percentile 25th). See `perc_gap` in [LadderFuelsR::get_gaps_fbhs()]
+#' @param cbh_lad_pct_base numeric. value of the percentile threshold used to identify fuels layers base height (default percentile 25th). See `perc_base` in [LadderFuelsR::get_gaps_fbhs()]
+#' @param cbh_num_jump_steps numeric. value for the number of height bin steps that can be jumped to reshape fuels layers. See `number_steps` in [LadderFuelsR::get_real_fbh()]
+#' @param cbh_min_lad_pct numeric. value for the minimum required LAD percentage in a fuel layer. See `threshold` in [LadderFuelsR::get_layers_lad()]
+#' @param cbh_frst_layer_min_ht_m numeric. value for the depth height of the first fuel layer. If the first fuel layer has the maximum LAD and its depth is greater than the indicated value, then this fuel layer is considered as the CBH of the tree. On the contrary, if its depth is <= the value, the CBH with maximum LAD will be the second fuel layer, although it has not the maximum LAD. See `hdepth1_height` in [LadderFuelsR::get_cbh_metrics()]
 #'
 #'
 #' @return Returns the goods.
@@ -88,6 +109,20 @@ cloud2trees <- function(
   , estimate_tree_competition = FALSE
   , competition_buffer_m = 5
   , search_dist_max = 10
+  , estimate_tree_cbh = FALSE
+  , cbh_tree_sample_n = NA
+  , cbh_tree_sample_prop = NA
+  , cbh_which_cbh = "lowest"
+  , cbh_estimate_missing_cbh = FALSE
+  , cbh_min_vhp_n = 4
+  , cbh_voxel_grain_size_m = 2
+  , cbh_dist_btwn_bins_m = 1
+  , cbh_min_fuel_layer_ht_m = 1
+  , cbh_lad_pct_gap = 25
+  , cbh_lad_pct_base = 25
+  , cbh_num_jump_steps = 1
+  , cbh_min_lad_pct = 10
+  , cbh_frst_layer_min_ht_m = 1
   , overwrite = TRUE
 ){
   ####################################################################
@@ -179,6 +214,14 @@ cloud2trees <- function(
   ####################################################################
   # start time
   xx3_trees_competition <- Sys.time()
+  err_trees_competition <- NULL
+  # empty data
+    trees_competition_ans_temp <- dplyr::tibble(
+      treeID = character(0)
+      , comp_trees_per_ha = numeric(0)
+      , comp_relative_tree_height = numeric(0)
+      , comp_dist_to_nearest_m = numeric(0)
+    )
   if(estimate_tree_competition==T){
     # message
     message(
@@ -186,12 +229,24 @@ cloud2trees <- function(
       , xx3_trees_competition
     )
     # trees_competition
-    trees_competition_ans <- trees_competition(
+    # safe it
+    safe_trees_competition <- purrr::safely(trees_competition)
+    trees_competition_ans <- safe_trees_competition(
       tree_list = raster2trees_ans
       , competition_buffer_m = competition_buffer_m
       , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
       , search_dist_max = search_dist_max
     )
+    # handle error
+    if(is.null(trees_competition_ans$error)){ # no error
+      # just get the result
+      trees_competition_ans <- trees_competition_ans$result
+    }else{
+      # error
+      err_trees_competition <- trees_competition_ans$error
+      # empty data
+      trees_competition_ans <- trees_competition_ans_temp
+    }
 
     # trees_competition_ans %>% class()
     # trees_competition_ans %>% dplyr::glimpse()
@@ -200,12 +255,7 @@ cloud2trees <- function(
     # trees_competition_ans %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=comp_dist_to_nearest_m))
   }else{
     # empty data
-    trees_competition_ans <- dplyr::tibble(
-      treeID = character(0)
-      , comp_trees_per_ha = numeric(0)
-      , comp_relative_tree_height = numeric(0)
-      , comp_dist_to_nearest_m = numeric(0)
-    )
+    trees_competition_ans <- trees_competition_ans_temp
   }
 
   ####################################################################
@@ -213,6 +263,7 @@ cloud2trees <- function(
   ####################################################################
   # start time
   xx4_treels_stem_dbh <- Sys.time()
+  err_treels_stem_dbh <- NULL
   if(estimate_dbh_from_cloud==T){
     # message
     message(
@@ -221,7 +272,8 @@ cloud2trees <- function(
     )
     # do it
     # treels stuff
-    treels_dbh_locations <- cloud2trees::treels_stem_dbh(
+    safe_treels_stem_dbh <- purrr::safely(treels_stem_dbh)
+    treels_dbh_locations <- safe_treels_stem_dbh(
       folder = cloud2raster_ans$normalize_flist
       , outfolder = cloud2raster_ans$create_project_structure_ans$treels_dir
       , min_height = min_height
@@ -229,6 +281,16 @@ cloud2trees <- function(
       , chunk_these = !cloud2raster_ans$chunk_las_catalog_ans$is_chunked_grid
     )
 
+    # handle error
+    if(is.null(treels_dbh_locations$error)){ # no error
+      # just get the result
+      treels_dbh_locations <- treels_dbh_locations$result
+    }else{
+      # error
+      err_treels_stem_dbh <- treels_dbh_locations$error
+      # empty data
+      treels_dbh_locations <- NA
+    }
     # treels_dbh_locations %>% class()
     # sf::st_geometry_type(treels_dbh_locations)
     # treels_dbh_locations %>% sf::st_is(type = c("POINT", "MULTIPOINT")) %>% min()
@@ -242,39 +304,9 @@ cloud2trees <- function(
   ####################################################################
   # start time
   xx5_trees_dbh <- Sys.time()
-  if(estimate_dbh_from_cloud==T){
-    # message
-    message(
-      "starting trees_dbh() step at ..."
-      , xx5_trees_dbh
-    )
-    # trees_dbh
-    trees_dbh_ans <- trees_dbh(
-      tree_list = raster2trees_ans
-      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
-      , dbh_model = dbh_model
-      , treels_dbh_locations = treels_dbh_locations
-      , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
-      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
-    )
-  }else if(estimate_tree_dbh==T){
-    # message
-    message(
-      "starting trees_dbh() step at ..."
-      , xx5_trees_dbh
-    )
-    # trees_dbh
-    trees_dbh_ans <- trees_dbh(
-      tree_list = raster2trees_ans
-      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
-      , dbh_model = dbh_model
-      , treels_dbh_locations = NA
-      , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
-      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
-    )
-  }else{
-    # empty data
-    trees_dbh_ans <- dplyr::tibble(
+  err_trees_dbh <- NULL
+  # empty data
+    trees_dbh_ans_temp <- dplyr::tibble(
       treeID = character(0)
       , fia_est_dbh_cm = as.numeric(0)
       , fia_est_dbh_cm_lower = as.numeric(0)
@@ -288,6 +320,61 @@ cloud2trees <- function(
       , ptcld_extracted_dbh_cm = as.numeric(0)
       , ptcld_predicted_dbh_cm = as.numeric(0)
     )
+  if(estimate_dbh_from_cloud==T){
+    # message
+    message(
+      "starting trees_dbh() step at ..."
+      , xx5_trees_dbh
+    )
+    # trees_dbh
+    safe_trees_dbh <- purrr::safely(trees_dbh)
+    trees_dbh_ans <- safe_trees_dbh(
+      tree_list = raster2trees_ans
+      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
+      , dbh_model = dbh_model
+      , treels_dbh_locations = treels_dbh_locations
+      , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
+      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
+    )
+    # handle error
+    if(is.null(trees_dbh_ans$error)){ # no error
+      # just get the result
+      trees_dbh_ans <- trees_dbh_ans$result
+    }else{
+      # error
+      err_trees_dbh <- trees_dbh_ans$error
+      # empty data
+      trees_dbh_ans <- trees_dbh_ans_temp
+    }
+  }else if(estimate_tree_dbh==T){
+    # message
+    message(
+      "starting trees_dbh() step at ..."
+      , xx5_trees_dbh
+    )
+    # trees_dbh
+    safe_trees_dbh <- purrr::safely(trees_dbh)
+    trees_dbh_ans <- safe_trees_dbh(
+      tree_list = raster2trees_ans
+      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
+      , dbh_model = dbh_model
+      , treels_dbh_locations = NA
+      , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
+      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
+    )
+    # handle error
+    if(is.null(trees_dbh_ans$error)){ # no error
+      # just get the result
+      trees_dbh_ans <- trees_dbh_ans$result
+    }else{
+      # error
+      err_trees_dbh <- trees_dbh_ans$error
+      # empty data
+      trees_dbh_ans <- trees_dbh_ans_temp
+    }
+  }else{
+    # empty data
+    trees_dbh_ans <- trees_dbh_ans_temp
   }
 
   # trees_dbh_ans %>% class()
@@ -297,14 +384,65 @@ cloud2trees <- function(
   # trees_dbh_ans %>% ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = dbh_cm)) + ggplot2::geom_point()
 
   ####################################################################
+  # cloud2trees::trees_cbh()
+  ####################################################################
+  # start time
+  xx6_trees_cbh <- Sys.time()
+  err_trees_cbh <- NULL
+  # empty data
+    trees_cbh_ans_temp <- dplyr::tibble(
+      treeID = character(0)
+      , tree_cbh_m = as.numeric(0)
+      , is_training_cbh = as.logical(0)
+    )
+  if(estimate_tree_cbh==T){
+    # message
+    message(
+      "starting trees_cbh() step at ..."
+      , xx6_trees_cbh
+    )
+    # trees_cbh
+    safe_trees_cbh <- purrr::safely(trees_cbh)
+    trees_cbh_ans <- safe_trees_cbh(
+      trees_poly = raster2trees_ans
+      , norm_las = cloud2raster_ans$create_project_structure_ans$las_normalize_dir
+      , tree_sample_prop = cbh_tree_sample_prop
+      , which_cbh = cbh_which_cbh
+      , estimate_missing_cbh = cbh_estimate_missing_cbh
+      , min_vhp_n = cbh_min_vhp_n
+      , voxel_grain_size_m = cbh_voxel_grain_size_m
+      , dist_btwn_bins_m = cbh_dist_btwn_bins_m
+      , min_fuel_layer_ht_m = cbh_min_fuel_layer_ht_m
+      , lad_pct_gap = cbh_lad_pct_gap
+      , lad_pct_base = cbh_lad_pct_base
+      , num_jump_steps = cbh_num_jump_steps
+      , min_lad_pct = cbh_min_lad_pct
+      , frst_layer_min_ht_m = cbh_frst_layer_min_ht_m
+    )
+    # handle error
+    if(is.null(trees_cbh_ans$error)){ # no error
+      # just get the result
+      trees_cbh_ans <- trees_cbh_ans$result
+    }else{
+      # error
+      err_trees_cbh <- trees_cbh_ans$error
+      # empty data
+      trees_cbh_ans <- trees_cbh_ans_temp
+    }
+  }else{
+    # empty data
+    trees_cbh_ans <- trees_cbh_ans_temp
+  }
+
+  ####################################################################
   # write data
   ####################################################################
     # message
       # start time
-      xx6_return <- Sys.time()
+      xx7_return <- Sys.time()
       message(
         "started writing final data at ..."
-        , xx6_return
+        , xx7_return
       )
     # do it
     # get names from dbh data
@@ -323,6 +461,14 @@ cloud2trees <- function(
           , names(raster2trees_ans %>% sf::st_drop_geometry())
         )
       )
+    # get names from cbh data
+    cbh_names_temp <- c(
+        "treeID"
+        , get_list_diff(
+          names(trees_cbh_ans %>% sf::st_drop_geometry())
+          , names(raster2trees_ans %>% sf::st_drop_geometry())
+        )
+      )
     # join all data together for final return data
     crowns_sf_with_dbh <- raster2trees_ans %>%
       # join dbh data
@@ -330,6 +476,13 @@ cloud2trees <- function(
         trees_dbh_ans %>%
           sf::st_drop_geometry() %>%
           dplyr::select(dplyr::all_of(dbh_names_temp))
+        , by = "treeID"
+      ) %>%
+      # join cbh data
+      dplyr::left_join(
+        trees_cbh_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(cbh_names_temp))
         , by = "treeID"
       ) %>%
       # join competition data
@@ -407,12 +560,25 @@ cloud2trees <- function(
       sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf_with_dbh))
 
     # remove temp files
-    if(keep_intrmdt==F){
+    if(keep_intrmdt==F & estimate_tree_cbh==F & estimate_dbh_from_cloud==F){
+      unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
+    }else if(keep_intrmdt==F & (estimate_tree_cbh==T | estimate_dbh_from_cloud==T)){
+      # move the normalized laz files to delivery
+      ### Create the directories
+      to_dir <- file.path(cloud2raster_ans$create_project_structure_ans$delivery_dir, "norm_las")
+      dir.create(to_dir, showWarnings = FALSE)
+      # which files
+      fls <- list.files(cloud2raster_ans$create_project_structure_ans$las_normalize_dir, full.names = T)
+      # copy files
+      q_file.copy <- purrr::quietly(file.copy)
+      xxx <- fls %>%
+        purrr::map(\(x) q_file.copy(from = x, to = to_dir))
+      # delete temp files
       unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
     }
 
     # write settings and timer data
-    xx7_fin <- Sys.time()
+    xx8_fin <- Sys.time()
     # data
       return_df <-
           # data from las_ctg
@@ -435,11 +601,13 @@ cloud2trees <- function(
               as.numeric()
             , timer_treels_stem_dbh_mins = difftime(xx5_trees_dbh, xx4_treels_stem_dbh, units = c("mins")) %>%
               as.numeric()
-            , timer_trees_dbh_mins = difftime(xx6_return, xx5_trees_dbh, units = c("mins")) %>%
+            , timer_trees_dbh_mins = difftime(xx6_trees_cbh, xx5_trees_dbh, units = c("mins")) %>%
               as.numeric()
-            , timer_write_data_mins = difftime(xx7_fin, xx6_return, units = c("mins")) %>%
+            , timer_trees_cbh_mins = difftime(xx7_return, xx6_trees_cbh, units = c("mins")) %>%
               as.numeric()
-            , timer_total_time_mins = difftime(xx7_fin, xx1_cloud2raster, units = c("mins")) %>%
+            , timer_write_data_mins = difftime(xx8_fin, xx7_return, units = c("mins")) %>%
+              as.numeric()
+            , timer_total_time_mins = difftime(xx8_fin, xx1_cloud2raster, units = c("mins")) %>%
               as.numeric()
             # settings
             , sttng_input_las_dir = input_las_dir
@@ -458,6 +626,19 @@ cloud2trees <- function(
             , sttng_estimate_tree_competition = estimate_tree_competition
             , sttng_competition_buffer_m = competition_buffer_m
             , sttng_search_dist_max = search_dist_max
+            , sttng_estimate_tree_cbh = estimate_tree_cbh
+            , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
+            , sttng_cbh_which_cbh = cbh_which_cbh
+            , sttng_cbh_estimate_missing_cbh = cbh_estimate_missing_cbh
+            , sttng_cbh_min_vhp_n = cbh_min_vhp_n
+            , sttng_cbh_voxel_grain_size_m = cbh_voxel_grain_size_m
+            , sttng_cbh_dist_btwn_bins_m = cbh_dist_btwn_bins_m
+            , sttng_cbh_min_fuel_layer_ht_m = cbh_min_fuel_layer_ht_m
+            , sttng_cbh_lad_pct_gap = cbh_lad_pct_gap
+            , sttng_cbh_lad_pct_base = cbh_lad_pct_base
+            , sttng_cbh_num_jump_steps = cbh_num_jump_steps
+            , sttng_cbh_min_lad_pct = cbh_min_lad_pct
+            , sttng_cbh_frst_layer_min_ht_m = cbh_frst_layer_min_ht_m
           )
 
       # write
@@ -472,13 +653,49 @@ cloud2trees <- function(
     # message
     message(
       "cloud2trees() total time was "
-      , round(as.numeric(difftime(xx7_fin, xx1_cloud2raster, units = c("mins"))),2)
+      , round(as.numeric(difftime(xx8_fin, xx1_cloud2raster, units = c("mins"))),2)
       , " minutes to process "
       , scales::comma(sum(cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$Number.of.point.records))
       , " points over an area of "
       , scales::comma(as.numeric(cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry %>% sf::st_union() %>% sf::st_area())/10000,accuracy = 0.01)
       , " hectares"
     )
+    #####################################
+    # print errors
+    #####################################
+      if(!is.null(err_trees_competition)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_competition()"
+          , "\n"
+          , err_trees_competition
+          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        ))
+      }
+      if(!is.null(err_treels_stem_dbh)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: treels_stem_dbh()"
+          , "\n"
+          , err_treels_stem_dbh
+          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        ))
+      }
+      if(!is.null(err_trees_dbh)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_dbh()"
+          , "\n"
+          , err_trees_dbh
+          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        ))
+      }
+      if(!is.null(err_trees_cbh)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_cbh()"
+          , "\n"
+          , err_trees_cbh
+          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        ))
+      }
+
     # return
     return(list(
       crowns_sf = crowns_sf_with_dbh
