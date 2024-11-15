@@ -282,7 +282,11 @@ plt_cbh <-
   ggplot2::theme_void() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 # combine with patchwork
-plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2)
+plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2) &
+  ggplot2::theme(
+    legend.title = ggplot2::element_text(size = 8)
+    , legend.text = ggplot2::element_text(size = 7)
+  )
 ```
 
 Let's plot the distance to the nearest tree that we obtained by turning on the `estimate_tree_competition` parameter in the `cloud2trees()` function call to quantify tree competition metrics. We'll use the spatial tree points data in `cloud2trees_ans_c$treetops_sf`. 
