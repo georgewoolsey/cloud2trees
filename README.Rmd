@@ -28,6 +28,8 @@ The goal of cloud2trees is to provide accessible routines for processing point c
 * Tinkham, Wade T., Neal C. Swayze, Chad M. Hoffman, Lauren E. Lad, and Mike A. Battaglia. ["Modeling the missing DBHs: Influence of model form on UAV DBH characterization."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=14807895789640069059) Forests 13, no. 12 (2022): 2077.
 * Creasy, Matthew B., Wade T. Tinkham, Chad M. Hoffman, and Jody C. Vogeler. ["Potential for individual tree monitoring in ponderosa pine dominated forests using unmanned aerial system structure from motion point clouds."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10356932785437169630) Canadian Journal of Forest Research 51, no. 8 (2021): 1093-1105.
 * Kane, Van R., Bryce N. Bartl-Geller, Gina R. Cova, Caden P. Chamberlain, Liz van Wagtendonk, and Malcolm P. North. ["Where are the large trees? A census of Sierra Nevada large trees to determine their frequency and spatial distribution across three large landscapes."](https://scholar.google.com/scholar?cluster=18100846251549158494&hl=en&as_sdt=0,6) Forest Ecology and Management 546 (2023): 121351.
+* Almeida, Danilo Roberti Alves de, Scott C. Stark, Gang Shao, Juliana Schietti, Bruce Walker Nelson, Carlos Alberto Silva, Eric Bastos Gorgens, Ruben Valbuena, Daniel de Almeida Papa, and Pedro Henrique Santin Brancalion. ["Optimizing the remote detection of tropical rainforest structure with airborne lidar: Leaf area profile sensitivity to pulse density and spatial sampling."](https://scholar.google.com/scholar?cluster=5085674356305592014&hl=en&as_sdt=0,6) Remote Sensing 11, no. 1 (2019): 92.
+* Viedma, O., C. A. Silva, J. M. Moreno, and A. T. Hudak. ["LadderFuelsR: A new automated tool for vertical fuel continuity analysis and crown base height detection using light detection and ranging."](https://scholar.google.com/scholar?cluster=14042621889986838235&oi=gsb&hl=en&as_sdt=0,6) Methods in Ecology and Evolution (2024).
 
 ## Installation
 
@@ -37,10 +39,20 @@ You can install the development version of `cloud2trees` from [GitHub](https://g
 
 ``` r
 # install.packages("pak")
-# first install lasR
+## first install lasR
 pak::pak("r-lidar/lasR", upgrade = TRUE)
-# get cloud2trees
-pak::pak("georgewoolsey/cloud2trees")
+## get cloud2trees
+pak::pak("georgewoolsey/cloud2trees", upgrade = TRUE)
+```
+
+Additionally, if you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) must be manually installed first.
+
+``` r
+# install.packages("pak")
+## install LadderFuelsR
+pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+## install leafR
+pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
 ```
 
 ## Preliminaries
@@ -57,11 +69,13 @@ library(cloud2trees)
 cloud2trees::get_treemap()
 ```
 
-We'll be using the `tidyverse` in the examples below.
+We'll be using the `tidyverse` and `terra` in the examples below.
 
 ```{r}
 # install.packages("tidyverse")
 library(tidyverse)
+# install.packages("terra")
+library(terra)
 ```
 
 ## Extract Trees from Point Cloud: Default
@@ -107,7 +121,11 @@ A spatial data frame with tree crown polygons is returned.
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 ```
 
-Notice that all of the `dbh` columns do not have data. That's because we did not tell the `cloud2trees()` to estimate DBH values by setting the `estimate_tree_dbh` parameter to `TRUE`.
+Notice that all of the `dbh`, `cbh`, and competition (`comp_`) columns do not have data. To estimate these values, we need to explicitly tell the `cloud2trees()` to perform the processing required by setting the parameters:
+
+* `estimate_tree_dbh=TRUE` for DBH (see also [`trees_dbh()`](#trees_dbh)).
+* `estimate_tree_cbh=TRUE` for CBH (see also [`trees_cbh()`](#trees_cbh))
+* `estimate_tree_competition=TRUE` for competition
 
 Let's plot these tree crown polygons using `ggplot2::ggplot()` with some custom plot settings.
 
@@ -162,6 +180,8 @@ Customizing the `cloud2trees()` function parameters we'll:
 * Change moving window used to detect the local maxima tree tops using `ws`
 * Estimate tree DBH using allometry from FIA plot data with `estimate_tree_dbh`
 * Quantify tree competition metrics with `estimate_tree_competition`
+* Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 444 trees using `cbh_tree_sample_n`
+* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 444 trees
 
 ```{r, results = FALSE}
 # run it
@@ -173,6 +193,9 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , ws = function(x){x*0.1}
   , estimate_tree_dbh = TRUE
   , estimate_tree_competition = TRUE
+  , estimate_tree_cbh = TRUE
+  , cbh_tree_sample_n = 444
+  , cbh_estimate_missing_cbh = TRUE
 )
 ```
 
@@ -187,7 +210,7 @@ paste(
 )
 ```
 
-Check that our spatial data frame with tree crown polygons has data in the `dbh` columns and `comp` (i.e. competition) columns.
+Check that our spatial data frame with tree crown polygons has data in the `dbh`, `cbh`, and `comp` (i.e. competition) columns.
 
 ```{r}
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
@@ -216,7 +239,21 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-We can also plot height and diameter of trees spatially and we'll use the `patchwork` package to combine our plots.
+Let's look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).
+
+```{r}
+cloud2trees_ans_c$crowns_sf %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "tree ht. (m)", y = "tree CBH (m)") +
+  ggplot2::scale_y_continuous(breaks = scales::extended_breaks(n=12)) +
+  ggplot2::scale_x_continuous(breaks = scales::extended_breaks(n=14)) +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::theme_light()
+```
+
+We can also plot height, diameter, and CBH of trees spatially and we'll use the `patchwork` package to combine our plots.
 
 ```{r}
 library(patchwork)
@@ -236,8 +273,16 @@ plt_dbh <-
   ggplot2::scale_fill_distiller(palette = "Purples", name = "tree DBH (cm)", direction = 1) +
   ggplot2::theme_void() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
+# CBH plot
+plt_cbh <-
+  cloud2trees_ans_c$crowns_sf %>% 
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_cbh_m)) + 
+  ggplot2::geom_sf() + 
+  ggplot2::scale_fill_distiller(palette = "Greens", name = "tree CBH (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 # combine with patchwork
-plt_ht + plt_dbh
+plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2)
 ```
 
 Let's plot the distance to the nearest tree that we obtained by turning on the `estimate_tree_competition` parameter in the `cloud2trees()` function call to quantify tree competition metrics. We'll use the spatial tree points data in `cloud2trees_ans_c$treetops_sf`. 
@@ -305,11 +350,11 @@ raster2trees_ans %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-## Estimate Tree DBH for a Tree List
+## Estimate Tree DBH for a Tree List{#trees_dbh}
 
 If we already have a list of trees with tree coordinate and tree height data, we can estimate tree DBH using a site-specific allometric equation based on FIA data with the `trees_dbh()` function.
 
-We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
+We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m` to the `trees_dbh()` function.
 
 ```{r}
 # a fake tree list
@@ -373,5 +418,77 @@ plt_dbh2 <-
   )
 # combine with patchwork
 plt_ht2 + plt_dbh2
+```
+
+## Estimate Tree CBH for a Tree List{#trees_cbh}
+
+If you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) must be manually installed first.
+
+``` r
+# install.packages("pak")
+## install LadderFuelsR
+pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+## install leafR
+pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
+```
+
+After installing these packages, if we already have spatial polygons of tree crowns and height normalized point cloud data, we can attempt to extract tree CBH from the point cloud using the `trees_cbh()` function.
+
+We just need to pass a `sf` class object with POLYGON geometry and the columns `treeID` and `tree_height_m` and the height normalized point cloud data to the `trees_cbh()` function.
+
+We'll use the tree crown polygons and normalized point cloud data examples that ship with the `cloud2trees` package.
+
+```{r, results = FALSE}
+# read example crown polygons
+f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+p <- sf::st_read(f, quiet = T)
+# path to the normalized point cloud data
+nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+# call the function
+trees_cbh_ans <- cloud2trees::trees_cbh(
+  trees_poly = p
+  , norm_las = nlas
+  , tree_sample_prop = 0.4
+  , estimate_missing_cbh = TRUE
+)
+```
+
+What is this data?
+
+```{r}
+trees_cbh_ans %>% dplyr::glimpse()
+```
+
+Let's look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).
+
+```{r}
+trees_cbh_ans %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "tree ht. (m)", y = "tree CBH (m)") +
+  ggplot2::scale_y_continuous(breaks = scales::extended_breaks(n=12)) +
+  ggplot2::scale_x_continuous(breaks = scales::extended_breaks(n=14)) +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::theme_light()
+```
+
+We can look at this data spatially too.
+
+```{r}
+trees_cbh_ans %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_sf() +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::scale_fill_distiller(palette = "Greens", name = "tree CBH (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    legend.position = "top", legend.direction = "horizontal"
+    , panel.border = ggplot2::element_rect(color = "black", fill = NA)
+  ) +
+  ggplot2::guides(
+    color = ggplot2::guide_legend(override.aes = list(lwd = 3, fill = NA))
+  )
 ```
 

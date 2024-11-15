@@ -23,6 +23,14 @@ lasr_chm <- function(
  , max_height_m = 70
  , lap_sz = 3
 ){
+  # lasR required
+  if(!requireNamespace("lasR", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"lasR\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+    ))
+  }
   # chm
     #set up chm pipeline step
     # operators = "max" is analogous to `lidR::rasterize_canopy(algorithm = p2r())`

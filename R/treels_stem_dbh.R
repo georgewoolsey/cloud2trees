@@ -45,6 +45,14 @@ treels_stem_dbh <- function(
     , max_dbh = 2
     , chunk_these = FALSE
 ) {
+  # TreeLS required
+  if(!requireNamespace("TreeLS", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"TreeLS\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"tiagodc/TreeLS\", upgrade = TRUE)`"
+    ))
+  }
   # chunk las files with buffer if needed
   if(chunk_these==T){
     normalize_flist <- chunk_norm_las(folder = folder, outfolder = outfolder)

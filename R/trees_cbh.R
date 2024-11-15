@@ -341,8 +341,10 @@ trees_cbh <- function(
         , min_fuel_layer_ht_m == dist_btwn_bins_m ~ min_fuel_layer_ht_m + 0.5
         , T ~ 0.5 # default that has worked with every try
       )
-      # new_min_vhp_n
+      # default some others
       new_min_vhp_n <- 4 # default
+      new_voxel_grain_size_m <- 2 # default
+      new_min_lad_pct <- 10 # default
       # message
       message(paste0(
         "No CBH values extracted from point cloud with supplied parameters."
@@ -350,6 +352,8 @@ trees_cbh <- function(
         , "\nmin_fuel_layer_ht_m from: ", min_fuel_layer_ht_m, " --> to: ", new_min_fuel_layer_ht_m
         , "\ndist_btwn_bins_m from: ", dist_btwn_bins_m, " --> to: ", new_dist_btwn_bins_m
         , "\nmin_vhp_n from: ", min_vhp_n, " --> to: ", new_min_vhp_n
+        , "\nvoxel_grain_size_m from: ", voxel_grain_size_m, " --> to: ", new_voxel_grain_size_m
+        , "\nmin_lad_pct from: ", min_lad_pct, " --> to: ", new_min_lad_pct
       ))
       ####################################################################
       # map over ladderfuelsr_cbh function
@@ -360,13 +364,13 @@ trees_cbh <- function(
               , poly_df = trees_poly
               , nlas = nlas_ctg
               , my_min_vhp_n = new_min_vhp_n
-              , my_voxel_grain_size_m = voxel_grain_size_m
+              , my_voxel_grain_size_m = new_voxel_grain_size_m
               , my_dist_btwn_bins_m = new_dist_btwn_bins_m
               , my_min_fuel_layer_ht_m = new_min_fuel_layer_ht_m
               , my_lad_pct_gap = lad_pct_gap
               , my_lad_pct_base = lad_pct_base
               , my_num_jump_steps = num_jump_steps
-              , my_min_lad_pct = min_lad_pct
+              , my_min_lad_pct = new_min_lad_pct
               , my_frst_layer_min_ht_m = frst_layer_min_ht_m
             )
             , .progress = "extracting CBH"
@@ -436,7 +440,7 @@ trees_cbh <- function(
       dplyr::mutate(
         tree_xxx = sf::st_coordinates(.)[,1]
         , tree_yyy = sf::st_coordinates(.)[,2]
-        , crown_area_zzz = sf::st_area(.)
+        , crown_area_zzz = sf::st_area(.) %>% as.numeric()
         , tree_height_m = as.numeric(tree_height_m)
         , tree_cbh_m = as.numeric(tree_cbh_m)
       ) %>%

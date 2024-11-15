@@ -628,6 +628,7 @@ cloud2trees <- function(
             , sttng_competition_buffer_m = competition_buffer_m
             , sttng_search_dist_max = search_dist_max
             , sttng_estimate_tree_cbh = estimate_tree_cbh
+            , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
             , sttng_cbh_which_cbh = cbh_which_cbh
             , sttng_cbh_estimate_missing_cbh = cbh_estimate_missing_cbh

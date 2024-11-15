@@ -61,8 +61,8 @@ ladderfuelsr_cbh <- function(
   , min_lad_pct = 10
   , frst_layer_min_ht_m = 1
 ) {
-  # leafR does not have function reference in its coding, have to make sure this library is loaded
-  if (!requireNamespace("leafR", quietly = TRUE)) {
+  # leafR required
+  if(!requireNamespace("leafR", quietly = TRUE)) {
     stop(paste0(
       "Package \"leafR\" must be installed to use this function."
       , "\n"
@@ -73,7 +73,7 @@ ladderfuelsr_cbh <- function(
     pointsByZSlice <<- leafR::pointsByZSlice
   }
   # LadderFuelsR required
-  if (!requireNamespace("LadderFuelsR", quietly = TRUE)) {
+  if(!requireNamespace("LadderFuelsR", quietly = TRUE)) {
     stop(paste0(
       "Package \"LadderFuelsR\" must be installed to use this function."
       , "\n"

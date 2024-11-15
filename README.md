@@ -36,6 +36,19 @@ may not be appropriate for other uses.
   frequency and spatial distribution across three large
   landscapes.”](https://scholar.google.com/scholar?cluster=18100846251549158494&hl=en&as_sdt=0,6)
   Forest Ecology and Management 546 (2023): 121351.
+- Almeida, Danilo Roberti Alves de, Scott C. Stark, Gang Shao, Juliana
+  Schietti, Bruce Walker Nelson, Carlos Alberto Silva, Eric Bastos
+  Gorgens, Ruben Valbuena, Daniel de Almeida Papa, and Pedro Henrique
+  Santin Brancalion. [“Optimizing the remote detection of tropical
+  rainforest structure with airborne lidar: Leaf area profile
+  sensitivity to pulse density and spatial
+  sampling.”](https://scholar.google.com/scholar?cluster=5085674356305592014&hl=en&as_sdt=0,6)
+  Remote Sensing 11, no. 1 (2019): 92.
+- Viedma, O., C. A. Silva, J. M. Moreno, and A. T. Hudak.
+  [“LadderFuelsR: A new automated tool for vertical fuel continuity
+  analysis and crown base height detection using light detection and
+  ranging.”](https://scholar.google.com/scholar?cluster=14042621889986838235&oi=gsb&hl=en&as_sdt=0,6)
+  Methods in Ecology and Evolution (2024).
 
 ## Installation
 
@@ -48,10 +61,24 @@ You can install the development version of `cloud2trees` from
 
 ``` r
 # install.packages("pak")
-# first install lasR
+## first install lasR
 pak::pak("r-lidar/lasR", upgrade = TRUE)
-# get cloud2trees
-pak::pak("georgewoolsey/cloud2trees")
+## get cloud2trees
+pak::pak("georgewoolsey/cloud2trees", upgrade = TRUE)
+```
+
+Additionally, if you wish to estimate crown base height (CBH) as part of
+the point cloud processing the `LadderFuelsR` package
+(<https://github.com/olgaviedma/LadderFuelsR>) and `leafR` package
+(<https://github.com/DRAAlmeida/leafR>) must be manually installed
+first.
+
+``` r
+# install.packages("pak")
+## install LadderFuelsR
+pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+## install leafR
+pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
 ```
 
 ## Preliminaries
@@ -76,11 +103,13 @@ library(cloud2trees)
 cloud2trees::get_treemap()
 ```
 
-We’ll be using the `tidyverse` in the examples below.
+We’ll be using the `tidyverse` and `terra` in the examples below.
 
 ``` r
 # install.packages("tidyverse")
 library(tidyverse)
+# install.packages("terra")
+library(terra)
 ```
 
 ## Extract Trees from Point Cloud: Default
@@ -137,7 +166,7 @@ A spatial data frame with tree crown polygons is returned.
 # there are tree crowns
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> Rows: 343
-#> Columns: 20
+#> Columns: 22
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481294.4_3813010.…
 #> $ tree_height_m             <dbl> 22.23, 15.85, 10.06, 13.44, 22.07, 22.48, 22…
 #> $ tree_x                    <dbl> 481281.4, 481294.4, 481306.4, 481312.9, 4813…
@@ -155,14 +184,23 @@ cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> $ basal_area_ft2            <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ tree_cbh_m                <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ is_training_cbh           <lgl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 ```
 
-Notice that all of the `dbh` columns do not have data. That’s because we
-did not tell the `cloud2trees()` to estimate DBH values by setting the
-`estimate_tree_dbh` parameter to `TRUE`.
+Notice that all of the `dbh`, `cbh`, and competition (`comp_`) columns
+do not have data. To estimate these values, we need to explicitly tell
+the `cloud2trees()` to perform the processing required by setting the
+parameters:
+
+- `estimate_tree_dbh=TRUE` for DBH (see also
+  [`trees_dbh()`](#trees_dbh)).
+- `estimate_tree_cbh=TRUE` for CBH (see also
+  [`trees_cbh()`](#trees_cbh))
+- `estimate_tree_competition=TRUE` for competition
 
 Let’s plot these tree crown polygons using `ggplot2::ggplot()` with some
 custom plot settings.
@@ -184,7 +222,7 @@ A spatial data frame with tree top points is returned.
 # there are tree top points
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> Rows: 343
-#> Columns: 18
+#> Columns: 20
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481294.4_3813010.…
 #> $ tree_height_m             <dbl> 22.23, 15.85, 10.06, 13.44, 22.07, 22.48, 22…
 #> $ crown_area_m2             <dbl> 10.4375, 9.5000, 1.1875, 4.4375, 6.3750, 10.…
@@ -199,6 +237,8 @@ cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> $ basal_area_ft2            <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ tree_cbh_m                <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ is_training_cbh           <lgl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
@@ -251,6 +291,10 @@ Customizing the `cloud2trees()` function parameters we’ll:
 - Estimate tree DBH using allometry from FIA plot data with
   `estimate_tree_dbh`
 - Quantify tree competition metrics with `estimate_tree_competition`
+- Extract tree CBH from the point cloud with `estimate_tree_cbh` for a
+  sample of 444 trees using `cbh_tree_sample_n`
+- Model the remaining tree CBH values with `cbh_estimate_missing_cbh`
+  based on our sample of 444 trees
 
 ``` r
 # run it
@@ -262,6 +306,9 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , ws = function(x){x*0.1}
   , estimate_tree_dbh = TRUE
   , estimate_tree_competition = TRUE
+  , estimate_tree_cbh = TRUE
+  , cbh_tree_sample_n = 444
+  , cbh_estimate_missing_cbh = TRUE
 )
 ```
 
@@ -278,29 +325,31 @@ paste(
 ```
 
 Check that our spatial data frame with tree crown polygons has data in
-the `dbh` columns and `comp` (i.e. competition) columns.
+the `dbh`, `cbh`, and `comp` (i.e. competition) columns.
 
 ``` r
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> Rows: 2,447
-#> Columns: 20
+#> Columns: 22
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481283.9_3813010.…
 #> $ tree_height_m             <dbl> 22.230, 18.350, 21.240, 15.850, 12.520, 5.68…
 #> $ tree_x                    <dbl> 481281.4, 481283.9, 481287.6, 481294.4, 4812…
 #> $ tree_y                    <dbl> 3813011, 3813011, 3813011, 3813011, 3813011,…
 #> $ crown_area_m2             <dbl> 6.7500, 3.3750, 9.2500, 3.5000, 0.9375, 0.31…
 #> $ geometry                  <GEOMETRY [m]> POLYGON ((481280.5 3813011,..., POL…
-#> $ fia_est_dbh_cm            <dbl> 50.993637, 39.516201, 48.078000, 32.160451, …
-#> $ fia_est_dbh_cm_lower      <dbl> 24.287051, 18.557785, 22.755078, 15.347852, …
-#> $ fia_est_dbh_cm_upper      <dbl> 84.88807, 67.07036, 80.69849, 54.61928, 39.0…
-#> $ dbh_cm                    <dbl> 50.993637, 39.516201, 48.078000, 32.160451, …
+#> $ fia_est_dbh_cm            <dbl> 50.937913, 39.705458, 48.135457, 32.332837, …
+#> $ fia_est_dbh_cm_lower      <dbl> 24.382098, 18.936069, 22.859550, 15.499458, …
+#> $ fia_est_dbh_cm_upper      <dbl> 85.92419, 66.70151, 81.13552, 54.26160, 39.6…
+#> $ dbh_cm                    <dbl> 50.937913, 39.705458, 48.135457, 32.332837, …
 #> $ is_training_data          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
-#> $ dbh_m                     <dbl> 0.50993637, 0.39516201, 0.48078000, 0.321604…
-#> $ radius_m                  <dbl> 0.25496819, 0.19758100, 0.24039000, 0.160802…
-#> $ basal_area_m2             <dbl> 0.204231092, 0.122642290, 0.181544322, 0.081…
-#> $ basal_area_ft2            <dbl> 2.19834347, 1.32012161, 1.95414308, 0.874395…
+#> $ dbh_m                     <dbl> 0.50937913, 0.39705458, 0.48135457, 0.323328…
+#> $ radius_m                  <dbl> 0.25468956, 0.19852729, 0.24067728, 0.161664…
+#> $ basal_area_m2             <dbl> 0.203784980, 0.123819856, 0.181978498, 0.082…
+#> $ basal_area_ft2            <dbl> 2.19354152, 1.33279693, 1.95881655, 0.883794…
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ tree_cbh_m                <dbl> 17.243033, 12.814300, 16.922000, 8.500000, 1…
+#> $ is_training_cbh           <lgl> FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FAL…
 #> $ comp_trees_per_ha         <dbl> 990.0593, 990.0593, 2227.6334, 5445.3261, 54…
 #> $ comp_relative_tree_height <dbl> 0.9099468, 0.8115878, 0.8780488, 1.0000000, …
 #> $ comp_dist_to_nearest_m    <dbl> 2.5000000, 2.5000000, 2.6100766, 1.5206906, …
@@ -335,8 +384,28 @@ cloud2trees_ans_c$crowns_sf %>%
 
 <img src="man/figures/README-unnamed-chunk-17-1.png" width="100%" />
 
-We can also plot height and diameter of trees spatially and we’ll use
-the `patchwork` package to combine our plots.
+Let’s look at the relationship between tree height and tree CBH as
+extracted from the point cloud. Note, that we do not expect a perfect
+linear relationship between tree height and CBH throughout the entire
+height range because CBH is also determined spatially (e.g. as a fire
+moves through a stand).
+
+``` r
+cloud2trees_ans_c$crowns_sf %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "tree ht. (m)", y = "tree CBH (m)") +
+  ggplot2::scale_y_continuous(breaks = scales::extended_breaks(n=12)) +
+  ggplot2::scale_x_continuous(breaks = scales::extended_breaks(n=14)) +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::theme_light()
+```
+
+<img src="man/figures/README-unnamed-chunk-18-1.png" width="100%" />
+
+We can also plot height, diameter, and CBH of trees spatially and we’ll
+use the `patchwork` package to combine our plots.
 
 ``` r
 library(patchwork)
@@ -356,11 +425,19 @@ plt_dbh <-
   ggplot2::scale_fill_distiller(palette = "Purples", name = "tree DBH (cm)", direction = 1) +
   ggplot2::theme_void() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
+# CBH plot
+plt_cbh <-
+  cloud2trees_ans_c$crowns_sf %>% 
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_cbh_m)) + 
+  ggplot2::geom_sf() + 
+  ggplot2::scale_fill_distiller(palette = "Greens", name = "tree CBH (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 # combine with patchwork
-plt_ht + plt_dbh
+plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2)
 ```
 
-<img src="man/figures/README-unnamed-chunk-18-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-19-1.png" width="100%" />
 
 Let’s plot the distance to the nearest tree that we obtained by turning
 on the `estimate_tree_competition` parameter in the `cloud2trees()`
@@ -376,7 +453,7 @@ cloud2trees_ans_c$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-19-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-20-1.png" width="100%" />
 
 ## Extract Raster Data from Point Cloud
 
@@ -395,7 +472,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2raster_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-21-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -405,7 +482,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2raster_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-23-1.png" width="100%" />
 
 ## Extract Trees from Raster Data
 
@@ -427,14 +504,14 @@ A spatial data frame with tree crown polygons is returned.
 ``` r
 # there are tree crowns
 raster2trees_ans %>% dplyr::glimpse()
-#> Rows: 467
+#> Rows: 151
 #> Columns: 6
-#> $ treeID        <chr> "1_481278.2_3813010.8", "2_481281.8_3813010.8", "3_48128…
-#> $ tree_height_m <dbl> 24.43, 22.23, 21.24, 15.85, 13.44, 22.07, 22.48, 22.93, …
-#> $ tree_x        <dbl> 481278.2, 481281.8, 481287.8, 481294.8, 481312.8, 481325…
-#> $ tree_y        <dbl> 3813011, 3813011, 3813011, 3813011, 3813011, 3813011, 38…
-#> $ crown_area_m2 <dbl> 9.75, 10.75, 11.50, 6.75, 5.00, 7.50, 12.25, 5.75, 6.25,…
-#> $ geometry      <GEOMETRY [m]> POLYGON ((481276 3813011, 4..., POLYGON ((48128…
+#> $ treeID        <chr> "1_458054.1_4450092.9", "2_458055.9_4450092.9", "3_45806…
+#> $ tree_height_m <dbl> 4.599, 5.130, 10.641, 4.610, 8.957, 10.310, 6.515, 4.271…
+#> $ tree_x        <dbl> 458054.1, 458055.9, 458064.9, 458078.4, 458067.6, 458044…
+#> $ tree_y        <dbl> 4450093, 4450093, 4450093, 4450093, 4450092, 4450092, 44…
+#> $ crown_area_m2 <dbl> 0.5625, 0.3750, 1.8750, 1.0000, 3.3125, 5.0000, 1.3750, …
+#> $ geometry      <GEOMETRY [m]> POLYGON ((458054 4450093, 4..., POLYGON ((45805…
 ```
 
 Let’s plot these tree crown polygons using `ggplot2::ggplot()` with some
@@ -449,7 +526,7 @@ raster2trees_ans %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-25-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-26-1.png" width="100%" />
 
 ## Estimate Tree DBH for a Tree List
 
@@ -458,7 +535,7 @@ data, we can estimate tree DBH using a site-specific allometric equation
 based on FIA data with the `trees_dbh()` function.
 
 We just need to pass a data frame with the columns `treeID`, `tree_x`,
-`tree_y`, and `tree_height_m`.
+`tree_y`, and `tree_height_m` to the `trees_dbh()` function.
 
 ``` r
 # a fake tree list
@@ -485,19 +562,19 @@ tl_dbh %>% dplyr::glimpse()
 #> Rows: 21
 #> Columns: 16
 #> $ treeID                 <chr> "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…
-#> $ tree_x                 <dbl> 458068.1, 458053.3, 458074.4, 458055.1, 458069.…
-#> $ tree_y                 <dbl> 4450075, 4450083, 4450057, 4450062, 4450083, 44…
-#> $ tree_height_m          <dbl> 1.327972, 7.822609, 1.173885, 1.852014, 2.96727…
-#> $ geometry               <POINT [m]> POINT (458068.1 4450075), POINT (458053.3…
-#> $ fia_est_dbh_cm         <dbl> 2.763185, 13.158511, 2.607240, 3.460979, 4.8845…
-#> $ fia_est_dbh_cm_lower   <dbl> 1.208977, 5.839927, 1.132689, 1.503969, 2.12817…
-#> $ fia_est_dbh_cm_upper   <dbl> 4.796758, 23.073036, 4.575159, 6.080621, 8.5459…
-#> $ dbh_cm                 <dbl> 2.763185, 13.158511, 2.607240, 3.460979, 4.8845…
+#> $ tree_x                 <dbl> 458068.1, 458062.8, 458050.1, 458060.5, 458061.…
+#> $ tree_y                 <dbl> 4450083, 4450059, 4450081, 4450078, 4450075, 44…
+#> $ tree_height_m          <dbl> 4.355789, 9.128754, 2.818490, 4.457037, 3.59322…
+#> $ geometry               <POINT [m]> POINT (458068.1 4450083), POINT (458062.8…
+#> $ fia_est_dbh_cm         <dbl> 6.959116, 15.675154, 4.625501, 7.119273, 5.7243…
+#> $ fia_est_dbh_cm_lower   <dbl> 3.221171, 7.193077, 2.157282, 3.309892, 2.62463…
+#> $ fia_est_dbh_cm_upper   <dbl> 11.960319, 26.635954, 7.884488, 12.126740, 9.71…
+#> $ dbh_cm                 <dbl> 6.959116, 15.675154, 4.625501, 7.119273, 5.7243…
 #> $ is_training_data       <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…
-#> $ dbh_m                  <dbl> 0.02763185, 0.13158511, 0.02607240, 0.03460979,…
-#> $ radius_m               <dbl> 0.01381592, 0.06579255, 0.01303620, 0.01730489,…
-#> $ basal_area_m2          <dbl> 0.0005996664, 0.0135988869, 0.0005338900, 0.000…
-#> $ basal_area_ft2         <dbl> 0.006454809, 0.146378419, 0.005746791, 0.010126…
+#> $ dbh_m                  <dbl> 0.06959116, 0.15675154, 0.04625501, 0.07119273,…
+#> $ radius_m               <dbl> 0.03479558, 0.07837577, 0.02312751, 0.03559637,…
+#> $ basal_area_m2          <dbl> 0.0038036282, 0.0192980532, 0.0016803800, 0.003…
+#> $ basal_area_ft2         <dbl> 0.04094225, 0.20772424, 0.01808761, 0.04284843,…
 #> $ ptcld_extracted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 #> $ ptcld_predicted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 ```
@@ -515,7 +592,7 @@ tl_dbh %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-29-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -546,4 +623,117 @@ plt_dbh2 <-
 plt_ht2 + plt_dbh2
 ```
 
-<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-31-1.png" width="100%" />
+
+## Estimate Tree CBH for a Tree List
+
+If you wish to estimate crown base height (CBH) as part of the point
+cloud processing the `LadderFuelsR` package
+(<https://github.com/olgaviedma/LadderFuelsR>) and `leafR` package
+(<https://github.com/DRAAlmeida/leafR>) must be manually installed
+first.
+
+``` r
+# install.packages("pak")
+## install LadderFuelsR
+pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+## install leafR
+pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
+```
+
+After installing these packages, if we already have spatial polygons of
+tree crowns and height normalized point cloud data, we can attempt to
+extract tree CBH from the point cloud using the `trees_cbh()` function.
+
+We just need to pass a `sf` class object with POLYGON geometry and the
+columns `treeID` and `tree_height_m` and the height normalized point
+cloud data to the `trees_cbh()` function.
+
+We’ll use the tree crown polygons and normalized point cloud data
+examples that ship with the `cloud2trees` package.
+
+``` r
+# read example crown polygons
+f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+p <- sf::st_read(f, quiet = T)
+# path to the normalized point cloud data
+nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+# call the function
+trees_cbh_ans <- cloud2trees::trees_cbh(
+  trees_poly = p
+  , norm_las = nlas
+  , tree_sample_prop = 0.4
+  , estimate_missing_cbh = TRUE
+)
+```
+
+What is this data?
+
+``` r
+trees_cbh_ans %>% dplyr::glimpse()
+#> Rows: 196
+#> Columns: 22
+#> $ treeID                    <chr> "1_458054.1_4450092.9", "2_458055.9_4450092.…
+#> $ tree_height_m             <dbl> 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 1…
+#> $ tree_x                    <dbl> 458054.1, 458055.9, 458064.9, 458078.4, 4580…
+#> $ tree_y                    <dbl> 4450093, 4450093, 4450093, 4450093, 4450092,…
+#> $ crown_area_m2             <dbl> 0.1875, 0.3750, 1.8750, 0.7500, 0.3750, 3.37…
+#> $ fia_est_dbh_cm            <dbl> 7.319132, 8.019020, 19.016688, 7.319132, 7.3…
+#> $ fia_est_dbh_cm_lower      <dbl> 3.255010, 3.515282, 8.424208, 3.255010, 3.25…
+#> $ fia_est_dbh_cm_upper      <dbl> 12.58250, 13.93920, 32.91103, 12.58250, 12.5…
+#> $ dbh_cm                    <dbl> 7.319132, 8.019020, 19.016688, 7.319132, 7.3…
+#> $ is_training_data          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
+#> $ dbh_m                     <dbl> 0.07319132, 0.08019020, 0.19016688, 0.073191…
+#> $ radius_m                  <dbl> 0.03659566, 0.04009510, 0.09508344, 0.036595…
+#> $ basal_area_m2             <dbl> 0.004207353, 0.005050479, 0.028402703, 0.004…
+#> $ basal_area_ft2            <dbl> 0.04528795, 0.05436335, 0.30572669, 0.045287…
+#> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ tree_cbh_m                <dbl> 3.563903, 3.582750, 3.802509, 3.842963, 3.56…
+#> $ is_training_cbh           <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
+#> $ geom                      <MULTIPOLYGON [m]> MULTIPOLYGON (((458054 4450...,…
+```
+
+Let’s look at the relationship between tree height and tree CBH as
+extracted from the point cloud. Note, that we do not expect a perfect
+linear relationship between tree height and CBH throughout the entire
+height range because CBH is also determined spatially (e.g. as a fire
+moves through a stand).
+
+``` r
+trees_cbh_ans %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "tree ht. (m)", y = "tree CBH (m)") +
+  ggplot2::scale_y_continuous(breaks = scales::extended_breaks(n=12)) +
+  ggplot2::scale_x_continuous(breaks = scales::extended_breaks(n=14)) +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::theme_light()
+```
+
+<img src="man/figures/README-unnamed-chunk-34-1.png" width="100%" />
+
+We can look at this data spatially too.
+
+``` r
+trees_cbh_ans %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_cbh_m, color=is_training_cbh)) + 
+  ggplot2::geom_sf() +
+  ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
+  ggplot2::scale_fill_distiller(palette = "Greens", name = "tree CBH (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    legend.position = "top", legend.direction = "horizontal"
+    , panel.border = ggplot2::element_rect(color = "black", fill = NA)
+  ) +
+  ggplot2::guides(
+    color = ggplot2::guide_legend(override.aes = list(lwd = 3, fill = NA))
+  )
+```
+
+<img src="man/figures/README-unnamed-chunk-35-1.png" width="100%" />
