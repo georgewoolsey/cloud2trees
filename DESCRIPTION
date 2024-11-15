@@ -1,7 +1,7 @@
 Type: Package
 Package: cloud2trees
 Title: Point Cloud Data to Forest Inventory Tree List
-Version: 0.1.1
+Version: 0.2.0
 Author: George Woolsey, Colorado State University
 Maintainer: <george.woolsey@colostate.edu>
 Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
