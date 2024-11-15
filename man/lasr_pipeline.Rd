@@ -2,7 +2,7 @@
 % Please edit documentation in R/lasr_pipeline.R
 \name{lasr_pipeline}
 \alias{lasr_pipeline}
-\title{Create lasR pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}}
+\title{Create \code{lasR} package pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}}
 \usage{
 lasr_pipeline(
   processing_grid_num = 1,
@@ -45,7 +45,7 @@ lasr_pipeline(
 A \code{lasR} pipeline answer list
 }
 \description{
-Create lasR pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
+Create \code{lasR} package pipeline to process a las grid tile created via \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
 }
 \references{
 \url{https://r-lidar.github.io/lasR/index.html}

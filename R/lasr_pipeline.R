@@ -1,7 +1,7 @@
-#' @title Create lasR pipeline to process a las grid tile created via [chunk_las_catalog()]
+#' @title Create `lasR` package pipeline to process a las grid tile created via [chunk_las_catalog()]
 #'
 #' @description
-#' Create lasR pipeline to process a las grid tile created via [chunk_las_catalog()]
+#' Create `lasR` package pipeline to process a las grid tile created via [chunk_las_catalog()]
 #'
 #' @param processing_grid_num numeric. processing_grid column in the data.frame created via [chunk_las_catalog()]
 #' @param process_data data.frame. data.frame created via [chunk_las_catalog()]
@@ -36,6 +36,14 @@ lasr_pipeline <- function(
   , classify_dir = getwd()
   , normalize_dir = getwd()
 ){
+  # lasR required
+  if(!requireNamespace("lasR", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"lasR\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+    ))
+  }
   #################################################
   # setup to pass to lasR functions
   #################################################

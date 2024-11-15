@@ -31,6 +31,20 @@ cloud2trees(
   estimate_tree_competition = FALSE,
   competition_buffer_m = 5,
   search_dist_max = 10,
+  estimate_tree_cbh = FALSE,
+  cbh_tree_sample_n = NA,
+  cbh_tree_sample_prop = NA,
+  cbh_which_cbh = "lowest",
+  cbh_estimate_missing_cbh = FALSE,
+  cbh_min_vhp_n = 4,
+  cbh_voxel_grain_size_m = 2,
+  cbh_dist_btwn_bins_m = 1,
+  cbh_min_fuel_layer_ht_m = 1,
+  cbh_lad_pct_gap = 25,
+  cbh_lad_pct_base = 25,
+  cbh_num_jump_steps = 1,
+  cbh_min_lad_pct = 10,
+  cbh_frst_layer_min_ht_m = 1,
   overwrite = TRUE
 )
 }
@@ -87,6 +101,42 @@ desired size of the search window when centered on that pixel.}
 \item{search_dist_max}{number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
 If no competition trees are found within this distance, the return column \code{comp_dist_to_nearest_m} = \code{search_dist_max} parameter.}
 
+\item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
+Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
+
+\item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
+proportion of the trees to attempt to extract a CBH from the point cloud for.
+If neither are supplied, \code{tree_sample_n = 500} will be used. If both are supplied, \code{tree_sample_n} will be used.
+Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
+
+\item{cbh_which_cbh}{character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
+\itemize{
+\item "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
+\item "highest" - Height of the CBH of the segmented tree based on the maximum distance found in its profile
+\item "max_lad" - Height of the CBH of the segmented tree based on the maximum LAD percentage
+}}
+
+\item{cbh_estimate_missing_cbh}{logical. even if the \code{cbh_tree_sample_prop} parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
+Should the missing CBH values be estimated using the tree height and location information based on trees for which CBH is successfully extracted?}
+
+\item{cbh_min_vhp_n}{numeric. the minimum number of vertical height profiles (VHPs) needed to estimate a CBH.}
+
+\item{cbh_voxel_grain_size_m}{numeric. horizontal resolution (suggested 1 meter for lad profiles and 10 meters for LAI maps). See \code{grain.size} in \code{\link[leafR:lad.voxels]{leafR::lad.voxels()}}}
+
+\item{cbh_dist_btwn_bins_m}{numeric. value for the actual height bin step (in meters). See \code{step} in \code{\link[LadderFuelsR:get_gaps_fbhs]{LadderFuelsR::get_gaps_fbhs()}}}
+
+\item{cbh_min_fuel_layer_ht_m}{numeric. value for the actual minimum base height (in meters). See \code{min_height} in \code{\link[LadderFuelsR:get_gaps_fbhs]{LadderFuelsR::get_gaps_fbhs()}}}
+
+\item{cbh_lad_pct_gap}{numeric. value of the percentile threshold used to identify gaps (default percentile 25th). See \code{perc_gap} in \code{\link[LadderFuelsR:get_gaps_fbhs]{LadderFuelsR::get_gaps_fbhs()}}}
+
+\item{cbh_lad_pct_base}{numeric. value of the percentile threshold used to identify fuels layers base height (default percentile 25th). See \code{perc_base} in \code{\link[LadderFuelsR:get_gaps_fbhs]{LadderFuelsR::get_gaps_fbhs()}}}
+
+\item{cbh_num_jump_steps}{numeric. value for the number of height bin steps that can be jumped to reshape fuels layers. See \code{number_steps} in \code{\link[LadderFuelsR:get_real_fbh]{LadderFuelsR::get_real_fbh()}}}
+
+\item{cbh_min_lad_pct}{numeric. value for the minimum required LAD percentage in a fuel layer. See \code{threshold} in \code{\link[LadderFuelsR:get_layers_lad]{LadderFuelsR::get_layers_lad()}}}
+
+\item{cbh_frst_layer_min_ht_m}{numeric. value for the depth height of the first fuel layer. If the first fuel layer has the maximum LAD and its depth is greater than the indicated value, then this fuel layer is considered as the CBH of the tree. On the contrary, if its depth is <= the value, the CBH with maximum LAD will be the second fuel layer, although it has not the maximum LAD. See \code{hdepth1_height} in \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}}
+
 \item{overwrite}{logical. Should the output files in the \code{point_cloud_processing_delivery} directory from previous iterations be deleted?}
 }
 \value{
@@ -104,6 +154,7 @@ The order of operations is:
 \item Quantify individual tree competition metrics using \code{\link[=trees_competition]{trees_competition()}} (\emph{if set to TRUE})
 \item Extract tree DBH values from the normalized point cloud using \code{\link[=treels_stem_dbh]{treels_stem_dbh()}} (\emph{if set to TRUE})
 \item Model tree DBH values using \code{\link[=trees_dbh]{trees_dbh()}} (\emph{if set to TRUE})
+\item Extract tree CBH values from the normalized point cloud and estimate missing values using \code{\link[=trees_cbh]{trees_cbh()}} (\emph{if set to TRUE})
 }
 
 See the documentation for each individual function called for more details.

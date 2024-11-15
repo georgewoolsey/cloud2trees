@@ -1,7 +1,7 @@
 Type: Package
 Package: cloud2trees
 Title: Point Cloud Data to Forest Inventory Tree List
-Version: 0.1.1
+Version: 0.2.0
 Author: George Woolsey, Colorado State University
 Maintainer: <george.woolsey@colostate.edu>
 Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
@@ -15,7 +15,9 @@ Imports:
     dplyr,
     ForestTools,
     ggplot2,
-    lasR (>= 0.10.1),
+    LadderFuelsR (>= 0.0.7),
+    lasR (>= 0.10.2),
+    leafR (>= 0.3.5),
     lidR,
     magrittr,
     posterior,
@@ -40,6 +42,8 @@ Suggests:
 VignetteBuilder: 
     knitr
 Remotes: 
+    github::DRAAlmeida/leafR,
+    github::olgaviedma/LadderFuelsR,
     github::r-lidar/lasR,
     github::tiagodc/TreeLS
 Config/testthat/edition: 3

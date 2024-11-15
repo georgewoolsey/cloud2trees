@@ -24,6 +24,14 @@ lasr_dtm_norm <- function(
   , dtm_res = 1
   , norm_accuracy = 2
 ){
+  # lasR required
+  if(!requireNamespace("lasR", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"lasR\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+    ))
+  }
   # perform Delaunay triangulation
     # tri = lasR::triangulate(filter = "-keep_class 2 -keep_class 9 -keep_random_fraction 0.01")
     ####

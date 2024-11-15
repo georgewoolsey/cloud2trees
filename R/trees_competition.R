@@ -113,6 +113,16 @@ trees_competition <- function(
     stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
   }
 
+  # get rid of columns we'll create
+    tree_tops <- tree_tops %>%
+      # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+      dplyr::select( -dplyr::any_of(c(
+        "hey_xxxxxxxxxx"
+        , "comp_trees_per_ha"
+        , "comp_relative_tree_height"
+        , "comp_dist_to_nearest_m"
+      )))
+
   ####################################################################
   # Calculate local tree competition metrics
   ####################################################################
