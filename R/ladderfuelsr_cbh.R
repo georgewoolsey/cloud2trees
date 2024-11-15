@@ -46,13 +46,6 @@
 #'
 #' @return Returns an a list of data.frame objects that are the results of the different LadderFuelsR steps. Returns NULL if the process is unable to detect a CBH from the point cloud.
 #'
-#' @examples
-#'  \dontrun{
-#'  o <- "../data"
-#'  i <- "../data/normlasdata"
-#'  r <- cloud2trees::treels_stem_dbh(folder = i, outfolder = o)
-#'  r %>% names()
-#'  }
 #' @export
 #'
 ladderfuelsr_cbh <- function(
@@ -69,7 +62,24 @@ ladderfuelsr_cbh <- function(
   , frst_layer_min_ht_m = 1
 ) {
   # leafR does not have function reference in its coding, have to make sure this library is loaded
-  library("leafR")
+  if (!requireNamespace("leafR", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"leafR\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"DRAAlmeida/leafR\", upgrade = TRUE)`"
+    ))
+  }else{
+    # leafR does not have function reference in its coding and calls this nefarious "pointsByZSlice"
+    pointsByZSlice <<- leafR::pointsByZSlice
+  }
+  # LadderFuelsR required
+  if (!requireNamespace("LadderFuelsR", quietly = TRUE)) {
+    stop(paste0(
+      "Package \"LadderFuelsR\" must be installed to use this function."
+      , "\n"
+      , "try `pak::pak(\"olgaviedma/LadderFuelsR\", upgrade = TRUE)`"
+    ))
+  }
   # check if string to las/laz file
   if(inherits(las, "character")){
     if(!stringr::str_ends(las, ".*\\.(laz|las)$")){

@@ -48,7 +48,26 @@
 #'
 #' @examples
 #'  \dontrun{
-#'  # example tree list
+#'  # example tree crown polygons
+#'  f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+#'  crowns <- sf::st_read(f, quiet = T)
+#'  # example normalized las files are in this directory
+#'  norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+#'  # now run the trees_cbh()
+#'  trees_cbh_ans <- trees_cbh(
+#'     trees_poly = crowns
+#'     , norm_las = norm_d
+#'     , tree_sample_n = 30
+#'     , estimate_missing_cbh = T)
+#'  # what?
+#'  trees_cbh_ans %>% class()
+#'  trees_cbh_ans %>% dplyr::select(tidyselect::contains("cbh")) %>% dplyr::glimpse()
+#'  # spatial polygons
+#'  trees_cbh_ans %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=tree_cbh_m))
+#'  # relationship between height and cbh
+#'  trees_cbh_ans %>%
+#'     ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) +
+#'     ggplot2::geom_point()
 #'  }
 #' @export
 #'

@@ -29,6 +29,7 @@
 #' @param search_dist_max number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
 #' If no competition trees are found within this distance, the return column `comp_dist_to_nearest_m` = `search_dist_max` parameter.
 #' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
+#'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
 #'   If neither are supplied, `tree_sample_n = 500` will be used. If both are supplied, `tree_sample_n` will be used.
@@ -37,8 +38,8 @@
 #' * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
 #' * "highest" - Height of the CBH of the segmented tree based on the maximum distance found in its profile
 #' * "max_lad" - Height of the CBH of the segmented tree based on the maximum LAD percentage
-#' @param cbh_estimate_missing_cbh logical. even if the `tree_sample_prop` parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
-#' Should the missing CBH values be estimated using the tree height and location information based on trees for which CBH is successfully extracted?
+#' @param cbh_estimate_missing_cbh logical. even if the `cbh_tree_sample_prop` parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
+#'   Should the missing CBH values be estimated using the tree height and location information based on trees for which CBH is successfully extracted?
 #' @param cbh_min_vhp_n numeric. the minimum number of vertical height profiles (VHPs) needed to estimate a CBH.
 #' @param cbh_voxel_grain_size_m numeric. horizontal resolution (suggested 1 meter for lad profiles and 10 meters for LAI maps). See `grain.size` in [leafR::lad.voxels()]
 #' @param cbh_dist_btwn_bins_m numeric. value for the actual height bin step (in meters). See `step` in [LadderFuelsR::get_gaps_fbhs()]
@@ -668,7 +669,8 @@ cloud2trees <- function(
           "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_competition()"
           , "\n"
           , err_trees_competition
-          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          , "\n..............try to run trees_competition() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` in the `point_cloud_processing_delivery` directory"
         ))
       }
       if(!is.null(err_treels_stem_dbh)){
@@ -676,7 +678,8 @@ cloud2trees <- function(
           "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: treels_stem_dbh()"
           , "\n"
           , err_treels_stem_dbh
-          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          , "\n..............try to run treels_stem_dbh() with updated parameter settings"
+          , "\nusing las files in `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }
       if(!is.null(err_trees_dbh)){
@@ -684,7 +687,8 @@ cloud2trees <- function(
           "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_dbh()"
           , "\n"
           , err_trees_dbh
-          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          , "\n..............try to run trees_dbh() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` in the `point_cloud_processing_delivery` directory"
         ))
       }
       if(!is.null(err_trees_cbh)){
@@ -692,7 +696,8 @@ cloud2trees <- function(
           "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_cbh()"
           , "\n"
           , err_trees_cbh
-          , "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          , "\n..............try to run trees_cbh() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }
 

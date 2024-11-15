@@ -68,14 +68,6 @@ The order of operations is:
 \item Determine the CBH of a segmented tree using three criteria: maximum LAD percentage, maximum distance and the last distance using \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}
 }
 }
-\examples{
- \dontrun{
- o <- "../data"
- i <- "../data/normlasdata"
- r <- cloud2trees::treels_stem_dbh(folder = i, outfolder = o)
- r \%>\% names()
- }
-}
 \references{
 \itemize{
 \item \url{https://doi.org/10.1111/2041-210X.14427}

@@ -101,7 +101,8 @@ desired size of the search window when centered on that pixel.}
 \item{search_dist_max}{number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
 If no competition trees are found within this distance, the return column \code{comp_dist_to_nearest_m} = \code{search_dist_max} parameter.}
 
-\item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.}
+\item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
+Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
 
 \item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a CBH from the point cloud for.
@@ -115,7 +116,7 @@ Increasing \code{tree_sample_prop} toward one (1) will increase the processing t
 \item "max_lad" - Height of the CBH of the segmented tree based on the maximum LAD percentage
 }}
 
-\item{cbh_estimate_missing_cbh}{logical. even if the \code{tree_sample_prop} parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
+\item{cbh_estimate_missing_cbh}{logical. even if the \code{cbh_tree_sample_prop} parameter is set to "1", it is not likely that CBH will be extracted successfully from every tree.
 Should the missing CBH values be estimated using the tree height and location information based on trees for which CBH is successfully extracted?}
 
 \item{cbh_min_vhp_n}{numeric. the minimum number of vertical height profiles (VHPs) needed to estimate a CBH.}
