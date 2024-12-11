@@ -171,7 +171,7 @@ trees_species <- function(
       max(max_search_dist_m)
 
     # check against the study boundary
-    if(inherits(study_boundary, "sf") | inherits(study_boundary, "sfc")){
+    if(inherits(study_boundary, "sf") || inherits(study_boundary, "sfc")){
       bbox_b_temp <- study_boundary %>%
         sf::st_union() %>%
         sf::st_as_sf() %>%

@@ -712,14 +712,14 @@ cloud2trees <- function(
 }
 
 ####################################################################
-## intermediate fn to get list difference
+## intermediate fn to get list difference...now in get_url_data()
 ####################################################################
-get_list_diff <- function(x, y) {
-  if(inherits(x, "character") & inherits(y, "character")){
-      d <- x[!(x %in% y)]
-      d <- unique(d)
-  }else{
-    stop("must provide character list in x and y")
-  }
-  return(d)
-}
+# get_list_diff <- function(x, y) {
+#   if(inherits(x, "character") & inherits(y, "character")){
+#       d <- x[!(x %in% y)]
+#       d <- unique(d)
+#   }else{
+#     stop("must provide character list in x and y")
+#   }
+#   return(d)
+# }
