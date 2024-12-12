@@ -57,25 +57,58 @@ pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
 
 ## Preliminaries
 
-To estimate tree DBH from extracted tree height data requires training data to model diameter using height. Site-specific allometric equations using data from the USDA Forest Service’s Forest Inventory Analysis (FIA) program are used to estimate individual tree DBH based on the point cloud-detected tree height.
+### tl;dr
 
-FIA plots are identified using [TreeMap 2016](https://scholar.google.com/scholar?cluster=10696389844245769168&hl=en&as_sdt=0,6), a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
-
-You must first download the FIA data (~3 GB) using `get_treemap()` which only needs to be run the first time you use the `cloud2trees` package.
+The `cloud2trees` package relies on external data to estimate tree DBH and tree forest type. If this is functionality you will use, the data must be downloaded first using `get_data()` which only needs to be run the first time you use the `cloud2trees` package.
 
 ```{r, results = FALSE}
 library(cloud2trees)
-# download the TreeMap data
-cloud2trees::get_treemap()
+# download the external data
+cloud2trees::get_data()
 ```
 
-We'll be using the `tidyverse` and `terra` in the examples below.
+Some machines, US Federal Government computers especially, might prevent you from writing directly to the package contents. If you get an error about "access" or "writing to" from the `get_data()` function, try to set the `savedir` parameter to a directory that you know you can write to.
+
+```{r, eval=FALSE}
+# download the external data with a custom directory
+cloud2trees::get_data(savedir = "C:/ican/access/this")
+```
+
+We'll be using the `tidyverse`, `sf`, and `terra` in the examples below.
 
 ```{r}
 # install.packages("tidyverse")
 library(tidyverse)
+# install.packages("sf")
+library(sf)
 # install.packages("terra")
 library(terra)
+```
+
+### Get TreeMap Data
+
+To estimate tree DBH from extracted tree height data requires training data to model diameter using height. Site-specific allometric equations using data from the USDA Forest Service’s Forest Inventory Analysis (FIA) program are used to estimate individual tree DBH based on the point cloud-detected tree height.
+
+FIA plots are identified using [TreeMap 2016](https://scholar.google.com/scholar?cluster=10696389844245769168&hl=en&as_sdt=0,6), a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
+
+Unless you have already executed the `get_data()` function, you must first download the FIA data (~3 GB) using `get_treemap()` which only needs to be run the first time you use the `cloud2trees` package.
+
+```{r, results = FALSE}
+# download the TreeMap data
+cloud2trees::get_treemap()
+```
+
+### Get Forest Type Group Data
+
+To estimate FIA forest type group for trees requires external data to spatially determine the type of a tree.
+
+Forest type groups are identified using the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program and has been aggregated to 90-meter resolution for this specific project to make the data more accessible over the entire continental US.
+
+Unless you have already executed the `get_data()` function, you must first download the FIA data (~3 GB) using `get_foresttype()` which only needs to be run the first time you use the `cloud2trees` package.
+
+```{r, results = FALSE}
+# download the forest type data
+cloud2trees::get_foresttype()
 ```
 
 ## Extract Trees from Point Cloud: Default

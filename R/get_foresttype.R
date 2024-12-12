@@ -7,7 +7,7 @@
 #'
 #' @description
 #' The Forest Type Groups of the Continental United States data is used to estimate individual tree forest type group.
-#' See [trees_species()]
+#' See [trees_type()]
 #'
 #' @examples
 #'  \dontrun{

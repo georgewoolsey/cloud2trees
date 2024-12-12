@@ -13,7 +13,7 @@ get_foresttype(savedir = NULL, force = F)
 }
 \description{
 The Forest Type Groups of the Continental United States data is used to estimate individual tree forest type group.
-See \code{\link[=trees_species]{trees_species()}}
+See \code{\link[=trees_type]{trees_type()}}
 }
 \examples{
  \dontrun{

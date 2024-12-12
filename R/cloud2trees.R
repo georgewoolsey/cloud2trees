@@ -507,8 +507,8 @@ cloud2trees <- function(
     # handle error
     if(is.null(trees_type_ans$error)){ # no error
       # just get the result
-      trees_type_ans <- trees_type_ans$result$tree_list
-      trees_type_rast <- trees_type_ans$result$foresttype_rast
+      trees_type_rast <- trees_type_ans$result$foresttype_rast # $foresttype_rast unique to this function
+      trees_type_ans <- trees_type_ans$result$tree_list  # $tree_list unique to this function
     }else{
       # error
       err_trees_type <- trees_type_ans$error
