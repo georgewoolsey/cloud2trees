@@ -1,5 +1,5 @@
 #' @title Download TreeMap 2016 data
-#' @param force Whether to overwrite exising data
+#' @param force Whether to overwrite existing data
 #' @param savedir Optional directory to save data in a new location. Defaults to package contents.
 #' @references
 #' [https://doi.org/10.2737/RDS-2021-0074](https://doi.org/10.2737/RDS-2021-0074)
@@ -26,14 +26,37 @@ get_treemap <- function(
   my_my_name <- "treemap"
   my_req_file_list <- c("treemap2016.tif", "treemap2016_tree_table.csv")
   my_cleanup_zip <- T
+  # set up to save csv to package contents with location of data
+  pkg_dir <- pkg_dir()
+  if(!dir.exists(pkg_dir)){
+    dir.create(pkg_dir, showWarnings = FALSE)
+  }
+  my_savedir <- ifelse(
+      purrr::is_empty( normalizePath(file.path(savedir)) )
+      , pkg_dir
+      , normalizePath(file.path(savedir))
+    )
 
   # call get_url_data()
-  get_url_data(
+  get_ans <- get_url_data(
     eval_url = my_eval_url
     , my_name = my_my_name
-    , savedir = savedir
+    , savedir = my_savedir
     , req_file_list = my_req_file_list
     , force = force
     , cleanup_zip = my_cleanup_zip
   )
+
+  # save the location to a csv file if successful download
+  if(get_ans==T){
+    # where was this written?
+    fff <- file.path(my_savedir, my_my_name)
+    # write a csv to package directory with location of data
+    dplyr::tibble(location = fff) %>%
+      write.csv(
+        file.path(pkg_dir, "location_treemap.csv")
+        , row.names = F
+        , append = F
+      )
+  }
 }

@@ -5,14 +5,9 @@
 *.aux.xml
 .DS_Store
 inst/extdata/treemap/
+inst/extdata/foresttype/
+inst/extdata/location_treemap.csv
+inst/extdata/location_foresttype.csv
 point_cloud_processing_delivery/
 point_cloud_processing_temp/
-*.las
-*.laz
-*.tiff
-*.tif
-!inst/*.las
-!inst/*.laz
-!inst/*.tiff
-!inst/*.tif
 point_cloud_processing.R

@@ -23,7 +23,7 @@ get_url_data(
 
 \item{req_file_list}{Optional list of files to check for before re-downloading full data}
 
-\item{force}{Whether to overwrite exising data}
+\item{force}{Whether to overwrite existing data}
 
 \item{cleanup_zip}{Whether to remove the .zip file after extracting the contents}
 }

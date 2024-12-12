@@ -3,7 +3,7 @@
 #' @param my_name Required name for the folder which data will be extracted to
 #' @param savedir Optional directory to save data in a new location. Defaults to package contents.
 #' @param req_file_list Optional list of files to check for before re-downloading full data
-#' @param force Whether to overwrite exising data
+#' @param force Whether to overwrite existing data
 #' @param cleanup_zip Whether to remove the .zip file after extracting the contents
 #'
 #' @description
@@ -39,14 +39,20 @@ get_url_data <- function(
   timeout_option_backup <- getOption("timeout")
   options(timeout = max(3600, getOption("timeout")))
 
+  # package directory
+  pkg_dir <- pkg_dir()
+
   ## directory names
   if(is.null(savedir)){
-    # create dir
-    dir.create(file.path(system.file(package = "cloud2trees"),"extdata"), showWarnings = FALSE)
     # names
-    dirname <- file.path(system.file(package = "cloud2trees"),"extdata", my_name)
+    dirname <- file.path(pkg_dir, my_name)
   }else{
-    dirname <- file.path(savedir,my_name)
+    dirname <- normalizePath( file.path(savedir,my_name) )
+  }
+
+  # create top dir
+  if(!dir.exists( dirname(dirname) )){
+    dir.create(dirname(dirname), showWarnings = FALSE)
   }
   # create dir
   dir.create(dirname, showWarnings = FALSE)
@@ -60,7 +66,7 @@ get_url_data <- function(
   if(length(ld)==0){
     if(!force){
       warning(paste("Data has already been downloaded to",dirname,", use force=T to overwrite"))
-      return(NULL)
+      return(FALSE)
     }
   }
 
@@ -72,6 +78,7 @@ get_url_data <- function(
   unzip_download(zip_file_pth_nm, zip_rm = cleanup_zip, move_to_top = move_files_to_top)
 
   options(timeout = timeout_option_backup)
+  return(TRUE)
 }
 ####################################################################
 ## intermediate fn to get list difference
@@ -135,4 +142,8 @@ unzip_download <- function(destination, zip_rm = TRUE, move_to_top = TRUE){
   if(zip_rm==T){
     unlink(destination)
   }
+}
+### intermediate function to get the package directory
+pkg_dir <- function(){
+  file.path(system.file(package = "cloud2trees"),"extdata")
 }

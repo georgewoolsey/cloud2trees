@@ -9,7 +9,7 @@ get_foresttype(savedir = NULL, force = F)
 \arguments{
 \item{savedir}{Optional directory to save data in a new location. Defaults to package contents.}
 
-\item{force}{Whether to overwrite exising data}
+\item{force}{Whether to overwrite existing data}
 }
 \description{
 The Forest Type Groups of the Continental United States data is used to estimate individual tree forest type group.
