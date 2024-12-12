@@ -11,7 +11,7 @@ trees_dbh(
   dbh_model = "lin",
   treels_dbh_locations = NA,
   boundary_buffer = 50,
-  input_treemap_dir = paste0(system.file(package = "cloud2trees"), "/extdata/treemap"),
+  input_treemap_dir = NULL,
   outfolder = tempdir()
 )
 }

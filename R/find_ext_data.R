@@ -1,40 +1,41 @@
 #' @title Find the location of external data
 #'
-#' @param input_treemap_dir directory where Treemap 2016 exists. Use [get_treemap()] first.
-#' @param input_foresttype_dir directory where Forest Type Groups data exists. Use [get_foresttype()] first.
+#' @param input_treemap_dir character. directory where Treemap 2016 exists. Use [get_treemap()] first.
+#' @param input_foresttype_dir character. directory where Forest Type Groups data exists. Use [get_foresttype()] first.
 #'
 #' @description
 #' Find the location of external data
 #' Functions `get_*()` download external data
 #'
-#' @return Returns a list where the values will be either NULL if unable to locate the external data files, or the directory where the external data files were located
+#' @return Returns a list where the values will be either NULL if unable to locate the external data files
+#' , or the directory where the external data files were located.
 #' The list includes the named variables `treemap_dir` and `foresttype_dir`
 #'
 #' @examples
 #'  \dontrun{
-#'  load_ext_data()
+#'  find_ext_data()
 #'  }
 #'
 #' @keywords internal
 #'
-load_ext_data <- function(
+find_ext_data <- function(
   input_treemap_dir = NULL
   , input_foresttype_dir = NULL
 ){
   ####################################################
   # let's list all possible directories to check
   ####################################################
-    # the package directory
+    # the package directory from get_url_data()
     pkg_dir <- pkg_dir()
 
     # user input
     i_treemap_dir <- ifelse(
-        purrr::is_empty( normalizePath(file.path(input_treemap_dir)) )
+        !dir.exists( file.path(input_treemap_dir) ) || purrr::is_empty( normalizePath(file.path(input_treemap_dir)) )
         , pkg_dir
         , normalizePath(file.path(input_treemap_dir))
       )
     i_foresttype_dir <- ifelse(
-        purrr::is_empty( normalizePath(file.path(input_foresttype_dir)) )
+        !dir.exists( file.path(input_foresttype_dir) ) || purrr::is_empty( normalizePath(file.path(input_foresttype_dir)) )
         , pkg_dir
         , normalizePath(file.path(input_foresttype_dir))
       )

@@ -39,7 +39,7 @@ get_url_data <- function(
   timeout_option_backup <- getOption("timeout")
   options(timeout = max(3600, getOption("timeout")))
 
-  # package directory
+  # the package directory from get_url_data()
   pkg_dir <- pkg_dir()
 
   ## directory names

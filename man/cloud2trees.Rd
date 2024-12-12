@@ -7,7 +7,8 @@
 cloud2trees(
   output_dir,
   input_las_dir,
-  input_treemap_dir = paste0(system.file(package = "cloud2trees"), "/extdata/treemap"),
+  input_treemap_dir = NULL,
+  input_foresttype_dir = NULL,
   accuracy_level = 2,
   max_ctg_pts = 7e+07,
   max_area_m2 = 9e+07,
@@ -30,7 +31,10 @@ cloud2trees(
   estimate_dbh_from_cloud = FALSE,
   estimate_tree_competition = FALSE,
   competition_buffer_m = 5,
-  search_dist_max = 10,
+  search_dist_max,
+  competition_max_search_dist_m = 10,
+  estimate_tree_type = FALSE,
+  type_max_search_dist_m = 1000,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
@@ -53,7 +57,9 @@ cloud2trees(
 
 \item{input_las_dir}{directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
 
-\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+\item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+
+\item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
 
 \item{accuracy_level}{numeric. Choose processing accuracy.
 accuracy_level = 1 uses DTM to height normalize the points
@@ -98,8 +104,15 @@ desired size of the search window when centered on that pixel.}
 
 \item{competition_buffer_m}{number. Set buffer around tree (m) to calculate competition metrics}
 
-\item{search_dist_max}{number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
-If no competition trees are found within this distance, the return column \code{comp_dist_to_nearest_m} = \code{search_dist_max} parameter.}
+\item{search_dist_max}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use the \code{competition_max_search_dist_m} argument instead.}
+
+\item{competition_max_search_dist_m}{number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
+If no competition trees are found within this distance, the return column \code{comp_dist_to_nearest_m} = \code{competition_max_search_dist_m} parameter.}
+
+\item{estimate_tree_type}{logical. Should tree forest type be estimated? See \code{\link[=trees_type]{trees_type()}}.}
+
+\item{type_max_search_dist_m}{number. Maximum search distance (m) to obtain forest type group data for trees that overlap with non-forest data in the original Wilson (2023) data.
+Larger search distances will increase processing time and possibly result in memory issues.}
 
 \item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
@@ -154,6 +167,7 @@ The order of operations is:
 \item Quantify individual tree competition metrics using \code{\link[=trees_competition]{trees_competition()}} (\emph{if set to TRUE})
 \item Extract tree DBH values from the normalized point cloud using \code{\link[=treels_stem_dbh]{treels_stem_dbh()}} (\emph{if set to TRUE})
 \item Model tree DBH values using \code{\link[=trees_dbh]{trees_dbh()}} (\emph{if set to TRUE})
+\item Extract tree forest type group using \code{\link[=trees_type]{trees_type()}} (\emph{if set to TRUE})
 \item Extract tree CBH values from the normalized point cloud and estimate missing values using \code{\link[=trees_cbh]{trees_cbh()}} (\emph{if set to TRUE})
 }
 

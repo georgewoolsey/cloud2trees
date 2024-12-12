@@ -10,6 +10,7 @@
 #' * Quantify individual tree competition metrics using [trees_competition()] (*if set to TRUE*)
 #' * Extract tree DBH values from the normalized point cloud using [treels_stem_dbh()] (*if set to TRUE*)
 #' * Model tree DBH values using [trees_dbh()] (*if set to TRUE*)
+#' * Extract tree forest type group using [trees_type()] (*if set to TRUE*)
 #' * Extract tree CBH values from the normalized point cloud and estimate missing values using [trees_cbh()] (*if set to TRUE*)
 #'
 #' See the documentation for each individual function called for more details.
@@ -26,8 +27,12 @@
 #' @param estimate_dbh_from_cloud logical. Should DBH be estimated from the point cloud? See [treels_stem_dbh()]. Setting to `TRUE` may significantly increase processing time.
 #' @param estimate_tree_competition logical. Should tree competition metrics be calculated? See [trees_competition()]. Setting to `TRUE` may slightly increase processing time.
 #' @param competition_buffer_m number. Set buffer around tree (m) to calculate competition metrics
-#' @param search_dist_max number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
-#' If no competition trees are found within this distance, the return column `comp_dist_to_nearest_m` = `search_dist_max` parameter.
+#' @param search_dist_max `r lifecycle::badge("deprecated")` Use the `competition_max_search_dist_m` argument instead.
+#' @param competition_max_search_dist_m number. Maximum search distance (m) to nearest tree for competition. Larger search distances will increase processing time and possibly result in memory issues.
+#' If no competition trees are found within this distance, the return column `comp_dist_to_nearest_m` = `competition_max_search_dist_m` parameter.
+#' @param estimate_tree_type logical. Should tree forest type be estimated? See [trees_type()].
+#' @param type_max_search_dist_m number. Maximum search distance (m) to obtain forest type group data for trees that overlap with non-forest data in the original Wilson (2023) data.
+#' Larger search distances will increase processing time and possibly result in memory issues.
 #' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -81,7 +86,8 @@
 cloud2trees <- function(
   output_dir
   , input_las_dir
-  , input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
+  , input_treemap_dir = NULL
+  , input_foresttype_dir = NULL
   , accuracy_level = 2
   , max_ctg_pts = 70e6
   , max_area_m2 = 90e6
@@ -109,7 +115,10 @@ cloud2trees <- function(
   , estimate_dbh_from_cloud = FALSE
   , estimate_tree_competition = FALSE
   , competition_buffer_m = 5
-  , search_dist_max = 10
+  , search_dist_max
+  , competition_max_search_dist_m = 10
+  , estimate_tree_type = FALSE
+  , type_max_search_dist_m = 1000
   , estimate_tree_cbh = FALSE
   , cbh_tree_sample_n = NA
   , cbh_tree_sample_prop = NA
@@ -127,6 +136,37 @@ cloud2trees <- function(
   , overwrite = TRUE
 ){
   ####################################################################
+  # check deprecated parameters
+  ####################################################################
+    calls <- names(sapply(match.call(), deparse))[-1]
+    if(any("search_dist_max" %in% calls)) {
+        stop(
+          "`search_dist_max` deprecated. Use the `competition_max_search_dist_m` argument instead."
+        )
+    }
+  ####################################################################
+  # check external data
+  ####################################################################
+    # find external data
+    find_ext_data_ans <- find_ext_data(
+      input_treemap_dir = input_treemap_dir
+      , input_foresttype_dir = input_foresttype_dir
+    )
+    # if can't find external treemap data
+    if(estimate_tree_dbh == T && is.null(find_ext_data_ans$treemap_dir)){
+      stop(paste0(
+        "Treemap data has not been downloaded to package contents. Use `get_treemap()` first."
+        , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
+      ))
+    }
+    # if can't find external foresttype data
+    if(estimate_tree_type == T && is.null(find_ext_data_ans$foresttype_dir)){
+      stop(paste0(
+        "Forest Type Group data has not been downloaded to package contents. Use `get_foresttype()` first."
+        , "\nIf you supplied a value to the `input_foresttype_dir` parameter check that directory for data."
+      ))
+    }
+  ####################################################################
   # cloud2trees::cloud2raster()
   ####################################################################
   # message
@@ -140,7 +180,8 @@ cloud2trees <- function(
   cloud2raster_ans <- cloud2raster(
       output_dir = output_dir
       , input_las_dir = input_las_dir
-      , input_treemap_dir = input_treemap_dir
+      , input_treemap_dir = find_ext_data_ans$treemap_dir
+      , input_foresttype_dir = find_ext_data_ans$foresttype_dir
       , accuracy_level = accuracy_level
       , max_ctg_pts = max_ctg_pts
       , max_area_m2 = max_area_m2
@@ -236,7 +277,7 @@ cloud2trees <- function(
       tree_list = raster2trees_ans
       , competition_buffer_m = competition_buffer_m
       , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
-      , search_dist_max = search_dist_max
+      , search_dist_max = as.numeric(competition_max_search_dist_m)
     )
     # handle error
     if(is.null(trees_competition_ans$error)){ # no error
@@ -436,14 +477,58 @@ cloud2trees <- function(
   }
 
   ####################################################################
+  # cloud2trees::trees_type()
+  ####################################################################
+  # start time
+  xx7_trees_type <- Sys.time()
+  err_trees_type <- NULL
+  # empty data
+    trees_type_ans_temp <- dplyr::tibble(
+      treeID = character(0)
+      , forest_type_group_code = character(0)
+      , forest_type_group = character(0)
+      , hardwood_softwood = character(0)
+    )
+    trees_type_rast <- NULL
+  if(estimate_tree_type==T){
+    # message
+    message(
+      "starting trees_type() step at ..."
+      , xx7_trees_type
+    )
+    # trees_type
+    safe_trees_type <- purrr::safely(trees_type)
+    trees_type_ans <- safe_trees_type(
+      tree_list = raster2trees_ans
+      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
+      , input_foresttype_dir = cloud2raster_ans$create_project_structure_ans$input_foresttype_dir
+      , max_search_dist_m = as.numeric(type_max_search_dist_m)
+    )
+    # handle error
+    if(is.null(trees_type_ans$error)){ # no error
+      # just get the result
+      trees_type_ans <- trees_type_ans$result$tree_list
+      trees_type_rast <- trees_type_ans$result$foresttype_rast
+    }else{
+      # error
+      err_trees_type <- trees_type_ans$error
+      # empty data
+      trees_type_ans <- trees_type_ans_temp
+    }
+  }else{
+    # empty data
+    trees_type_ans <- trees_type_ans_temp
+  }
+
+  ####################################################################
   # write data
   ####################################################################
     # message
       # start time
-      xx7_return <- Sys.time()
+      xx8_return <- Sys.time()
       message(
         "started writing final data at ..."
-        , xx7_return
+        , xx8_return
       )
     # do it
     # get names from dbh data
@@ -470,6 +555,14 @@ cloud2trees <- function(
           , names(raster2trees_ans %>% sf::st_drop_geometry())
         )
       )
+    # get names from type data
+    type_names_temp <- c(
+        "treeID"
+        , get_list_diff(
+          names(trees_type_ans %>% sf::st_drop_geometry())
+          , names(raster2trees_ans %>% sf::st_drop_geometry())
+        )
+      )
     # join all data together for final return data
     crowns_sf_with_dbh <- raster2trees_ans %>%
       # join dbh data
@@ -484,6 +577,13 @@ cloud2trees <- function(
         trees_cbh_ans %>%
           sf::st_drop_geometry() %>%
           dplyr::select(dplyr::all_of(cbh_names_temp))
+        , by = "treeID"
+      ) %>%
+      # join type data
+      dplyr::left_join(
+        trees_type_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(type_names_temp))
         , by = "treeID"
       ) %>%
       # join competition data
@@ -579,7 +679,7 @@ cloud2trees <- function(
     }
 
     # write settings and timer data
-    xx8_fin <- Sys.time()
+    xx9_fin <- Sys.time()
     # data
       return_df <-
           # data from las_ctg
@@ -604,11 +704,13 @@ cloud2trees <- function(
               as.numeric()
             , timer_trees_dbh_mins = difftime(xx6_trees_cbh, xx5_trees_dbh, units = c("mins")) %>%
               as.numeric()
-            , timer_trees_cbh_mins = difftime(xx7_return, xx6_trees_cbh, units = c("mins")) %>%
+            , timer_trees_cbh_mins = difftime(xx7_trees_type, xx6_trees_cbh, units = c("mins")) %>%
               as.numeric()
-            , timer_write_data_mins = difftime(xx8_fin, xx7_return, units = c("mins")) %>%
+            , timer_trees_type_mins = difftime(xx8_return, xx7_trees_type, units = c("mins")) %>%
               as.numeric()
-            , timer_total_time_mins = difftime(xx8_fin, xx1_cloud2raster, units = c("mins")) %>%
+            , timer_write_data_mins = difftime(xx9_fin, xx8_return, units = c("mins")) %>%
+              as.numeric()
+            , timer_total_time_mins = difftime(xx9_fin, xx1_cloud2raster, units = c("mins")) %>%
               as.numeric()
             # settings
             , sttng_input_las_dir = input_las_dir
@@ -626,7 +728,9 @@ cloud2trees <- function(
             , sttng_estimate_dbh_from_cloud = estimate_dbh_from_cloud
             , sttng_estimate_tree_competition = estimate_tree_competition
             , sttng_competition_buffer_m = competition_buffer_m
-            , sttng_search_dist_max = search_dist_max
+            , sttng_competition_max_search_dist_m = competition_max_search_dist_m
+            , sttng_estimate_tree_type = estimate_tree_type
+            , sttng_type_max_search_dist_m = type_max_search_dist_m
             , sttng_estimate_tree_cbh = estimate_tree_cbh
             , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
@@ -655,7 +759,7 @@ cloud2trees <- function(
     # message
     message(
       "cloud2trees() total time was "
-      , round(as.numeric(difftime(xx8_fin, xx1_cloud2raster, units = c("mins"))),2)
+      , round(as.numeric(difftime(xx9_fin, xx1_cloud2raster, units = c("mins"))),2)
       , " minutes to process "
       , scales::comma(sum(cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$Number.of.point.records))
       , " points over an area of "
@@ -671,7 +775,7 @@ cloud2trees <- function(
           , "\n"
           , err_trees_competition
           , "\n..............try to run trees_competition() with updated parameter settings"
-          , "\nusing `final_detected_crowns.gpkg` in the `point_cloud_processing_delivery` directory"
+          , "\nusing `final_detected_tree_tops.gpkg` in the `point_cloud_processing_delivery` directory"
         ))
       }
       if(!is.null(err_treels_stem_dbh)){
@@ -689,7 +793,7 @@ cloud2trees <- function(
           , "\n"
           , err_trees_dbh
           , "\n..............try to run trees_dbh() with updated parameter settings"
-          , "\nusing `final_detected_crowns.gpkg` in the `point_cloud_processing_delivery` directory"
+          , "\nusing `final_detected_tree_tops.gpkg` in the `point_cloud_processing_delivery` directory"
         ))
       }
       if(!is.null(err_trees_cbh)){
@@ -701,6 +805,15 @@ cloud2trees <- function(
           , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }
+      if(!is.null(err_trees_type)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_type()"
+          , "\n"
+          , err_trees_type
+          , "\n..............try to run trees_type() with updated parameter settings"
+          , "\nusing `final_detected_tree_tops.gpkg` in the `point_cloud_processing_delivery` directory"
+        ))
+      }
 
     # return
     return(list(
@@ -708,6 +821,7 @@ cloud2trees <- function(
       , treetops_sf = treetops_sf_with_dbh
       , dtm_rast = cloud2raster_ans$dtm_rast
       , chm_rast = cloud2raster_ans$chm_rast
+      , foresttype_rast = trees_type_rast
     ))
 }
 

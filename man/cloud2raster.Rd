@@ -7,7 +7,8 @@
 cloud2raster(
   output_dir,
   input_las_dir,
-  input_treemap_dir = paste0(system.file(package = "cloud2trees"), "/extdata/treemap"),
+  input_treemap_dir = NULL,
+  input_foresttype_dir = NULL,
   accuracy_level = 2,
   max_ctg_pts = 7e+07,
   max_area_m2 = 9e+07,
@@ -27,7 +28,9 @@ cloud2raster(
 
 \item{input_las_dir}{directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
 
-\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+\item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+
+\item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
 
 \item{accuracy_level}{numeric. Choose processing accuracy.
 accuracy_level = 1 uses DTM to height normalize the points

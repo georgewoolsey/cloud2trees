@@ -25,6 +25,7 @@ get_foresttype <- function(
   my_req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
   my_cleanup_zip <- T
   # set up to save csv to package contents with location of data
+  # the package directory from get_url_data()
   pkg_dir <- pkg_dir()
   if(!dir.exists(pkg_dir)){
     dir.create(pkg_dir, showWarnings = FALSE)

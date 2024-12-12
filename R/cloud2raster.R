@@ -59,7 +59,8 @@
 cloud2raster <- function(
   output_dir
   , input_las_dir
-  , input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
+  , input_treemap_dir = NULL
+  , input_foresttype_dir = NULL
   , accuracy_level = 2
   , max_ctg_pts = 70e6
   , max_area_m2 = 90e6
@@ -76,7 +77,18 @@ cloud2raster <- function(
   ######################################
   # Configure File Structure
   ######################################
-  config <- create_project_structure(output_dir, input_las_dir)
+  # find external data
+  find_ext_data_ans <- find_ext_data(
+    input_treemap_dir = input_treemap_dir
+    , input_foresttype_dir = input_foresttype_dir
+  )
+
+  config <- create_project_structure(
+    output_dir = output_dir
+    , input_las_dir = input_las_dir
+    , input_treemap_dir = find_ext_data_ans$treemap_dir
+    , input_foresttype_dir = find_ext_data_ans$foresttype_dir
+  )
 
   # remove all files in delivery and temp
   list.files(config$temp_dir, recursive = T, full.names = T) %>%

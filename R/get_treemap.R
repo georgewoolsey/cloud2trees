@@ -27,6 +27,7 @@ get_treemap <- function(
   my_req_file_list <- c("treemap2016.tif", "treemap2016_tree_table.csv")
   my_cleanup_zip <- T
   # set up to save csv to package contents with location of data
+  # the package directory from get_url_data()
   pkg_dir <- pkg_dir()
   if(!dir.exists(pkg_dir)){
     dir.create(pkg_dir, showWarnings = FALSE)

@@ -5,27 +5,18 @@
 #'
 #' @param output_dir parent directory where new folders `point_cloud_processing_delivery` and `point_cloud_processing_temp` will be written for exports
 #' @param input_las_dir directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one
-#' @param input_treemap_dir directory where Treemap 2016 exists. Use [get_treemap()] first.
+#' @inheritParams find_ext_data
 #'
 #' @return A data.frame.
 #'
 #' @keywords internal
 #'
 create_project_structure <- function(
-    output_dir, input_las_dir,
-    input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
+    output_dir
+    , input_las_dir
+    , input_treemap_dir = NULL
+    , input_foresttype_dir = NULL
 ){
-  # check treemap data... see get_treemap()
-  f <- tolower(list.files(normalizePath(input_treemap_dir)))
-  if(length(f)==0){f <- ""}
-  if(
-    max(grepl("treemap2016.tif", f))==0 | max(grepl("treemap2016_tree_table.csv", f))==0
-  ){
-    stop(paste0(
-      "Treemap data has not been downloaded to package contents. Use `get_treemap()` first."
-      , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
-    ))
-  }
   # check if folder contains las files directly
     chk <- input_las_dir %>%
       tolower() %>%
@@ -67,7 +58,8 @@ create_project_structure <- function(
   ###______________________________###
   config <- dplyr::tibble(
     input_las_dir = input
-    , input_treemap_dir = input_treemap_dir
+    , input_treemap_dir = dplyr::coalesce(input_treemap_dir, as.character(NA))
+    , input_foresttype_dir = dplyr::coalesce(input_foresttype_dir, as.character(NA))
     , delivery_dir = delivery_dir
     , temp_dir = temp_dir
     , las_grid_dir = las_grid_dir

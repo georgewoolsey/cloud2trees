@@ -1,7 +1,7 @@
-#' @title Estimate DBH for a tree list based on height
+#' @title Estimate forest type for a tree list based on location
 #'
 #' @description
-#' `trees_species()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
+#' `trees_type()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
 #' `treeID`, `tree_x`, `tree_y` to attach species information using USDA Forest Inventory and Analysis (FIA) codes.
 #' If a spatial data frame of points is the input tree list, then the columns `tree_x`, `tree_y` are not required.
 #'
@@ -36,24 +36,41 @@
 #'      treeID = c(1:21)
 #'      , tree_x = rnorm(n=21, mean = 458064, sd = 11)
 #'      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
-#'      , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
 #'    )
 #'  # call the function
-#'  tl_comp <- trees_competition(tree_list = tl, crs = "32613")
+#'  tl_type <- trees_type(tree_list = tl, crs = "32613")
 #'  # what?
-#'  tl_comp %>% class()
-#'  tl_comp %>% dplyr::select(tidyselect::starts_with("comp_")) %>% dplyr::glimpse()
-#'  tl_comp %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=comp_dist_to_nearest_m))
+#'  tl_type %>% class()
+#'  # a list, but what is in it?
+#'  tl_type %>% names()
+#'  # plot the tree_list spatial points
+#'  tl_type$tree_list %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=forest_type_group))
+#'  # plot the foresttype_rast raster
+#'  tl_type$foresttype_rast %>% terra::plot()
 #'  }
 #' @export
 #'
-trees_species <- function(
+trees_type <- function(
   tree_list
   , crs = NA
   , study_boundary = NA
-  , input_foresttype_dir = paste0(system.file(package = "cloud2trees"),"/extdata/foresttype")
+  , input_foresttype_dir = NULL
   , max_search_dist_m = 1000
 ){
+  ####################################################################
+  # check external data
+  ####################################################################
+    # find external data
+    find_ext_data_ans <- find_ext_data(
+      input_foresttype_dir = input_foresttype_dir
+    )
+    # if can't find external foresttype data
+    if(is.null(find_ext_data_ans$foresttype_dir)){
+      stop(paste0(
+        "Forest Type Group data has not been downloaded to package contents. Use `get_foresttype()` first."
+        , "\nIf you supplied a value to the `input_foresttype_dir` parameter check that directory for data."
+      ))
+    }
   ##################################
   # ensure that tree data exists
   ##################################
@@ -133,22 +150,15 @@ trees_species <- function(
       )))
 
   ##################################
-  # check/load foresttype data. see get_foresttype()
+  # load foresttype data. see get_foresttype()
   ##################################
-  f <- tolower(list.files(normalizePath(input_foresttype_dir)))
-  if(length(f)==0){f <- ""}
-  if(
-    max(grepl("foresttype.tif", f))==0 || max(grepl("foresttype_lookup.csv", f))==0
-  ){
-    stop("Forest Type data has not been downloaded to package contents. Use `get_foresttype()` first.")
-  }else{
     # get the foresttype data
     foresttype <- terra::rast(
-        file.path(normalizePath(input_foresttype_dir), "foresttype.tif")
+        file.path(find_ext_data_ans$foresttype_dir, "foresttype.tif")
       )
     # get the lookup
     foresttype_lookup <- readr::read_csv(
-        file.path(normalizePath(input_foresttype_dir), "foresttype_lookup.csv")
+        file.path(find_ext_data_ans$foresttype_dir, "foresttype_lookup.csv")
         , progress = F
         , show_col_types = F
       ) %>%
@@ -156,7 +166,6 @@ trees_species <- function(
         dplyr::everything()
         , as.character
       ))
-  }
 
   ##################################
   # define extent to crop forest type raster

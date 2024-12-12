@@ -7,7 +7,8 @@
 create_project_structure(
   output_dir,
   input_las_dir,
-  input_treemap_dir = paste0(system.file(package = "cloud2trees"), "/extdata/treemap")
+  input_treemap_dir = NULL,
+  input_foresttype_dir = NULL
 )
 }
 \arguments{
@@ -15,7 +16,9 @@ create_project_structure(
 
 \item{input_las_dir}{directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
 
-\item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+\item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
+
+\item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
 }
 \value{
 A data.frame.
