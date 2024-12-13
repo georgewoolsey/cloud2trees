@@ -33,26 +33,46 @@ The goal of cloud2trees is to provide accessible routines for processing point c
 
 ## Installation
 
-The `cloud2trees` package relies on the `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) which must be manually installed first.
-
-You can install the development version of `cloud2trees` from [GitHub](https://github.com/) with:
+You must have Rtools to build packages in R. Check that you have it and install if not.
 
 ``` r
-# install.packages("pak")
-## first install lasR
-pak::pak("r-lidar/lasR", upgrade = TRUE)
-## get cloud2trees
-pak::pak("georgewoolsey/cloud2trees", upgrade = TRUE)
+## pkgbuild helps us check for Rtools
+install.packages("pkgbuild")
+
+# check for Rtools which is required to build packages
+pkgbuild::check_build_tools(debug = TRUE)
 ```
 
-Additionally, if you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) must be manually installed first.
+The `cloud2trees` package relies on the following packages which *must be manually installed first*:
+
+* `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) helps us process point cloud data with speed
+* `TreeLS` package ([https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)) helps us extract DBH from the point cloud
 
 ``` r
-# install.packages("pak")
+## remotes helps us get packages hosted on github
+install.packages("remotes")
+
+## install lasR from the r-univers
+install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
+
+## install TreeLS from github
+remotes::install_github(repo = "tiagodc/TreeLS", upgrade = F)
+```
+
+Additionally, if you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) *must be manually installed first*.
+
+``` r
 ## install LadderFuelsR
-pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
 ## install leafR
-pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
+remotes::install_github(repo = "DRAAlmeida/leafR", upgrade = F)
+```
+
+Finally, you can install the development version of `cloud2trees` from [GitHub](https://github.com/georgewoolsey/cloud2trees) with:
+
+```r
+## get cloud2trees
+remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
 ```
 
 ## Preliminaries

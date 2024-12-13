@@ -167,7 +167,7 @@ cloud2raster <- function(
               , T ~ 0
             )
             , sum_is_tri_error = sum(is_tri_error)
-            , pct_tri = sum_is_tri_error/length(unique(process_data$processing_grid))
+            , pct_tri = sum_is_tri_error/length(unique(chunk_las_catalog_ans$process_data$processing_grid))
             , keep_it = dplyr::case_when(
               is_tri_error==1 & pct_tri<0.5 ~ F
               , T ~ T
