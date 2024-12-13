@@ -83,6 +83,43 @@ pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
 
 ## Preliminaries
 
+### tl;dr
+
+The `cloud2trees` package relies on external data to estimate tree DBH
+and tree forest type. If you plan to use this functionality, the data
+must be downloaded first using `get_data()` which only needs to be run
+the first time you use the `cloud2trees` package.
+
+``` r
+library(cloud2trees)
+# download the external data
+cloud2trees::get_data()
+```
+
+Some machines, US Federal Government computers especially, might prevent
+you from writing directly to the package contents. If you get an error
+about “access” or “writing to” from the `get_data()` function, try to
+set the `savedir` parameter to a directory that you know you can write
+to.
+
+``` r
+# download the external data with a custom directory
+cloud2trees::get_data(savedir = "C:/ican/access/this")
+```
+
+We’ll be using the `tidyverse`, `sf`, and `terra` in the examples below.
+
+``` r
+# install.packages("tidyverse")
+library(tidyverse)
+# install.packages("sf")
+library(sf)
+# install.packages("terra")
+library(terra)
+```
+
+### Get TreeMap Data
+
 To estimate tree DBH from extracted tree height data requires training
 data to model diameter using height. Site-specific allometric equations
 using data from the USDA Forest Service’s Forest Inventory Analysis
@@ -94,22 +131,36 @@ FIA plots are identified using [TreeMap
 a model of FIA plot locations imputed throughout forested areas of the
 conterminous United States at 30 m spatial resolution.
 
-You must first download the FIA data (~3 GB) using `get_treemap()` which
-only needs to be run the first time you use the `cloud2trees` package.
+Unless you have already executed the `get_data()` function, you must
+first download the FIA data (~3 GB) using `get_treemap()` which only
+needs to be run the first time you use the `cloud2trees` package.
 
 ``` r
-library(cloud2trees)
 # download the TreeMap data
 cloud2trees::get_treemap()
 ```
 
-We’ll be using the `tidyverse` and `terra` in the examples below.
+### Get Forest Type Group Data
+
+To estimate FIA forest type group for trees requires external data to
+spatially determine the type of a tree.
+
+Forest type groups are identified using the [Forest Type Groups of the
+Continental United
+States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
+data (Wilson 2023). This forest type group layer was developed using
+data from over 213,000 national forest inventory plots measured during
+the period 2014-2018 from the FIA program and has been aggregated to
+90-meter resolution for this specific project to make the data more
+accessible over the entire continental US.
+
+Unless you have already executed the `get_data()` function, you must
+first download the FIA data (~3 GB) using `get_foresttype()` which only
+needs to be run the first time you use the `cloud2trees` package.
 
 ``` r
-# install.packages("tidyverse")
-library(tidyverse)
-# install.packages("terra")
-library(terra)
+# download the forest type data
+cloud2trees::get_foresttype()
 ```
 
 ## Extract Trees from Point Cloud: Default
@@ -137,7 +188,8 @@ function.
 ``` r
 # what is it?
 cloud2trees_ans %>% names()
-#> [1] "crowns_sf"   "treetops_sf" "dtm_rast"    "chm_rast"
+#> [1] "crowns_sf"       "treetops_sf"     "dtm_rast"        "chm_rast"       
+#> [5] "foresttype_rast"
 ```
 
 There is a digital terrain model (DTM) raster which we can plot using
@@ -148,7 +200,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2trees_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -158,7 +210,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2trees_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
 
 A spatial data frame with tree crown polygons is returned.
 
@@ -166,7 +218,7 @@ A spatial data frame with tree crown polygons is returned.
 # there are tree crowns
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> Rows: 343
-#> Columns: 22
+#> Columns: 25
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481294.4_3813010.…
 #> $ tree_height_m             <dbl> 22.23, 15.85, 10.06, 13.44, 22.07, 22.48, 22…
 #> $ tree_x                    <dbl> 481281.4, 481294.4, 481306.4, 481312.9, 4813…
@@ -186,20 +238,25 @@ cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ tree_cbh_m                <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ is_training_cbh           <lgl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ forest_type_group_code    <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ forest_type_group         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ hardwood_softwood         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 ```
 
-Notice that all of the `dbh`, `cbh`, and competition (`comp_`) columns
-do not have data. To estimate these values, we need to explicitly tell
-the `cloud2trees()` to perform the processing required by setting the
-parameters:
+Notice that all of the `dbh`, `cbh`, `forest_type`, and competition
+(`comp_`) columns do not have data. To estimate these values, we need to
+explicitly tell the `cloud2trees()` to perform the processing required
+by setting the parameters:
 
 - `estimate_tree_dbh=TRUE` for DBH (see also
-  [`trees_dbh()`](#trees_dbh)).
+  [`trees_dbh()`](#trees_dbh))
 - `estimate_tree_cbh=TRUE` for CBH (see also
   [`trees_cbh()`](#trees_cbh))
+- `estimate_tree_type=TRUE` for forest type (see also
+  [`trees_type()`](#trees_type))
 - `estimate_tree_competition=TRUE` for competition
 
 Let’s plot these tree crown polygons using `ggplot2::ggplot()` with some
@@ -214,7 +271,7 @@ cloud2trees_ans$crowns_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
 
 A spatial data frame with tree top points is returned.
 
@@ -222,7 +279,7 @@ A spatial data frame with tree top points is returned.
 # there are tree top points
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> Rows: 343
-#> Columns: 20
+#> Columns: 23
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481294.4_3813010.…
 #> $ tree_height_m             <dbl> 22.23, 15.85, 10.06, 13.44, 22.07, 22.48, 22…
 #> $ crown_area_m2             <dbl> 10.4375, 9.5000, 1.1875, 4.4375, 6.3750, 10.…
@@ -239,6 +296,9 @@ cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ tree_cbh_m                <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ is_training_cbh           <lgl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ forest_type_group_code    <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ forest_type_group         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+#> $ hardwood_softwood         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
@@ -261,7 +321,7 @@ cloud2trees_ans$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-14-1.png" width="100%" />
 
 It is also the case that the points in `cloud2trees_ans$treetops_sf`
 will match to exactly one crown polygon in `cloud2trees_ans$crowns_sf`.
@@ -275,7 +335,7 @@ ggplot2::ggplot() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-15-1.png" width="100%" />
 
 ## Extract Trees from Point Cloud: Custom
 
@@ -290,6 +350,7 @@ Customizing the `cloud2trees()` function parameters we’ll:
   `ws`
 - Estimate tree DBH using allometry from FIA plot data with
   `estimate_tree_dbh`
+- Extract tree FIA Forest Type Group with `estimate_tree_type`
 - Quantify tree competition metrics with `estimate_tree_competition`
 - Extract tree CBH from the point cloud with `estimate_tree_cbh` for a
   sample of 444 trees using `cbh_tree_sample_n`
@@ -305,6 +366,7 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , min_height = 3
   , ws = function(x){x*0.1}
   , estimate_tree_dbh = TRUE
+  , estimate_tree_type = TRUE
   , estimate_tree_competition = TRUE
   , estimate_tree_cbh = TRUE
   , cbh_tree_sample_n = 444
@@ -325,31 +387,34 @@ paste(
 ```
 
 Check that our spatial data frame with tree crown polygons has data in
-the `dbh`, `cbh`, and `comp` (i.e. competition) columns.
+the `dbh`, `cbh`, `forest_type`, and `comp` (i.e. competition) columns.
 
 ``` r
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> Rows: 2,447
-#> Columns: 22
+#> Columns: 25
 #> $ treeID                    <chr> "1_481281.4_3813010.9", "2_481283.9_3813010.…
 #> $ tree_height_m             <dbl> 22.230, 18.350, 21.240, 15.850, 12.520, 5.68…
 #> $ tree_x                    <dbl> 481281.4, 481283.9, 481287.6, 481294.4, 4812…
 #> $ tree_y                    <dbl> 3813011, 3813011, 3813011, 3813011, 3813011,…
 #> $ crown_area_m2             <dbl> 6.7500, 3.3750, 9.2500, 3.5000, 0.9375, 0.31…
 #> $ geometry                  <GEOMETRY [m]> POLYGON ((481280.5 3813011,..., POL…
-#> $ fia_est_dbh_cm            <dbl> 51.323858, 39.269958, 48.169414, 32.185734, …
-#> $ fia_est_dbh_cm_lower      <dbl> 24.129406, 18.794239, 22.916052, 15.134360, …
-#> $ fia_est_dbh_cm_upper      <dbl> 86.50807, 65.80713, 80.89456, 53.77792, 39.0…
-#> $ dbh_cm                    <dbl> 51.323858, 39.269958, 48.169414, 32.185734, …
+#> $ fia_est_dbh_cm            <dbl> 51.467080, 39.275152, 47.933849, 32.125531, …
+#> $ fia_est_dbh_cm_lower      <dbl> 24.146162, 18.723514, 22.478830, 15.203194, …
+#> $ fia_est_dbh_cm_upper      <dbl> 87.01511, 66.11656, 81.93976, 54.57756, 39.4…
+#> $ dbh_cm                    <dbl> 51.467080, 39.275152, 47.933849, 32.125531, …
 #> $ is_training_data          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
-#> $ dbh_m                     <dbl> 0.51323858, 0.39269958, 0.48169414, 0.321857…
-#> $ radius_m                  <dbl> 0.25661929, 0.19634979, 0.24084707, 0.160928…
-#> $ basal_area_m2             <dbl> 0.206884747, 0.121118578, 0.182235345, 0.081…
-#> $ basal_area_ft2            <dbl> 2.22690742, 1.30372037, 1.96158126, 0.875770…
+#> $ dbh_m                     <dbl> 0.51467080, 0.39275152, 0.47933849, 0.321255…
+#> $ radius_m                  <dbl> 0.25733540, 0.19637576, 0.23966925, 0.160627…
+#> $ basal_area_m2             <dbl> 0.208041006, 0.121150620, 0.180457316, 0.081…
+#> $ basal_area_ft2            <dbl> 2.23935339, 1.30406527, 1.94244255, 0.872497…
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-#> $ tree_cbh_m                <dbl> 18.500000, 13.455123, 13.703097, 13.344988, …
-#> $ is_training_cbh           <lgl> TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FAL…
+#> $ tree_cbh_m                <dbl> 17.215567, 15.204533, 16.628967, 13.016400, …
+#> $ is_training_cbh           <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
+#> $ forest_type_group_code    <chr> "220", "220", "220", "220", "220", "220", "2…
+#> $ forest_type_group         <chr> "Ponderosa pine group", "Ponderosa pine grou…
+#> $ hardwood_softwood         <chr> "Softwood", "Softwood", "Softwood", "Softwoo…
 #> $ comp_trees_per_ha         <dbl> 990.0593, 990.0593, 2227.6334, 5445.3261, 54…
 #> $ comp_relative_tree_height <dbl> 0.9099468, 0.8115878, 0.8780488, 1.0000000, …
 #> $ comp_dist_to_nearest_m    <dbl> 2.5000000, 2.5000000, 2.6100766, 1.5206906, …
@@ -382,7 +447,7 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-17-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-20-1.png" width="100%" />
 
 Let’s look at the relationship between tree height and tree CBH as
 extracted from the point cloud. Note, that we do not expect a perfect
@@ -402,7 +467,7 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-18-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-21-1.png" width="100%" />
 
 We can also plot height, diameter, and CBH of trees spatially and we’ll
 use the `patchwork` package to combine our plots.
@@ -441,7 +506,7 @@ plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2) &
   )
 ```
 
-<img src="man/figures/README-unnamed-chunk-19-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
 
 Let’s plot the distance to the nearest tree that we obtained by turning
 on the `estimate_tree_competition` parameter in the `cloud2trees()`
@@ -457,7 +522,20 @@ cloud2trees_ans_c$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-20-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-23-1.png" width="100%" />
+
+Let’s look at the FIA Forest Type Group data we extracted for the tree
+list.
+
+``` r
+cloud2trees_ans_c$treetops_sf %>%
+  sf::st_drop_geometry() %>% 
+  dplyr::count(forest_type_group_code, forest_type_group)
+#> # A tibble: 1 × 3
+#>   forest_type_group_code forest_type_group        n
+#>   <chr>                  <chr>                <int>
+#> 1 220                    Ponderosa pine group  2447
+```
 
 ## Extract Raster Data from Point Cloud
 
@@ -476,7 +554,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2raster_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-26-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -486,7 +564,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2raster_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-23-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-27-1.png" width="100%" />
 
 ## Extract Trees from Raster Data
 
@@ -530,7 +608,7 @@ raster2trees_ans %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-26-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />
 
 ## Estimate Tree DBH for a Tree List
 
@@ -566,19 +644,19 @@ tl_dbh %>% dplyr::glimpse()
 #> Rows: 21
 #> Columns: 16
 #> $ treeID                 <chr> "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…
-#> $ tree_x                 <dbl> 458072.7, 458092.2, 458076.1, 458062.7, 458058.…
-#> $ tree_y                 <dbl> 4450074, 4450083, 4450099, 4450077, 4450065, 44…
-#> $ tree_height_m          <dbl> 6.312101, 3.173333, 2.400281, 2.171915, 4.26695…
-#> $ geometry               <POINT [m]> POINT (458072.7 4450074), POINT (458092.2…
-#> $ fia_est_dbh_cm         <dbl> 10.030254, 5.168607, 4.104514, 3.854134, 6.7353…
-#> $ fia_est_dbh_cm_lower   <dbl> 4.484711, 2.284500, 1.835422, 1.749194, 2.94032…
-#> $ fia_est_dbh_cm_upper   <dbl> 17.260292, 8.995837, 7.037332, 6.699721, 11.672…
-#> $ dbh_cm                 <dbl> 10.030254, 5.168607, 4.104514, 3.854134, 6.7353…
+#> $ tree_x                 <dbl> 458053.4, 458064.7, 458062.2, 458069.4, 458045.…
+#> $ tree_y                 <dbl> 4450059, 4450084, 4450063, 4450060, 4450066, 44…
+#> $ tree_height_m          <dbl> 1.830577, 2.312727, 12.223888, 2.946448, 1.9382…
+#> $ geometry               <POINT [m]> POINT (458053.4 4450059), POINT (458064.7…
+#> $ fia_est_dbh_cm         <dbl> 3.355333, 3.986153, 23.100638, 4.769748, 3.4749…
+#> $ fia_est_dbh_cm_lower   <dbl> 1.480233, 1.732278, 10.229714, 2.053018, 1.4871…
+#> $ fia_est_dbh_cm_upper   <dbl> 5.926300, 6.927729, 40.319808, 8.429341, 6.0252…
+#> $ dbh_cm                 <dbl> 3.355333, 3.986153, 23.100638, 4.769748, 3.4749…
 #> $ is_training_data       <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…
-#> $ dbh_m                  <dbl> 0.10030254, 0.05168607, 0.04104514, 0.03854134,…
-#> $ radius_m               <dbl> 0.05015127, 0.02584304, 0.02052257, 0.01927067,…
-#> $ basal_area_m2          <dbl> 0.0079015770, 0.0020981521, 0.0013231628, 0.001…
-#> $ basal_area_ft2         <dbl> 0.085052575, 0.022584509, 0.014242524, 0.012557…
+#> $ dbh_m                  <dbl> 0.03355333, 0.03986153, 0.23100638, 0.04769748,…
+#> $ radius_m               <dbl> 0.01677667, 0.01993076, 0.11550319, 0.02384874,…
+#> $ basal_area_m2          <dbl> 0.0008842217, 0.0012479515, 0.0419119457, 0.001…
+#> $ basal_area_ft2         <dbl> 0.009517762, 0.013432950, 0.451140184, 0.019233…
 #> $ ptcld_extracted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 #> $ ptcld_predicted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 ```
@@ -596,7 +674,7 @@ tl_dbh %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-34-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -627,7 +705,147 @@ plt_dbh2 <-
 plt_ht2 + plt_dbh2
 ```
 
-<img src="man/figures/README-unnamed-chunk-31-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-35-1.png" width="100%" />
+
+## Estimate Tree Forest Type for a Tree List
+
+If we already have a list of trees with tree coordinate, we can use the
+`trees_type()` function attach the tree forest type based on the spatial
+overlap with the [Forest Type Groups of the Continental United
+States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
+data (Wilson 2023). This forest type group layer was developed using
+data from over 213,000 national forest inventory plots measured during
+the period 2014-2018 from the FIA program and has been aggregated to
+90-meter resolution for this specific project to make the data more
+accessible over the entire continental US.
+
+We just need to pass a data frame with the columns `treeID`, `tree_x`,
+`tree_y` to the `trees_type()` function. We can also use an `sf` class
+object with POINT or POLYGON geometry (see `sf::st_geometry_type()`) and
+the program will use the data “as-is” and only require the `treeID`
+column.
+
+``` r
+# a fake tree list
+tl <- dplyr::tibble(
+    treeID = c(1:66)
+    , tree_x = rnorm(n=66, mean = 458000, sd = 75)
+    , tree_y = rnorm(n=66, mean = 4450000, sd = 75)
+  )
+```
+
+Use the `trees_type()` function to extract the FIA forest type group
+based on tree location. If a tree overlaps with an area that is
+classified as “non-forest”, the program will search for the nearest
+forest type to impute a value; we’ll limit the search radius by setting
+the `max_search_dist_m` parameter to 100 meters.
+
+``` r
+# call the function
+tl_type <- cloud2trees::trees_type(tree_list = tl, crs = "32613", max_search_dist_m = 100)
+```
+
+The return includes our tree list with forest type data (`tree_list`) as
+well as the FIA Forest Types Group raster (`foresttype_rast`) of the
+area we searched.
+
+``` r
+tl_type %>% names()
+#> [1] "tree_list"       "foresttype_rast"
+```
+
+What is in the tree list data?
+
+``` r
+tl_type$tree_list %>% dplyr::glimpse()
+#> Rows: 66
+#> Columns: 7
+#> $ treeID                 <chr> "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…
+#> $ tree_x                 <dbl> 458081.0, 458002.9, 457973.6, 458168.5, 458093.…
+#> $ tree_y                 <dbl> 4450044, 4450054, 4450009, 4450046, 4450005, 44…
+#> $ geometry               <POINT [m]> POINT (458081 4450044), POINT (458002.9 4…
+#> $ forest_type_group_code <chr> "280", "280", "280", "200", "280", "280", "280"…
+#> $ forest_type_group      <chr> "Lodgepole pine group", "Lodgepole pine group",…
+#> $ hardwood_softwood      <chr> "Softwood", "Softwood", "Softwood", "Softwood",…
+```
+
+Let’s look at the FIA Forest Type Group data we extracted for the tree
+list.
+
+``` r
+tl_type$tree_list %>%
+  sf::st_drop_geometry() %>% 
+  dplyr::count(forest_type_group_code, forest_type_group)
+#> # A tibble: 4 × 3
+#>   forest_type_group_code forest_type_group                         n
+#>   <chr>                  <chr>                                 <int>
+#> 1 200                    Douglas-fir group                        11
+#> 2 260                    Fir / spruce / mountain hemlock group     3
+#> 3 280                    Lodgepole pine group                     50
+#> 4 900                    Aspen / birch group                       2
+```
+
+We can plot our spatial tree list
+
+``` r
+# now plot
+tl_type$tree_list %>%
+  ggplot2::ggplot() + 
+  ggplot2::geom_sf(ggplot2::aes(color=forest_type_group)) +
+  ggplot2::labs(color = "FIA forest\ntype group") +
+  ggplot2::scale_colour_viridis_d(option = "cividis") +
+  ggplot2::theme_void() +
+  ggplot2::theme(panel.border = ggplot2::element_rect(color = "black", fill = NA))
+```
+
+<img src="man/figures/README-unnamed-chunk-41-1.png" width="100%" />
+
+Let’s check out the FIA Forest Types Group raster (`foresttype_rast`) of
+the area we searched
+
+``` r
+r_plt <- 
+  tl_type$foresttype_rast %>%
+    as.data.frame(xy=T) %>% 
+    dplyr::rename(f = 3) %>% 
+    dplyr::mutate(f = as.factor(f)) %>% 
+    ggplot2::ggplot() + 
+    ggplot2::geom_tile(mapping = ggplot2::aes(x=x, y=y, fill = f)) +
+    ggplot2::labs(fill = "FIA forest type\ngroup code") +
+    ggplot2::scale_fill_viridis_d(option = "turbo", alpha = 0.9) +
+    ggplot2::theme_void()
+r_plt
+```
+
+<img src="man/figures/README-unnamed-chunk-42-1.png" width="100%" />
+
+See the [Forest Type Groups of the Continental United
+States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
+data (Wilson 2023) for a list of possible forest type group codes
+
+Let’s overlay our tree points on the raster data
+
+``` r
+r_plt +
+  ggplot2::geom_sf(
+    data = tl_type$tree_list %>%  
+      # we have to reproject
+      sf::st_transform(
+        crs = tl_type$foresttype_rast %>%
+          terra::crs(describe=T) %>%
+          dplyr::pull(code) %>%
+          as.numeric() %>%
+          sf::st_crs()
+      )
+    , mapping = ggplot2::aes(shape = forest_type_group)
+    , color = "white"
+    , size = 2
+  ) +
+  ggplot2::labs(shape = "FIA forest\ntype group") +
+  ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 3, color = "black")))
+```
+
+<img src="man/figures/README-unnamed-chunk-43-1.png" width="100%" />
 
 ## Estimate Tree CBH for a Tree List
 
@@ -666,7 +884,7 @@ nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
 trees_cbh_ans <- cloud2trees::trees_cbh(
   trees_poly = p
   , norm_las = nlas
-  , tree_sample_prop = 0.4
+  , tree_sample_prop = 0.5
   , estimate_missing_cbh = TRUE
 )
 ```
@@ -696,8 +914,8 @@ trees_cbh_ans %>% dplyr::glimpse()
 #> $ comp_trees_per_ha         <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_relative_tree_height <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ comp_dist_to_nearest_m    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-#> $ tree_cbh_m                <dbl> 3.261758, 3.282190, 4.053798, 1.500000, 3.25…
-#> $ is_training_cbh           <lgl> FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FAL…
+#> $ tree_cbh_m                <dbl> 2.921568, 3.089263, 3.606515, 1.500000, 2.92…
+#> $ is_training_cbh           <lgl> FALSE, FALSE, FALSE, TRUE, FALSE, TRUE, TRUE…
 #> $ geom                      <MULTIPOLYGON [m]> MULTIPOLYGON (((458054 4450...,…
 ```
 
@@ -719,7 +937,7 @@ trees_cbh_ans %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-34-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-46-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -740,4 +958,4 @@ trees_cbh_ans %>%
   )
 ```
 
-<img src="man/figures/README-unnamed-chunk-35-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-47-1.png" width="100%" />

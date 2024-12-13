@@ -14,7 +14,7 @@ trees_type(
 }
 \arguments{
 \item{tree_list}{data.frame. A data frame with the columns \code{treeID}, \code{tree_x}, \code{tree_y}, and \code{tree_height_m}.
-If an \code{sf} class object with POINT geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}), the program will use the data "as-is" and only require the \code{treeID} and \code{tree_height_m} columns.}
+If an \code{sf} class object with POINT geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}), the program will use the data "as-is" and only require the \code{treeID} column.}
 
 \item{crs}{string. A crs string as returned from \code{\link[sf:st_crs]{sf::st_crs()}} or the EPSG code of the x,y coordinates.
 Defaults to the crs of the \code{tree_list} data if of class "sf".}

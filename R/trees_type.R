@@ -14,7 +14,7 @@
 #' * The FIA forest type group is applied to a tree based on spatial overlap
 #'
 #' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
-#' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
 #' @param crs string. A crs string as returned from [sf::st_crs()] or the EPSG code of the x,y coordinates.
 #' Defaults to the crs of the `tree_list` data if of class "sf".
 #' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
