@@ -63,9 +63,24 @@ trees_dbh <- function(
   , dbh_model = "lin"
   , treels_dbh_locations = NA
   , boundary_buffer = 50
-  , input_treemap_dir = paste0(system.file(package = "cloud2trees"),"/extdata/treemap")
+  , input_treemap_dir = NULL
   , outfolder = tempdir()
 ) {
+  ####################################################################
+  # check external data
+  ####################################################################
+    # find external data
+    find_ext_data_ans <- find_ext_data(
+      input_treemap_dir = input_treemap_dir
+    )
+    # if can't find external treemap data
+    if(is.null(find_ext_data_ans$treemap_dir)){
+      stop(paste0(
+        "Treemap data has not been downloaded to package contents. Use `get_treemap()` first."
+        , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
+      ))
+    }
+
   ##################################
   # ensure that tree height data exists
   ##################################
@@ -197,17 +212,6 @@ trees_dbh <- function(
   }
 
   ##################################
-  # check treemap data. see get_treemap()
-  ##################################
-  f <- tolower(list.files(normalizePath(input_treemap_dir)))
-  if(length(f)==0){f <- ""}
-  if(
-    max(grepl("treemap2016.tif", f))==0 | max(grepl("treemap2016_tree_table.csv", f))==0
-  ){
-    stop("Treemap data has not been downloaded to package contents. Use `get_treemap()` first.")
-  }
-
-  ##################################
   # define study boundary
   ##################################
   if(inherits(study_boundary, "sf") | inherits(study_boundary, "sfc")){
@@ -243,7 +247,7 @@ trees_dbh <- function(
     # read in treemap data
     # downloaded from: https://www.fs.usda.gov/rds/archive/Catalog/RDS-2021-0074
     # read in treemap (no memory is taken)
-    treemap_rast <- terra::rast(paste0(normalizePath(input_treemap_dir), "/treemap2016.tif"))
+    treemap_rast <- terra::rast(file.path(find_ext_data_ans$treemap_dir, "treemap2016.tif"))
 
     ### filter treemap based on las...rast now in memory
     treemap_rast <- treemap_rast %>%
@@ -275,7 +279,7 @@ trees_dbh <- function(
 
     ### get the TreeMap FIA tree list for only the plots included
     treemap_trees_df <- readr::read_csv(
-        paste0(normalizePath(input_treemap_dir), "/treemap2016_tree_table.csv")
+        file.path(find_ext_data_ans$treemap_dir, "treemap2016_tree_table.csv")
         , col_select = c(
           tm_id
           , CN

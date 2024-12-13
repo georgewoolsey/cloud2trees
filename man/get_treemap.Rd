@@ -9,11 +9,12 @@ get_treemap(savedir = NULL, force = F)
 \arguments{
 \item{savedir}{Optional directory to save data in a new location. Defaults to package contents.}
 
-\item{force}{Whether to overwrite exising data}
+\item{force}{Whether to overwrite existing data}
 }
 \description{
 To estimate individual tree DBH based on the point cloud detected tree height models are fit to FIA plot data within a buffer of the point cloud boundary.
 FIA plots are identified using TreeMap 2016, a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
+See \code{\link[=trees_dbh]{trees_dbh()}}
 }
 \examples{
  \dontrun{

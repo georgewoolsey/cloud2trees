@@ -1,30 +1,28 @@
-#' @title Download TreeMap 2016 data
+#' @title Download Forest Type Groups of the Continental United States data
 #' @param force Whether to overwrite existing data
 #' @param savedir Optional directory to save data in a new location. Defaults to package contents.
 #' @references
-#' [https://doi.org/10.2737/RDS-2021-0074](https://doi.org/10.2737/RDS-2021-0074)
-#' Riley, Karin L.; Grenfell, Isaac C.; Finney, Mark A.; Shaw, John D. 2021. TreeMap 2016: A tree-level model of the forests of the conterminous United States circa 2016. Fort Collins, CO: Forest Service Research Data Archive.
+#' * [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
+#' Wilson, B.T. (2023). Forest Type Groups of the Continental United States.
 #'
 #' @description
-#' To estimate individual tree DBH based on the point cloud detected tree height models are fit to FIA plot data within a buffer of the point cloud boundary.
-#' FIA plots are identified using TreeMap 2016, a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
-#' See [trees_dbh()]
+#' The Forest Type Groups of the Continental United States data is used to estimate individual tree forest type group.
+#' See [trees_type()]
 #'
 #' @examples
 #'  \dontrun{
-#'  get_treemap()
+#'  get_foresttype()
 #'  }
 #' @export
 #'
-get_treemap <- function(
+get_foresttype <- function(
   savedir = NULL
   , force = F
 ){
   # set up parameters to pass to get_url_data()
-    # old url: "https://s3-us-west-2.amazonaws.com/fs.usda.rds/RDS-2021-0074/RDS-2021-0074_Data.zip"
-  my_eval_url <- "https://usfs-public.box.com/shared/static/yz7h8b8v92scoqfwukjyulokaevzo6v6.zip" # updated 2024-12-10
-  my_my_name <- "treemap"
-  my_req_file_list <- c("treemap2016.tif", "treemap2016_tree_table.csv")
+  my_eval_url <- "https://zenodo.org/records/14343811/files/foresttype.zip?download=1"
+  my_my_name <- "foresttype"
+  my_req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
   my_cleanup_zip <- T
   # set up to save csv to package contents with location of data
   # the package directory from get_url_data()
@@ -55,7 +53,7 @@ get_treemap <- function(
     # write a csv to package directory with location of data
     dplyr::tibble(location = fff) %>%
       write.csv(
-        file.path(pkg_dir, "location_treemap.csv")
+        file.path(pkg_dir, "location_foresttype.csv")
         , row.names = F
         , append = F
       )
