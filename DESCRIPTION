@@ -16,7 +16,7 @@ Imports:
     ForestTools,
     ggplot2,
     LadderFuelsR (>= 0.0.7),
-    lasR (>= 0.10.2),
+    lasR (>= 0.13.0),
     leafR (>= 0.3.5),
     lidR,
     lifecycle,

@@ -278,7 +278,8 @@ raster2trees <- function(
           , "tree_x", "tree_y"
           , "crown_area_m2"
           , tidyselect::starts_with("comp_")
-        ))
+        )) %>%
+        dplyr::filter(!is.na(treeID))
       # str(crowns_sf)
 
       # ## !!!!!!!!!!!!!!!!!!!!!!! Not needed...and doesn't work with tiled CHM process

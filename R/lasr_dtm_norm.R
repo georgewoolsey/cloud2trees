@@ -29,7 +29,7 @@ lasr_dtm_norm <- function(
     stop(paste0(
       "Package \"lasR\" must be installed to use this function."
       , "\n"
-      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+      , "try `install.packages(\"lasR\", repos = \"https://r-lidar.r-universe.dev\")`"
     ))
   }
   # perform Delaunay triangulation
@@ -37,10 +37,39 @@ lasr_dtm_norm <- function(
     ####
     # set filter based on # points
     ####
-    filter_for_dtm <- paste0(
-      "-drop_noise -keep_class 2 -keep_class 9 -keep_random_fraction "
-      , ifelse(frac_for_tri>=1, "1", scales::comma(frac_for_tri, accuracy = 0.01))
-    )
+    ################################
+    ## lasR 0.13 update to filter
+    ################################
+    # create our own function to add a random number to the data
+      add_rand_fn <- function(data, ground_only = F) {
+        if(ground_only){
+          # get count
+          nn <- nrow( data[data$Classification %in% c(2,9),] )
+          # create var
+          data$RAND <- ifelse(data$Classification %in% c(2,9), sample(1:nn)/nn, 99)
+        }else{
+          data$RAND <- sample(1:nrow(data))/nrow(data)
+        }
+        return(data)
+      }
+    # we only want to use lasR::callback if we need to filter (exposes data to R)
+    cln_frac_for_tri <- ifelse(frac_for_tri>=1, "1", scales::comma(frac_for_tri, accuracy = 0.01))
+    if(cln_frac_for_tri<1){
+      # use lasR::callback to generate random number in data
+        lasr_add_rand <- lasR::add_extrabytes(data_type = "uint64", name = "RAND", description = "Random numbers") +
+          lasR::callback(add_rand_fn, expose = "xyz")
+      # pass it to filter
+        filter_for_dtm <- c(
+          "Classification %in% 2 9"
+          , paste0("RAND<=", cln_frac_for_tri)
+        )
+    }else{
+      # use lasR::summarise() because it does not alter the data and can be passed in a pipeline
+        lasr_add_rand <- lasR::summarise()
+      # pass it to filter
+        filter_for_dtm <- "Classification %in% 2 9"
+    }
+
     ####
     # triangulate with filter
     # produces a triangulation of the ground points (meshed DTM)
@@ -90,6 +119,6 @@ lasr_dtm_norm <- function(
       )
     }
   # pipeline
-  pipeline <- lasr_triangulate + lasr_dtm + lasr_normalize
+  pipeline <- lasr_add_rand + lasr_triangulate + lasr_dtm + lasr_normalize
   return(pipeline)
 }

@@ -53,7 +53,7 @@ The `cloud2trees` package relies on the following packages which *must be manual
 install.packages("remotes")
 
 ## install lasR from the r-univers
-install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
+install.packages("lasR", repos = "https://r-lidar.r-universe.dev")
 
 ## install TreeLS from github
 remotes::install_github(repo = "tiagodc/TreeLS", upgrade = F)
