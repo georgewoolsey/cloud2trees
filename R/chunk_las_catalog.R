@@ -243,6 +243,8 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- T
+      # did we change the files
+      lidr_wrote_the_files <- T
     }else if( # retile whole catalog if high overlap
       ctg_chunk_data$chunk_overlap[1] > 0
       & ctg_chunk_data$pct_overlap[1] > 0.1
@@ -281,7 +283,13 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- F
-    }else{is_chunked_grid <- F}
+      # did we change the files
+      lidr_wrote_the_files <- T
+    }else{
+      is_chunked_grid <- F
+      # did we change the files
+      lidr_wrote_the_files <- F
+    }
       # flist_temp
       # is_chunked_grid
       # plot(lidR::readLAScatalog(flist_temp))
@@ -312,8 +320,10 @@ chunk_las_catalog <- function(
       old_flist_temp <- flist_temp
       # create spatial index files (.lax)
       flist_temp <- create_lax_for_tiles(las_file_list = fakeit_fls)
-      # remove old files
-      old_flist_temp %>% purrr::map(file.remove)
+      # remove old files if we have files in outfolder...otherwise, old_flist_temp just has the original file
+      if(lidr_wrote_the_files==T){
+        old_flist_temp %>% purrr::map(file.remove)
+      }
     }
 
   ########################
