@@ -48,8 +48,8 @@ lasr_pipeline <- function(
   # setup to pass to lasR functions
   #################################################
     # output files
-    dtm_file_name <- paste0(normalizePath(dtm_dir), "/", processing_grid_num,"_dtm_", dtm_res_m, "m.tif")
-    chm_file_name <- paste0(normalizePath(chm_dir), "/", processing_grid_num,"_chm_", chm_res_m, "m.tif")
+    dtm_file_name <- file.path( dtm_dir, paste0(processing_grid_num,"_dtm_", dtm_res_m, "m.tif") )
+    chm_file_name <- file.path( chm_dir, paste0(processing_grid_num,"_chm_", chm_res_m, "m.tif") )
     # files to process
     flist <- process_data %>%
       dplyr::filter(processing_grid == processing_grid_num) %>%

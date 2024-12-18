@@ -200,6 +200,22 @@ chunk_las_catalog <- function(
       # # mosaic
       # rast_mosaic = terra::sprc(rast_list) %>% terra::mosaic(fun = "max")
     ########################
+
+    ########################
+    # first, set the lidR select option
+    ########################
+    # # # from the lidR documentation
+        # # # the select argument specifies the data that will actually be loaded.
+        # #   For example, ’xyzia’ means that the x, y, and z coordinates, the intensity and the scan angle will be loaded.
+        # #   The supported entries are t - gpstime, a - scan angle, i - intensity, n - number of returns, r - return number
+        # #   , c - classification, s - synthetic flag, k - keypoint flag, w - withheld flag, o - overlap flag (format 6+)
+        # #   , u - user data, p - point source ID, e - edge of flight line flag, d - direction of scan flag
+        # #   , R - red channel of RGB color, G - green channel of RGB color, B - blue channel of RGB color
+        # #   , N - near-infrared channel, C - scanner channel (format 6+), W - Full waveform.
+        # #   Also numbers from 1 to 9 for the extra bytes data numbers 1 to 9. 0 enables all extra bytes to
+        # #     be loaded and ’*’ is the wildcard that enables everything to be loaded from the LAS file.
+        lidr_select <- "xyzainrcRGBNC"
+
     if(
       ctg_chunk_data$chunk_max_ctg_pts[1] > 0
       & ctg_pts_so_many == T
@@ -209,6 +225,12 @@ chunk_las_catalog <- function(
       lidR::opt_progress(las_ctg) <- F
       lidR::opt_output_files(las_ctg) <- paste0(normalizePath(outfolder),"/", "_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
       lidR::opt_filter(las_ctg) <- "-drop_duplicates"
+
+      # # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap
+      lidR::opt_select(las_ctg) <- lidr_select
+      # # lidR::opt_select(las_ctg) <- "-x -y -z -i -n -r -c"
+      # # lidR::opt_select() <- "-u -i -w"
+
       # buffering here because these grid subsets will be processed independently
       lidR::opt_chunk_buffer(las_ctg) <- 10
       lidR::opt_chunk_size(las_ctg) <- ctg_chunk_data$chunk_max_ctg_pts[1]
@@ -230,6 +252,22 @@ chunk_las_catalog <- function(
       lidR::opt_progress(las_ctg) <- F
       lidR::opt_output_files(las_ctg) <- paste0(normalizePath(outfolder),"/", "_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
       lidR::opt_filter(las_ctg) <- "-drop_duplicates"
+      # # # from the lidR documentation
+        # # # the select argument specifies the data that will actually be loaded.
+        # #   For example, ’xyzia’ means that the x, y, and z coordinates, the intensity and the scan angle will be loaded.
+        # #   The supported entries are t - gpstime, a - scan angle, i - intensity, n - number of returns, r - return number
+        # #   , c - classification, s - synthetic flag, k - keypoint flag, w - withheld flag, o - overlap flag (format 6+)
+        # #   , u - user data, p - point source ID, e - edge of flight line flag, d - direction of scan flag
+        # #   , R - red channel of RGB color, G - green channel of RGB color, B - blue channel of RGB color
+        # #   , N - near-infrared channel, C - scanner channel (format 6+), W - Full waveform.
+        # #   Also numbers from 1 to 9 for the extra bytes data numbers 1 to 9. 0 enables all extra bytes to
+        # #     be loaded and ’*’ is the wildcard that enables everything to be loaded from the LAS file.
+
+      # # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap      # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap
+      lidR::opt_select(las_ctg) <- lidr_select
+      # # lidR::opt_select(las_ctg) <- "-x -y -z -i -n -r -c"
+      # # lidR::opt_select() <- "-u -i -w"
+
       # buffering is handled by lasR::exec so no need to buffer here
       # not buffering here because these grid subsets will be processed altogether with buffer set for lasR::exec
       lidR::opt_chunk_buffer(las_ctg) <- 0
@@ -251,6 +289,32 @@ chunk_las_catalog <- function(
       # lidR::readLAScatalog(flist_temp)@data %>%
       #   dplyr::select(filename, Number.of.point.records) %>%
       #   sf::st_drop_geometry()
+
+  ########################
+  # lasR 0.13 crashes when using a lasR::write_las() call with raw data that has extra bytes (at least from my tests)
+  # for some reason, reading this extra byte data with lidR::readLAS() and then re-writing the data creates files that
+  # don't result in a lasR memory crash error...maybe it removes or properly formats the extra bytes????
+  ########################
+    has_eb <- las_list_has_extra_bytes(flist_temp)
+    if(has_eb){
+      # set up a LAScatalog
+      fakeit_ctg <- lidR::readLAScatalog(
+        flist_temp
+        , progress = F
+        , select = lidr_select
+        , chunk_buffer = 0 # don't need to buffer because buffering already handled above
+        , filter = "-drop_duplicates"
+      )
+      # where to save these files
+      lidR::opt_output_files(fakeit_ctg) <- paste0(normalizePath(outfolder),"/", "cln_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
+      fakeit_fls <- lidR::catalog_apply(fakeit_ctg, fakeit_write_fn) %>% unlist()
+      # store the old file names
+      old_flist_temp <- flist_temp
+      # create spatial index files (.lax)
+      flist_temp <- create_lax_for_tiles(las_file_list = fakeit_fls)
+      # remove old files
+      old_flist_temp %>% purrr::map(file.remove)
+    }
 
   ########################
   # data on how the chunks are processed for writing
@@ -382,4 +446,55 @@ get_horizontal_crs <- function(x) {
     # return
     return(sf::st_crs(wkt))
   }
+}
+###___________________________________________###
+# function to check if las files have
+# extra bytes that have been known
+# to cause issues with lasR
+###___________________________________________###
+check_las_extra_bytes <- function(las){
+  # note...doing this nested "if" junk below to allow for variable names not to be present
+  # read header quietly
+  h <- rlas::read.lasheader(las)
+  # check for other data
+  # check for variable length records which are non-standard las
+  is_vl <- names(h) %>% stringr::str_detect("Variable Length Records") %>% max(na.rm = T)
+  if(dplyr::coalesce(is_vl,0) == 1){
+    # check for extra bytes data
+    is_eb <- h[["Variable Length Records"]] %>% names() %>% stringr::str_detect("Extra_Bytes") %>% max()
+    # check if populated
+    if(dplyr::coalesce(is_vl,0) == 1){
+      # check length of extra bytes
+      l_eb <- h[["Variable Length Records"]][["Extra_Bytes"]] %>% length()
+      # return T if populated
+      if(dplyr::coalesce(l_eb,0) > 0){
+        return(T)
+      }else{return(F)}
+    }else{return(F)}
+  }else{return(F)}
+}
+###___________________________________________###
+# function to check if las file list for
+# extra bytes that have been known
+# to cause issues with lasR
+###___________________________________________###
+las_list_has_extra_bytes <- function(las_file_list) {
+  # map over check
+  has_eb <- las_file_list %>%
+    purrr::map(check_las_extra_bytes) %>%
+    unlist() %>%
+    max(na.rm = T) %>%
+    as.logical()
+  return(has_eb)
+}
+###___________________________________________###
+# function to use with lidR::catalog_apply
+# to read data, do nothing, return it
+# the LAScatalog engine then writes new data
+# after applying this function
+###___________________________________________###
+fakeit_write_fn = function(chunk){
+  las <- lidR::readLAS(chunk)
+  if(lidR::is.empty(las)){return(NULL)}
+  return(las)
 }
