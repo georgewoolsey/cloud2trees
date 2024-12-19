@@ -38,37 +38,17 @@ lasr_dtm_norm <- function(
     # set filter based on # points
     ####
     ################################
-    ## lasR 0.13 update to filter
+    ## lasR 0.13 update to decimate ground points for triangulation
+    ## 2024-03-29 version: https://github.com/r-lidar/lasR/issues/18
+    ## 2024-12-18 version:: https://github.com/r-lidar/lasR/issues/102
     ################################
-    # create our own function to add a random number to the data
-      add_rand_fn <- function(data, ground_only = F) {
-        if(ground_only){
-          # get count
-          nn <- nrow( data[data$Classification %in% c(2,9),] )
-          # create var
-          data$RAND <- ifelse(data$Classification %in% c(2,9), sample(1:nn)/nn, 99)
-        }else{
-          data$RAND <- sample(1:nrow(data))/nrow(data)
-        }
-        return(data)
-      }
-    # we only want to use lasR::callback if we need to filter (exposes data to R)
-    cln_frac_for_tri <- ifelse(frac_for_tri>=1, "1", scales::comma(frac_for_tri, accuracy = 0.01))
-    if(cln_frac_for_tri<1){
-      # use lasR::callback to generate random number in data
-        lasr_add_rand <- lasR::add_extrabytes(data_type = "uint64", name = "RAND", description = "Random numbers") +
-          lasR::callback(add_rand_fn, expose = "xyz")
-      # pass it to filter
-        filter_for_dtm <- c(
-          "Classification %in% 2 9"
-          , paste0("RAND<=", cln_frac_for_tri)
-        )
-    }else{
-      # use lasR::summarise() because it does not alter the data and can be passed in a pipeline
-        lasr_add_rand <- lasR::summarise()
-      # pass it to filter
-        filter_for_dtm <- "Classification %in% 2 9"
+    # resample ground for super high density clouds
+    if( dplyr::coalesce(frac_for_tri,1)<1 ){
+      lasr_resample_gnd <- lasR::sampling_pixel(res = 0.1, method = "min", filter = lasR::keep_ground_and_water())
+    }else{ # fake the stage
+      lasr_resample_gnd <- lasR::summarise()
     }
+    filter_for_dtm <- lasR::keep_ground_and_water()
 
     ####
     # triangulate with filter
@@ -119,6 +99,6 @@ lasr_dtm_norm <- function(
       )
     }
   # pipeline
-  pipeline <- lasr_add_rand + lasr_triangulate + lasr_dtm + lasr_normalize
+  pipeline <- lasr_resample_gnd + lasr_triangulate + lasr_dtm + lasr_normalize
   return(pipeline)
 }
