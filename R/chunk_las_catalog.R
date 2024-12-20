@@ -243,8 +243,7 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- T
-      # did we change the files
-      lidr_wrote_the_files <- T
+
     }else if( # retile whole catalog if high overlap
       ctg_chunk_data$chunk_overlap[1] > 0
       & ctg_chunk_data$pct_overlap[1] > 0.1
@@ -283,12 +282,10 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- F
-      # did we change the files
-      lidr_wrote_the_files <- T
+
     }else{
       is_chunked_grid <- F
-      # did we change the files
-      lidr_wrote_the_files <- F
+
     }
       # flist_temp
       # is_chunked_grid
@@ -297,46 +294,6 @@ chunk_las_catalog <- function(
       # lidR::readLAScatalog(flist_temp)@data %>%
       #   dplyr::select(filename, Number.of.point.records) %>%
       #   sf::st_drop_geometry()
-
-  ########################
-  # lasR 0.13 crashes when using a lasR::write_las() call with raw data that has extra bytes
-  # if those extra byte attributes include a "type" that is deprecated
-    # ... "data type of the extrabytes attributes (page 25 of the spec)" from ?rlas::extra_bytes_attribute_tools
-    ## will get a warning message when reading in las file with lidR or lasR:
-     ## e.g.: "data type 22 of extra bytes attribute 1 is deprecated and not supported by rlas."
-        # h <- rlas::read.lasheader("file.las")
-        # names(h[["Variable Length Records"]])
-        # h[["Variable Length Records"]][["Extra_Bytes"]]
-  # those deprecated extra bytes data show up in the data when read into lasR.
-        # p <- lasR::reader() + lasR::info()
-        # lasR::exec(p, on = "file.las")
-      ### result will show an extra byte data attribute of type "Unknown"
-      ### ...manipulating this data does not cause an issue until a lasR::write_las() call is added to the lasR pipeline
-  # reading this extra byte data with lidR::readLAS() and then re-writing the data creates files that
-  # don't result in a lasR memory crash error because the lidR reader skips the invalid extra byte data
-  ########################
-    has_eb <- las_list_has_extra_bytes(flist_temp)
-    if(has_eb){
-      # set up a LAScatalog
-      fakeit_ctg <- lidR::readLAScatalog(
-        flist_temp
-        , progress = F
-        , select = lidr_select
-        , chunk_buffer = 0 # don't need to buffer because buffering already handled above
-        , filter = "-drop_duplicates"
-      )
-      # where to save these files
-      lidR::opt_output_files(fakeit_ctg) <- paste0(normalizePath(outfolder),"/", "cln_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
-      fakeit_fls <- lidR::catalog_apply(fakeit_ctg, fakeit_write_fn) %>% unlist()
-      # store the old file names
-      old_flist_temp <- flist_temp
-      # create spatial index files (.lax)
-      flist_temp <- create_lax_for_tiles(las_file_list = fakeit_fls)
-      # remove old files if we have files in outfolder...otherwise, old_flist_temp just has the original file
-      if(lidr_wrote_the_files==T){
-        old_flist_temp %>% purrr::map(file.remove)
-      }
-    }
 
   ########################
   # data on how the chunks are processed for writing
@@ -468,55 +425,4 @@ get_horizontal_crs <- function(x) {
     # return
     return(sf::st_crs(wkt))
   }
-}
-###___________________________________________###
-# function to check if las files have
-# extra bytes that have been known
-# to cause issues with lasR
-###___________________________________________###
-check_las_extra_bytes <- function(las){
-  # note...doing this nested "if" junk below to allow for variable names not to be present
-  # read header quietly
-  h <- rlas::read.lasheader(las)
-  # check for other data
-  # check for variable length records which are non-standard las
-  is_vl <- names(h) %>% stringr::str_detect("Variable Length Records") %>% max(na.rm = T)
-  if(dplyr::coalesce(is_vl,0) == 1){
-    # check for extra bytes data
-    is_eb <- h[["Variable Length Records"]] %>% names() %>% stringr::str_detect("Extra_Bytes") %>% max()
-    # check if populated
-    if(dplyr::coalesce(is_vl,0) == 1){
-      # check length of extra bytes
-      l_eb <- h[["Variable Length Records"]][["Extra_Bytes"]] %>% length()
-      # return T if populated
-      if(dplyr::coalesce(l_eb,0) > 0){
-        return(T)
-      }else{return(F)}
-    }else{return(F)}
-  }else{return(F)}
-}
-###___________________________________________###
-# function to check if las file list for
-# extra bytes that have been known
-# to cause issues with lasR
-###___________________________________________###
-las_list_has_extra_bytes <- function(las_file_list) {
-  # map over check
-  has_eb <- las_file_list %>%
-    purrr::map(check_las_extra_bytes) %>%
-    unlist() %>%
-    max(na.rm = T) %>%
-    as.logical()
-  return(has_eb)
-}
-###___________________________________________###
-# function to use with lidR::catalog_apply
-# to read data, do nothing, return it
-# the LAScatalog engine then writes new data
-# after applying this function
-###___________________________________________###
-fakeit_write_fn = function(chunk){
-  las <- lidR::readLAS(chunk)
-  if(lidR::is.empty(las)){return(NULL)}
-  return(las)
 }

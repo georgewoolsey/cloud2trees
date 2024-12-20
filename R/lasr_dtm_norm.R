@@ -43,8 +43,17 @@ lasr_dtm_norm <- function(
     ## 2024-12-18 version:: https://github.com/r-lidar/lasR/issues/102
     ################################
     # resample ground for super high density clouds
-    if( dplyr::coalesce(frac_for_tri,1)<1 ){
-      lasr_resample_gnd <- lasR::sampling_pixel(res = 0.1, method = "min", filter = lasR::keep_ground_and_water())
+    if( dplyr::coalesce(as.numeric(frac_for_tri),1)<1 ){
+      samp_res <- dplyr::case_when(
+        as.numeric(frac_for_tri) <= 0.01 ~ 0.5 # 50 cm
+        , as.numeric(frac_for_tri) <= 0.3 ~ 0.2 # 20 cm
+        , T ~ 0.1 # 10 cm
+      )
+      lasr_resample_gnd <- lasR::sampling_pixel(
+        res = samp_res
+        , method = "min"
+        , filter = lasR::keep_ground_and_water()
+      )
     }else{ # fake the stage
       lasr_resample_gnd <- lasR::summarise()
     }
