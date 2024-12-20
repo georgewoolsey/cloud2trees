@@ -1,6 +1,6 @@
 # cloud2trees 0.3.1
 
-Updates the processes that rely on the `lasR` package which implemented major revisions with breaking changes in [`lasR 0.13.0`](https://r-lidar.github.io/lasR/news/index.html#lasr-0130). The package `cloud2trees` now requires `lasR >= 0.13.1`. Even with these updates, users may continue to encounter some bugs in the near future. See #3.
+Updates the processes that rely on the `lasR` package which implemented major revisions with breaking changes in [`lasR 0.13.0`](https://r-lidar.github.io/lasR/news/index.html#lasr-0130). The package `cloud2trees` now requires `lasR >= 0.13.1`. Even with these updates, users may continue to encounter some bugs in the near future. See (#3, @georgewoolsey).
 
 To update execute:
 
@@ -16,7 +16,7 @@ remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
 
 # cloud2trees 0.3.0
 
-Implements a process to extract the USDA Forest Inventory and Analysis (FIA) forest type group based on the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). See #2.
+Implements a process to extract the USDA Forest Inventory and Analysis (FIA) forest type group based on the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). See (#2, @georgewoolsey).
 
 - New: Adds the function `trees_type()` to use the input tree list (e.g. as exported by `raster2trees()`) to attach species information using FIA codes
 - New: Adds `get_data()` as all-in-one function that downloads all of the external data used by the package
@@ -26,7 +26,7 @@ Implements a process to extract the USDA Forest Inventory and Analysis (FIA) for
 
 # cloud2trees 0.2.0
 
-Integrates a process to extract the crown base height (CBH) using the workflow outlined in [Viedma et al. (2024)](https://doi.org/10.1111/2041-210X.14427) and using their package `LadderFuelsR` ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)). See #1.
+Integrates a process to extract the crown base height (CBH) using the workflow outlined in [Viedma et al. (2024)](https://doi.org/10.1111/2041-210X.14427) and using their package `LadderFuelsR` ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)). See (#1, @georgewoolsey).
 
 - New: Adds the function `trees_cbh()` to use input tree crown polygons (e.g. as exported by `raster2trees()`) to estimate tree CBH based on an input normalized point cloud
 - New: Adds `ladderfuelsr_cbh()` as all-in-one function to extract CBH from a single tree, height normalized cloud using the functionality of the `LadderFuelsR` package
