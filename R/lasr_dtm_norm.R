@@ -29,7 +29,7 @@ lasr_dtm_norm <- function(
     stop(paste0(
       "Package \"lasR\" must be installed to use this function."
       , "\n"
-      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+      , "try `install.packages(\"lasR\", repos = \"https://r-lidar.r-universe.dev\")`"
     ))
   }
   # perform Delaunay triangulation
@@ -37,10 +37,28 @@ lasr_dtm_norm <- function(
     ####
     # set filter based on # points
     ####
-    filter_for_dtm <- paste0(
-      "-drop_noise -keep_class 2 -keep_class 9 -keep_random_fraction "
-      , ifelse(frac_for_tri>=1, "1", scales::comma(frac_for_tri, accuracy = 0.01))
-    )
+    ################################
+    ## lasR 0.13 update to decimate ground points for triangulation
+    ## 2024-03-29 version: https://github.com/r-lidar/lasR/issues/18
+    ## 2024-12-18 version:: https://github.com/r-lidar/lasR/issues/102
+    ################################
+    # resample ground for super high density clouds
+    if( dplyr::coalesce(as.numeric(frac_for_tri),1)<1 ){
+      samp_res <- dplyr::case_when(
+        as.numeric(frac_for_tri) <= 0.01 ~ 0.5 # 50 cm
+        , as.numeric(frac_for_tri) <= 0.3 ~ 0.2 # 20 cm
+        , T ~ 0.1 # 10 cm
+      )
+      lasr_resample_gnd <- lasR::sampling_pixel(
+        res = samp_res
+        , method = "min"
+        , filter = lasR::keep_ground_and_water()
+      )
+    }else{ # fake the stage
+      lasr_resample_gnd <- lasR::summarise()
+    }
+    filter_for_dtm <- lasR::keep_ground_and_water()
+
     ####
     # triangulate with filter
     # produces a triangulation of the ground points (meshed DTM)
@@ -90,6 +108,6 @@ lasr_dtm_norm <- function(
       )
     }
   # pipeline
-  pipeline <- lasr_triangulate + lasr_dtm + lasr_normalize
+  pipeline <- lasr_resample_gnd + lasr_triangulate + lasr_dtm + lasr_normalize
   return(pipeline)
 }

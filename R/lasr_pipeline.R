@@ -41,15 +41,15 @@ lasr_pipeline <- function(
     stop(paste0(
       "Package \"lasR\" must be installed to use this function."
       , "\n"
-      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+      , "try `install.packages(\"lasR\", repos = \"https://r-lidar.r-universe.dev\")`"
     ))
   }
   #################################################
   # setup to pass to lasR functions
   #################################################
     # output files
-    dtm_file_name <- paste0(normalizePath(dtm_dir), "/", processing_grid_num,"_dtm_", dtm_res_m, "m.tif")
-    chm_file_name <- paste0(normalizePath(chm_dir), "/", processing_grid_num,"_chm_", chm_res_m, "m.tif")
+    dtm_file_name <- file.path( dtm_dir, paste0(processing_grid_num,"_dtm_", dtm_res_m, "m.tif") )
+    chm_file_name <- file.path( chm_dir, paste0(processing_grid_num,"_chm_", chm_res_m, "m.tif") )
     # files to process
     flist <- process_data %>%
       dplyr::filter(processing_grid == processing_grid_num) %>%
@@ -80,7 +80,7 @@ lasr_pipeline <- function(
     ###################
     # read with filter
     ###################
-      lasr_read <- lasR::reader_las(filter = "-drop_noise -drop_duplicates")
+      lasr_read <- lasR::reader(filter = "-drop_noise -drop_duplicates")
     ###################
     # classify
     ###################
@@ -106,14 +106,14 @@ lasr_pipeline <- function(
     ###################
       # write class
       lasr_write_classify <- lasR::write_las(
-        ofile = paste0(normalizePath(classify_dir), "/*_classify.las")
-        , filter = "-drop_noise"
+        ofile = file.path(classify_dir, "*_classify.las")
+        , filter = lasR::drop_noise()
         , keep_buffer = F
       )
       # write norm
       lasr_write_normalize <- lasR::write_las(
-        filter = "-drop_z_below 0 -drop_class 18"
-        , ofile = paste0(normalizePath(normalize_dir), "/*_normalize.las")
+        filter = lasR::drop_noise()+lasR::drop_z_below(0)  # "-drop_z_below 0 -drop_class 18"
+        , ofile = file.path(normalize_dir, "*_normalize.las")
         , keep_buffer = F
       )
   #################################################

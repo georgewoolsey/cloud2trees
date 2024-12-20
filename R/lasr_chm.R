@@ -28,22 +28,27 @@ lasr_chm <- function(
     stop(paste0(
       "Package \"lasR\" must be installed to use this function."
       , "\n"
-      , "try `pak::pak(\"r-lidar/lasR\", upgrade = TRUE)`"
+      , "try `install.packages(\"lasR\", repos = \"https://r-lidar.r-universe.dev\")`"
     ))
   }
   # chm
+    ## filter for CHM for lasR 0.13
+    filter_for_ctm <- c(
+      "Classification %out% 2 9 18"
+      , paste(
+          "Z %between%"
+          , min_height_m
+          , max_height_m
+        )
+    )
+
     #set up chm pipeline step
     # operators = "max" is analogous to `lidR::rasterize_canopy(algorithm = p2r())`
     # for each pixel of the output raster the function attributes the height of the highest point found
     lasr_chm <- lasR::rasterize(
       res = chm_res
       , operators = "max"
-      , filter = paste0(
-        "-drop_class 2 9 18 -drop_z_below "
-        , min_height_m
-        , " -drop_z_above "
-        , max_height_m
-      )
+      , filter = filter_for_ctm
       , ofile = ""
       # , ofile = paste0(config$chm_dir, "/*_chm.tif")
     )

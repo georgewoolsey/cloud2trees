@@ -214,6 +214,19 @@ raster2trees <- function(
         , hmin = min_height
       )
     )
+    # check for validity
+    if(
+      !inherits(tree_tops, "sf") ||
+      nrow(sf::st_zm(tree_tops, drop = T))==0 ||
+      min(sf::st_is(tree_tops, type = c("POINT", "MULTIPOINT"))) == 0
+    ){
+      stop(paste0(
+        "Could not locate any trees using the CHM raster"
+        , "\n and window size settings...try different settings or data?"
+        , "\n "
+      ))
+    }
+
     # delineate crowns
     crowns <- ForestTools::mcws(
       treetops = sf::st_zm(tree_tops, drop = T) # drops z values
@@ -278,7 +291,8 @@ raster2trees <- function(
           , "tree_x", "tree_y"
           , "crown_area_m2"
           , tidyselect::starts_with("comp_")
-        ))
+        )) %>%
+        dplyr::filter(!is.na(treeID))
       # str(crowns_sf)
 
       # ## !!!!!!!!!!!!!!!!!!!!!!! Not needed...and doesn't work with tiled CHM process
@@ -488,6 +502,7 @@ raster2trees <- function(
         , hmin = hmin
       )
     )
+
     # write
     tree_tops_file <- paste0(
       dir

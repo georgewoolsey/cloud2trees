@@ -176,6 +176,11 @@ cloud2trees <- function(
       "starting cloud2raster() step at ..."
       , xx1_cloud2raster
     )
+  # update intermediate keep
+  updt_keep_intrmdt <- dplyr::case_when(
+    keep_intrmdt==F & (estimate_tree_cbh==T | estimate_dbh_from_cloud==T) ~ T
+    , T ~ keep_intrmdt
+  )
   # do it
   cloud2raster_ans <- cloud2raster(
       output_dir = output_dir
@@ -188,7 +193,7 @@ cloud2trees <- function(
       , transform = transform
       , new_crs = new_crs
       , old_crs = old_crs
-      , keep_intrmdt = keep_intrmdt
+      , keep_intrmdt = updt_keep_intrmdt
       , dtm_res_m = dtm_res_m
       , chm_res_m = chm_res_m
       , min_height = min_height

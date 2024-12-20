@@ -200,6 +200,22 @@ chunk_las_catalog <- function(
       # # mosaic
       # rast_mosaic = terra::sprc(rast_list) %>% terra::mosaic(fun = "max")
     ########################
+
+    ########################
+    # first, set the lidR select option
+    ########################
+    # # # from the lidR documentation
+        # # # the select argument specifies the data that will actually be loaded.
+        # #   For example, ’xyzia’ means that the x, y, and z coordinates, the intensity and the scan angle will be loaded.
+        # #   The supported entries are t - gpstime, a - scan angle, i - intensity, n - number of returns, r - return number
+        # #   , c - classification, s - synthetic flag, k - keypoint flag, w - withheld flag, o - overlap flag (format 6+)
+        # #   , u - user data, p - point source ID, e - edge of flight line flag, d - direction of scan flag
+        # #   , R - red channel of RGB color, G - green channel of RGB color, B - blue channel of RGB color
+        # #   , N - near-infrared channel, C - scanner channel (format 6+), W - Full waveform.
+        # #   Also numbers from 1 to 9 for the extra bytes data numbers 1 to 9. 0 enables all extra bytes to
+        # #     be loaded and ’*’ is the wildcard that enables everything to be loaded from the LAS file.
+        lidr_select <- "xyzainrcRGBNC"
+
     if(
       ctg_chunk_data$chunk_max_ctg_pts[1] > 0
       & ctg_pts_so_many == T
@@ -209,6 +225,12 @@ chunk_las_catalog <- function(
       lidR::opt_progress(las_ctg) <- F
       lidR::opt_output_files(las_ctg) <- paste0(normalizePath(outfolder),"/", "_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
       lidR::opt_filter(las_ctg) <- "-drop_duplicates"
+
+      # # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap
+      lidR::opt_select(las_ctg) <- lidr_select
+      # # lidR::opt_select(las_ctg) <- "-x -y -z -i -n -r -c"
+      # # lidR::opt_select() <- "-u -i -w"
+
       # buffering here because these grid subsets will be processed independently
       lidR::opt_chunk_buffer(las_ctg) <- 10
       lidR::opt_chunk_size(las_ctg) <- ctg_chunk_data$chunk_max_ctg_pts[1]
@@ -221,6 +243,7 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- T
+
     }else if( # retile whole catalog if high overlap
       ctg_chunk_data$chunk_overlap[1] > 0
       & ctg_chunk_data$pct_overlap[1] > 0.1
@@ -230,6 +253,22 @@ chunk_las_catalog <- function(
       lidR::opt_progress(las_ctg) <- F
       lidR::opt_output_files(las_ctg) <- paste0(normalizePath(outfolder),"/", "_{XLEFT}_{YBOTTOM}") # label outputs based on coordinates
       lidR::opt_filter(las_ctg) <- "-drop_duplicates"
+      # # # from the lidR documentation
+        # # # the select argument specifies the data that will actually be loaded.
+        # #   For example, ’xyzia’ means that the x, y, and z coordinates, the intensity and the scan angle will be loaded.
+        # #   The supported entries are t - gpstime, a - scan angle, i - intensity, n - number of returns, r - return number
+        # #   , c - classification, s - synthetic flag, k - keypoint flag, w - withheld flag, o - overlap flag (format 6+)
+        # #   , u - user data, p - point source ID, e - edge of flight line flag, d - direction of scan flag
+        # #   , R - red channel of RGB color, G - green channel of RGB color, B - blue channel of RGB color
+        # #   , N - near-infrared channel, C - scanner channel (format 6+), W - Full waveform.
+        # #   Also numbers from 1 to 9 for the extra bytes data numbers 1 to 9. 0 enables all extra bytes to
+        # #     be loaded and ’*’ is the wildcard that enables everything to be loaded from the LAS file.
+
+      # # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap      # https://gis.stackexchange.com/questions/378882/how-can-i-make-las-data-output-from-an-rpas-survey-processed-in-agisoft-metashap
+      lidR::opt_select(las_ctg) <- lidr_select
+      # # lidR::opt_select(las_ctg) <- "-x -y -z -i -n -r -c"
+      # # lidR::opt_select() <- "-u -i -w"
+
       # buffering is handled by lasR::exec so no need to buffer here
       # not buffering here because these grid subsets will be processed altogether with buffer set for lasR::exec
       lidR::opt_chunk_buffer(las_ctg) <- 0
@@ -243,7 +282,11 @@ chunk_las_catalog <- function(
       )
       # switch for processing grid subsets
       is_chunked_grid <- F
-    }else{is_chunked_grid <- F}
+
+    }else{
+      is_chunked_grid <- F
+
+    }
       # flist_temp
       # is_chunked_grid
       # plot(lidR::readLAScatalog(flist_temp))
