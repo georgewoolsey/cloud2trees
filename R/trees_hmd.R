@@ -69,7 +69,7 @@ trees_hmd <- function(
   ##################################
   nlas_msg <- paste0(
     "`norm_las` must contain a directory with nomalized las files, the path of a .laz|.las file"
-    , "\n, -or- an object of class `LASc`. Please update the `norm_las` parameter."
+    , "\n, -or- an object of class `LAScatalog`. Please update the `norm_las` parameter."
   )
   if(is.null(norm_las)){stop(nlas_msg)}
   if(inherits(norm_las, "character")){

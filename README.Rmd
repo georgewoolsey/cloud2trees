@@ -620,7 +620,9 @@ trees_cbh_ans <- cloud2trees::trees_cbh(
 What is this data?
 
 ```{r}
-trees_cbh_ans %>% dplyr::glimpse()
+trees_cbh_ans %>% 
+  dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>% 
+  dplyr::glimpse()
 ```
 
 Let's look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).
