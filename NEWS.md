@@ -1,3 +1,5 @@
+# cloud2trees 0.4.0
+
 # cloud2trees 0.3.1
 
 Updates the processes that rely on the `lasR` package which implemented major revisions with breaking changes in [`lasR 0.13.0`](https://r-lidar.github.io/lasR/news/index.html#lasr-0130). The package `cloud2trees` now requires `lasR >= 0.13.1`. Even with these updates, users may continue to encounter some bugs in the near future. See (#3, @georgewoolsey).
