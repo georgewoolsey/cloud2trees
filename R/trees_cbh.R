@@ -1,8 +1,8 @@
-#' @title Estimate DBH for a tree list based on height
+#' @title Estimate CBH using tree crown polygons and normalized point cloud data
 #'
 #' @description
 #' `trees_cbh()` uses the input tree crown polygons (e.g. as exported by [raster2trees()]) with the columns
-#' `treeID` and `tree_height_m` to estimate tree CBH based on a normalized point cloud (e.g. as exported by [raster2trees()]).
+#' `treeID` and `tree_height_m` to estimate tree CBH using height normalized point cloud data (e.g. as exported by [cloud2raster()]).
 #'
 #' CBH is extracted directly from the height normalized point cloud using the process outlined in Viedma et al. (2024) and implemented via [ladderfuelsr_cbh()].
 #'
@@ -63,7 +63,7 @@
 #'  trees_cbh_ans %>% class()
 #'  trees_cbh_ans %>% dplyr::select(tidyselect::contains("cbh")) %>% dplyr::glimpse()
 #'  # spatial polygons
-#'  trees_cbh_ans %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=tree_cbh_m))
+#'  trees_cbh_ans %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m))
 #'  # relationship between height and cbh
 #'  trees_cbh_ans %>%
 #'     ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) +
@@ -73,7 +73,7 @@
 #'
 trees_cbh <- function(
   trees_poly
-  , norm_las = NA
+  , norm_las = NULL
   , tree_sample_n = NA
   , tree_sample_prop = NA
   , which_cbh = "lowest"
@@ -151,7 +151,7 @@ trees_cbh <- function(
     "`norm_las` must contain a directory with nomalized las files, the path of a .laz|.las file"
     , "\n, -or- an object of class `LAS`. Please update the `norm_las` parameter."
   )
-  if(is.na(norm_las)){stop(nlas_msg)}
+  if(is.null(norm_las)){stop(nlas_msg)}
   if(inherits(norm_las, "character")){
     if(!stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
       # try to read directory for las files
@@ -160,20 +160,25 @@ trees_cbh <- function(
       if(length(fls)<1){stop(nlas_msg)}
       # read it
       nlas_ctg <- lidR::readLAScatalog(fls)
-      # turn of lidR progress
-      lidR::opt_progress(nlas_ctg) <- F
     }else if(stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
       # read it
       nlas_ctg <- lidR::readLAScatalog(norm_las)
-      # turn of lidR progress
-      lidR::opt_progress(nlas_ctg) <- F
     }else{
       stop(nlas_msg)
     }
   }else if(inherits(norm_las, "LAS")){
     nlas_ctg <- norm_las
+  }else if(inherits(norm_las, "LAScatalog")){
+    nlas_ctg <- norm_las
   }else{
     stop(nlas_msg)
+  }
+
+  # set the lascatalog options
+  if(inherits(nlas_ctg, "LAScatalog")){
+    lidR::opt_progress(nlas_ctg) <- F
+    lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
+    lidR::opt_select(nlas_ctg) <- "xyzci"
   }
   ##################################
   # ensure that treeID data exists
@@ -215,28 +220,29 @@ trees_cbh <- function(
   if(!inherits(trees_poly, "sf")){stop(sf_msg)}
   if( min(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON"))) == 0 ){stop(sf_msg)}
 
-  ##################################
-  # ensure the las and sf are same projection
-  ##################################
-  # get crs
-    crs_las <- sf::st_crs(nlas_ctg)
-    crs_poly <- sf::st_crs(trees_poly)
-  # test equal epsg
-    if(
-      is.na(crs_las$epsg) |
-      is.na(crs_poly$epsg) |
-      crs_las$epsg != crs_poly$epsg
-    ){
-      # try to pull the epsg another way
-      # get_horizontal_crs is defined in chunk_las_catalog.R
-      n_crs <- get_horizontal_crs(nlas_ctg)
-      if(
-        is.na(n_crs) |
-        n_crs$epsg != crs_poly$epsg
-      ){
-        stop("The `trees_poly` and `norm_las` data have differing CRS projections. Please see `sf::st_crs()` and ensure compatibility.")
-      }
-    }
+  #### !!!!! removed b/c lasR>=0.13 stopped writing deprecated epsgs and made them "custom" in las header wkt ;\
+  # ##################################
+  # # ensure the las and sf are same projection
+  # ##################################
+  # # get crs
+  #   crs_las <- sf::st_crs(nlas_ctg)
+  #   crs_poly <- sf::st_crs(trees_poly)
+  # # test equal epsg
+  #   if(
+  #     is.na(crs_las$epsg) |
+  #     is.na(crs_poly$epsg) |
+  #     crs_las$epsg != crs_poly$epsg
+  #   ){
+  #     # try to pull the epsg another way
+  #     # get_horizontal_crs is defined in chunk_las_catalog.R
+  #     n_crs <- get_horizontal_crs(nlas_ctg)
+  #     if(
+  #       is.na(n_crs) |
+  #       n_crs$epsg != crs_poly$epsg
+  #     ){
+  #       stop("The `trees_poly` and `norm_las` data have differing CRS projections. Please see `sf::st_crs()` and ensure compatibility.")
+  #     }
+  #   }
 
   # get rid of columns we'll create
     trees_poly <- trees_poly %>%
@@ -424,8 +430,8 @@ trees_cbh <- function(
 
   if(
     estimate_missing_cbh==T
-    & n_cbh > 10
-    & max(grepl("tree_height_m", f))==1
+    && n_cbh > 10
+    && max(grepl("tree_height_m", f))==1
   ){
     # add x,y to data
     mod_df <- trees_poly %>%
@@ -436,11 +442,11 @@ trees_cbh <- function(
       ) %>%
       dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F)) %>%
       dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>%
+      dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
       sf::st_centroid() %>%
       dplyr::mutate(
         tree_xxx = sf::st_coordinates(.)[,1]
         , tree_yyy = sf::st_coordinates(.)[,2]
-        , crown_area_zzz = sf::st_area(.) %>% as.numeric()
         , tree_height_m = as.numeric(tree_height_m)
         , tree_cbh_m = as.numeric(tree_cbh_m)
       ) %>%

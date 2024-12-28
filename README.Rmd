@@ -174,12 +174,13 @@ A spatial data frame with tree crown polygons is returned.
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 ```
 
-Notice that all of the `dbh`, `cbh`, `forest_type`, and competition (`comp_`) columns do not have data. To estimate these values, we need to explicitly tell the `cloud2trees()` to perform the processing required by setting the parameters:
+Notice that all of the `dbh`, `cbh`, `forest_type`, HMD (`max_crown_diam_height_m`), and competition (`comp_`) columns do not have data. To estimate these values, we need to explicitly tell the `cloud2trees()` to perform the processing required by setting the parameters:
 
 * `estimate_tree_dbh=TRUE` for DBH (see also [`trees_dbh()`](#trees_dbh))
 * `estimate_tree_cbh=TRUE` for CBH (see also [`trees_cbh()`](#trees_cbh))
 * `estimate_tree_type=TRUE` for forest type (see also [`trees_type()`](#trees_type))
-* `estimate_tree_competition=TRUE` for competition
+* `estimate_tree_hmd=TRUE` for tree HMD (see also [`trees_hmd()`](#trees_hmd))
+* `estimate_tree_competition=TRUE` for competition (see also `trees_competition()`)
 
 Let's plot these tree crown polygons using `ggplot2::ggplot()` with some custom plot settings.
 
@@ -235,8 +236,8 @@ Customizing the `cloud2trees()` function parameters we'll:
 * Estimate tree DBH using allometry from FIA plot data with `estimate_tree_dbh`
 * Extract tree FIA Forest Type Group with `estimate_tree_type`
 * Quantify tree competition metrics with `estimate_tree_competition`
-* Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 444 trees using `cbh_tree_sample_n`
-* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 444 trees
+* Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 333 trees using `cbh_tree_sample_n`
+* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 333 trees
 
 ```{r, results = FALSE}
 # run it
@@ -250,7 +251,7 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , estimate_tree_type = TRUE
   , estimate_tree_competition = TRUE
   , estimate_tree_cbh = TRUE
-  , cbh_tree_sample_n = 444
+  , cbh_tree_sample_n = 333
   , cbh_estimate_missing_cbh = TRUE
 )
 ```
@@ -366,7 +367,7 @@ cloud2trees_ans_c$treetops_sf %>%
 
 ## Extract Raster Data from Point Cloud
 
-We can use the `cloud2raster()` function if we only want to create a DTM and CHM from our point cloud data.
+We can use the `cloud2raster()` function if we only want to create a DTM and CHM from our point cloud data. This function also creates a classified and height normalized point cloud in the process. If you wish to keep these point clouds ensure to turn on the `keep_intrmdt` parameter and see the `point_cloud_processing_temp` directory nested in the `output_dir`.
 
 ```{r, results = FALSE}
 cloud2raster_ans <- cloud2trees::cloud2raster(output_dir = tempdir(), input_las_dir = i)
@@ -503,11 +504,11 @@ tl <- dplyr::tibble(
   )
 ```
 
-Use the `trees_type()` function to extract the FIA forest type group based on tree location. If a tree overlaps with an area that is classified as "non-forest", the program will search for the nearest forest type to impute a value; we'll limit the search radius by setting the `max_search_dist_m` parameter to 100 meters.  
+Use the `trees_type()` function to extract the FIA forest type group based on tree location. If a tree overlaps with an area that is classified as "non-forest", the program will search for the nearest forest type to impute a value; we'll limit the search radius by setting the `max_search_dist_m` parameter to 88 meters.  
 
 ```{r, results = FALSE}
 # call the function
-tl_type <- cloud2trees::trees_type(tree_list = tl, crs = "32613", max_search_dist_m = 100)
+tl_type <- cloud2trees::trees_type(tree_list = tl, crs = "32613", max_search_dist_m = 88)
 ```
 
 The return includes our tree list with forest type data (`tree_list`) as well as the FIA Forest Types Group raster (`foresttype_rast`) of the area we searched.
@@ -536,9 +537,9 @@ We can plot our spatial tree list
 # now plot
 tl_type$tree_list %>%
   ggplot2::ggplot() + 
-  ggplot2::geom_sf(ggplot2::aes(color=forest_type_group)) +
+  ggplot2::geom_sf(ggplot2::aes(color=forest_type_group), size = 3) +
   ggplot2::labs(color = "FIA forest\ntype group") +
-  ggplot2::scale_colour_viridis_d(option = "cividis") +
+  ggplot2::scale_color_brewer(palette = "Dark2") +
   ggplot2::theme_void() +
   ggplot2::theme(panel.border = ggplot2::element_rect(color = "black", fill = NA))
 ```
@@ -619,7 +620,9 @@ trees_cbh_ans <- cloud2trees::trees_cbh(
 What is this data?
 
 ```{r}
-trees_cbh_ans %>% dplyr::glimpse()
+trees_cbh_ans %>% 
+  dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>% 
+  dplyr::glimpse()
 ```
 
 Let's look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).
@@ -645,6 +648,71 @@ trees_cbh_ans %>%
   ggplot2::geom_sf() +
   ggplot2::scale_color_viridis_d(alpha = 0.8, name = "is CBH\nfrom cloud?") +
   ggplot2::scale_fill_distiller(palette = "Greens", name = "tree CBH (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    legend.position = "top", legend.direction = "horizontal"
+    , panel.border = ggplot2::element_rect(color = "black", fill = NA)
+  ) +
+  ggplot2::guides(
+    color = ggplot2::guide_legend(override.aes = list(lwd = 3, fill = NA))
+  )
+```
+
+## Estimate Tree HMD for a Tree List{#trees_hmd}
+
+If you wish to extract the height of the maximum crown diameter (HMD) using height normalized point cloud data (e.g. as exported by `cloud2raster()`) the `trees_hmd()` function and the `estimate_tree_hmd` in the `cloud2trees()` function may be relevant to your interests.
+
+We just need to pass a `sf` class object with POLYGON geometry and the columns `treeID` and `tree_height_m` and the height normalized point cloud data to the `trees_hmd()` function. The function returns the data with the added columns: `max_crown_diam_height_m`, `is_training_hmd`.
+
+We'll use the tree crown polygons and normalized point cloud data examples that ship with the `cloud2trees` package.
+
+```{r, results = FALSE}
+# read example crown polygons
+f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+p <- sf::st_read(f, quiet = T)
+# path to the normalized point cloud data
+nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+# call the function
+trees_hmd_ans <- cloud2trees::trees_hmd(
+  trees_poly = p
+  , norm_las = nlas
+  , estimate_missing_hmd = TRUE
+)
+```
+
+What is this data?
+
+```{r}
+trees_hmd_ans %>% 
+  dplyr::select(treeID, tree_height_m, max_crown_diam_height_m, is_training_hmd) %>% 
+  dplyr::glimpse()
+```
+
+Let's look at the relationship between tree height and tree HMD as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and HMD throughout the entire height range because HMD is also determined spatially (e.g. as a fire moves through a stand).
+
+```{r}
+trees_hmd_ans %>%
+  dplyr::arrange(is_training_cbh) %>%
+  ggplot2::ggplot(
+    mapping = ggplot2::aes(x = tree_height_m, y = max_crown_diam_height_m, color=is_training_hmd)
+  ) + 
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "tree ht. (m)", y = "tree HMD (m)") +
+  ggplot2::scale_y_continuous(breaks = scales::extended_breaks(n=12)) +
+  ggplot2::scale_x_continuous(breaks = scales::extended_breaks(n=14)) +
+  ggplot2::scale_color_viridis_d(option = "turbo", begin = 0.2, alpha = 0.8, name = "is HMD\nfrom cloud?") +
+  ggplot2::theme_light()
+```
+
+We can look at this data spatially too.
+
+```{r}
+trees_hmd_ans %>%
+  dplyr::arrange(is_training_hmd) %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = max_crown_diam_height_m, color=is_training_hmd)) + 
+  ggplot2::geom_sf() +
+  ggplot2::scale_color_viridis_d(option = "turbo", begin = 0.2, alpha = 0.8, name = "is HMD\nfrom cloud?") +
+  ggplot2::scale_fill_distiller(palette = "Greys", name = "tree HMD (m)", direction = 1) +
   ggplot2::theme_void() +
   ggplot2::theme(
     legend.position = "top", legend.direction = "horizontal"

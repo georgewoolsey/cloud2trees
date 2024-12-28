@@ -33,6 +33,9 @@
 #' @param estimate_tree_type logical. Should tree forest type be estimated? See [trees_type()].
 #' @param type_max_search_dist_m number. Maximum search distance (m) to obtain forest type group data for trees that overlap with non-forest data in the original Wilson (2023) data.
 #' Larger search distances will increase processing time and possibly result in memory issues.
+#' @param estimate_tree_hmd logical. Should tree height of the maximum crown diameter (HMD) be estimated? See [trees_hmd()].
+#' @param hmd_estimate_missing_hmd logical. It is not likely that HMD will be extracted successfully from every tree.
+#'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -119,6 +122,8 @@ cloud2trees <- function(
   , competition_max_search_dist_m = 10
   , estimate_tree_type = FALSE
   , type_max_search_dist_m = 1000
+  , estimate_tree_hmd = FALSE
+  , hmd_estimate_missing_hmd = FALSE
   , estimate_tree_cbh = FALSE
   , cbh_tree_sample_n = NA
   , cbh_tree_sample_prop = NA
@@ -178,7 +183,7 @@ cloud2trees <- function(
     )
   # update intermediate keep
   updt_keep_intrmdt <- dplyr::case_when(
-    keep_intrmdt==F & (estimate_tree_cbh==T | estimate_dbh_from_cloud==T) ~ T
+    keep_intrmdt==F & (estimate_tree_cbh==T | estimate_tree_hmd==T | estimate_dbh_from_cloud==T) ~ T
     , T ~ keep_intrmdt
   )
   # do it
@@ -453,6 +458,7 @@ cloud2trees <- function(
     trees_cbh_ans <- safe_trees_cbh(
       trees_poly = raster2trees_ans
       , norm_las = cloud2raster_ans$create_project_structure_ans$las_normalize_dir
+      , tree_sample_n = cbh_tree_sample_n
       , tree_sample_prop = cbh_tree_sample_prop
       , which_cbh = cbh_which_cbh
       , estimate_missing_cbh = cbh_estimate_missing_cbh
@@ -526,14 +532,55 @@ cloud2trees <- function(
   }
 
   ####################################################################
+  # cloud2trees::trees_hmd()
+  ####################################################################
+  # start time
+  xx8_trees_hmd <- Sys.time()
+  err_trees_hmd <- NULL
+  # empty data
+    trees_hmd_ans_temp <- dplyr::tibble(
+      treeID = character(0)
+      , max_crown_diam_height_m = as.numeric(0)
+      , is_training_hmd = as.logical(0)
+    )
+  if(estimate_tree_hmd==T){
+    # message
+    message(
+      "starting trees_hmd() step at ..."
+      , xx8_trees_hmd
+    )
+    # trees_hmd
+    safe_trees_hmd <- purrr::safely(trees_hmd)
+    trees_hmd_ans <- safe_trees_hmd(
+      trees_poly = raster2trees_ans
+      , norm_las = cloud2raster_ans$create_project_structure_ans$las_normalize_dir
+      , estimate_missing_hmd = hmd_estimate_missing_hmd
+      , force_same_crs = T
+    )
+    # handle error
+    if(is.null(trees_hmd_ans$error)){ # no error
+      # just get the result
+      trees_hmd_ans <- trees_hmd_ans$result
+    }else{
+      # error
+      err_trees_hmd <- trees_hmd_ans$error
+      # empty data
+      trees_hmd_ans <- trees_hmd_ans_temp
+    }
+  }else{
+    # empty data
+    trees_hmd_ans <- trees_hmd_ans_temp
+  }
+
+  ####################################################################
   # write data
   ####################################################################
     # message
       # start time
-      xx8_return <- Sys.time()
+      xx9_return <- Sys.time()
       message(
         "started writing final data at ..."
-        , xx8_return
+        , xx9_return
       )
     # do it
     # get names from dbh data
@@ -557,6 +604,14 @@ cloud2trees <- function(
         "treeID"
         , get_list_diff(
           names(trees_cbh_ans %>% sf::st_drop_geometry())
+          , names(raster2trees_ans %>% sf::st_drop_geometry())
+        )
+      )
+    # get names from hmd data
+    hmd_names_temp <- c(
+        "treeID"
+        , get_list_diff(
+          names(trees_hmd_ans %>% sf::st_drop_geometry())
           , names(raster2trees_ans %>% sf::st_drop_geometry())
         )
       )
@@ -596,6 +651,13 @@ cloud2trees <- function(
         trees_competition_ans %>%
           sf::st_drop_geometry() %>%
           dplyr::select(dplyr::all_of(comp_names_temp))
+        , by = "treeID"
+      ) %>%
+      # join hmd data
+      dplyr::left_join(
+        trees_hmd_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(hmd_names_temp))
         , by = "treeID"
       )
 
@@ -684,7 +746,7 @@ cloud2trees <- function(
     }
 
     # write settings and timer data
-    xx9_fin <- Sys.time()
+    xx10_fin <- Sys.time()
     # data
       return_df <-
           # data from las_ctg
@@ -711,11 +773,13 @@ cloud2trees <- function(
               as.numeric()
             , timer_trees_cbh_mins = difftime(xx7_trees_type, xx6_trees_cbh, units = c("mins")) %>%
               as.numeric()
-            , timer_trees_type_mins = difftime(xx8_return, xx7_trees_type, units = c("mins")) %>%
+            , timer_trees_type_mins = difftime(xx8_trees_hmd, xx7_trees_type, units = c("mins")) %>%
               as.numeric()
-            , timer_write_data_mins = difftime(xx9_fin, xx8_return, units = c("mins")) %>%
+            , timer_trees_hmd_mins = difftime(xx9_return, xx8_trees_hmd, units = c("mins")) %>%
               as.numeric()
-            , timer_total_time_mins = difftime(xx9_fin, xx1_cloud2raster, units = c("mins")) %>%
+            , timer_write_data_mins = difftime(xx10_fin, xx9_return, units = c("mins")) %>%
+              as.numeric()
+            , timer_total_time_mins = difftime(xx10_fin, xx1_cloud2raster, units = c("mins")) %>%
               as.numeric()
             # settings
             , sttng_input_las_dir = input_las_dir
@@ -736,6 +800,8 @@ cloud2trees <- function(
             , sttng_competition_max_search_dist_m = competition_max_search_dist_m
             , sttng_estimate_tree_type = estimate_tree_type
             , sttng_type_max_search_dist_m = type_max_search_dist_m
+            , sttng_estimate_tree_hmd = estimate_tree_hmd
+            , sttng_hmd_estimate_missing_hmd = hmd_estimate_missing_hmd
             , sttng_estimate_tree_cbh = estimate_tree_cbh
             , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
@@ -764,7 +830,7 @@ cloud2trees <- function(
     # message
     message(
       "cloud2trees() total time was "
-      , round(as.numeric(difftime(xx9_fin, xx1_cloud2raster, units = c("mins"))),2)
+      , round(as.numeric(difftime(xx10_fin, xx1_cloud2raster, units = c("mins"))),2)
       , " minutes to process "
       , scales::comma(sum(cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$Number.of.point.records))
       , " points over an area of "
@@ -817,6 +883,15 @@ cloud2trees <- function(
           , err_trees_type
           , "\n..............try to run trees_type() with updated parameter settings"
           , "\nusing `final_detected_tree_tops.gpkg` in the `point_cloud_processing_delivery` directory"
+        ))
+      }
+      if(!is.null(err_trees_hmd)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_hmd()"
+          , "\n"
+          , err_trees_hmd
+          , "\n..............try to run trees_hmd() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }
 

@@ -2,11 +2,11 @@
 % Please edit documentation in R/trees_cbh.R
 \name{trees_cbh}
 \alias{trees_cbh}
-\title{Estimate DBH for a tree list based on height}
+\title{Estimate CBH using tree crown polygons and normalized point cloud data}
 \usage{
 trees_cbh(
   trees_poly,
-  norm_las = NA,
+  norm_las = NULL,
   tree_sample_n = NA,
   tree_sample_prop = NA,
   which_cbh = "lowest",
@@ -66,7 +66,7 @@ Returns a spatial data frame of individual trees.
 }
 \description{
 \code{trees_cbh()} uses the input tree crown polygons (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}}) with the columns
-\code{treeID} and \code{tree_height_m} to estimate tree CBH based on a normalized point cloud (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}}).
+\code{treeID} and \code{tree_height_m} to estimate tree CBH using height normalized point cloud data (e.g. as exported by \code{\link[=cloud2raster]{cloud2raster()}}).
 
 CBH is extracted directly from the height normalized point cloud using the process outlined in Viedma et al. (2024) and implemented via \code{\link[=ladderfuelsr_cbh]{ladderfuelsr_cbh()}}.
 
@@ -94,7 +94,7 @@ There are likely to be trees for which there is insufficient data in the point c
  trees_cbh_ans \%>\% class()
  trees_cbh_ans \%>\% dplyr::select(tidyselect::contains("cbh")) \%>\% dplyr::glimpse()
  # spatial polygons
- trees_cbh_ans \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=tree_cbh_m))
+ trees_cbh_ans \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m))
  # relationship between height and cbh
  trees_cbh_ans \%>\%
     ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) +

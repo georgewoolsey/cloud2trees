@@ -35,6 +35,8 @@ cloud2trees(
   competition_max_search_dist_m = 10,
   estimate_tree_type = FALSE,
   type_max_search_dist_m = 1000,
+  estimate_tree_hmd = FALSE,
+  hmd_estimate_missing_hmd = FALSE,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
@@ -113,6 +115,11 @@ If no competition trees are found within this distance, the return column \code{
 
 \item{type_max_search_dist_m}{number. Maximum search distance (m) to obtain forest type group data for trees that overlap with non-forest data in the original Wilson (2023) data.
 Larger search distances will increase processing time and possibly result in memory issues.}
+
+\item{estimate_tree_hmd}{logical. Should tree height of the maximum crown diameter (HMD) be estimated? See \code{\link[=trees_hmd]{trees_hmd()}}.}
+
+\item{hmd_estimate_missing_hmd}{logical. It is not likely that HMD will be extracted successfully from every tree.
+Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?}
 
 \item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}

@@ -1,3 +1,11 @@
+# cloud2trees 0.4.0
+
+Implements a process to extract the height of the maximum crown diameter (HMD). See (#4, @georgewoolsey).
+
+- New: Adds the function `trees_hmd()` to use input tree crown polygons (e.g. as exported by `raster2trees()`) to estimate tree HMD based on an input normalized point cloud
+- New: Adds `simplify_multipolygon_crowns()` to simplify MULTIPOLYGON to POLYGON geometry in an `sf` class object
+- Change: `cloud2trees()` incorporates the HMD process via `trees_hmd()`
+
 # cloud2trees 0.3.1
 
 Updates the processes that rely on the `lasR` package which implemented major revisions with breaking changes in [`lasR 0.13.0`](https://r-lidar.github.io/lasR/news/index.html#lasr-0130). The package `cloud2trees` now requires `lasR >= 0.13.1`. Even with these updates, users may continue to encounter some bugs in the near future. See (#3, @georgewoolsey).
