@@ -26,4 +26,3 @@ Functions \verb{get_*()} download external data
  }
 
 }
-\keyword{internal}
