@@ -1,3 +1,5 @@
+# cloud2trees 0.4.1
+
 # cloud2trees 0.4.0
 
 Implements a process to extract the height of the maximum crown diameter (HMD). See (#4, @georgewoolsey).
