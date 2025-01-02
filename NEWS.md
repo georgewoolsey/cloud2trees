@@ -1,5 +1,8 @@
 # cloud2trees 0.4.1
 
+- New: Makes the function `find_ext_data()` which attempts to locate the external data visible (was internal)
+- Change: `cloud2raster()` writes the point cloud catalog file `raw_las_ctg_info.gpkg` to the `point_cloud_processing_delivery` directory
+
 # cloud2trees 0.4.0
 
 Implements a process to extract the height of the maximum crown diameter (HMD). See (#4, @georgewoolsey).
