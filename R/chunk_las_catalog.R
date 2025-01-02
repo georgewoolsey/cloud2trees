@@ -116,15 +116,6 @@ chunk_las_catalog <- function(
   ### is this ctg huge or what?
     ctg_pts_so_many <- sum(las_ctg@data$Number.of.point.records) > max_ctg_pts
 
-  # ###______________________________###
-  # # write las coverage data to delivery
-  # ###______________________________###
-  #   sf::st_write(
-  #     las_ctg@data
-  #     , paste0(config$delivery_dir, "/raw_las_ctg_info.gpkg")
-  #     , quiet = TRUE, append = FALSE
-  #   )
-
   ########################
   # check for tile overlaps and so many points in whole catalog
   # ...determines tiling and processing of grid subsets

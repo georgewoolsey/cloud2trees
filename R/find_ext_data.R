@@ -16,7 +16,7 @@
 #'  find_ext_data()
 #'  }
 #'
-#' @keywords internal
+#' @export
 #'
 find_ext_data <- function(
   input_treemap_dir = NULL
