@@ -244,6 +244,15 @@ cloud2raster <- function(
           , overwrite = T
         )
 
+      ###______________________________###
+      # write las coverage data to delivery
+      ###______________________________###
+        sf::st_write(
+          chunk_las_catalog_ans$las_ctg@data
+          , file.path(config$delivery_dir, "raw_las_ctg_info.gpkg")
+          , quiet = TRUE, append = FALSE
+        )
+
     # create spatial index files (.lax)
       # classify
       create_lax_for_tiles(

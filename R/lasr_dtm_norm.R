@@ -45,7 +45,7 @@ lasr_dtm_norm <- function(
     # resample ground for super high density clouds
     if( dplyr::coalesce(as.numeric(frac_for_tri),1)<1 ){
       samp_res <- dplyr::case_when(
-        as.numeric(frac_for_tri) <= 0.01 ~ 0.5 # 50 cm
+        as.numeric(frac_for_tri) <= 0.01 ~ 0.4 # 40 cm
         , as.numeric(frac_for_tri) <= 0.3 ~ 0.2 # 20 cm
         , T ~ 0.1 # 10 cm
       )
