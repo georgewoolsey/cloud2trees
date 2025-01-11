@@ -209,8 +209,7 @@ trees_type <- function(
   # mask the raster to this extent
   ##################################
     foresttype_temp <- foresttype %>%
-      terra::crop(ext_temp) %>% # crop it first to make if faster
-      terra::mask(ext_temp)
+      terra::crop(ext_temp) # crop it first to make if faster
 
   ##################################
   # do we even need to fill NA values for this list?
@@ -268,7 +267,8 @@ trees_type <- function(
         as.numeric()
 
       # check it
-      is_huge_temp <- get_fact_fn(area_m2_temp) > 1
+      get_fact_fn_ans <- get_fact_fn(area_m2_temp, res = terra::res(foresttype_temp)[1])
+      is_huge_temp <- get_fact_fn_ans$huge
 
       # safe fill_rast_na first
       safe_fill_rast_na <- purrr::safely(fill_rast_na)
@@ -280,7 +280,7 @@ trees_type <- function(
         # if huge, aggregate the cropped raster
         agg_foresttype_temp <- foresttype_temp %>%
           terra::aggregate(
-            fact = get_fact_fn(area_m2_temp)
+            fact = get_fact_fn_ans$fact
             , fun = "modal", na.rm = T
             , cores = lasR::half_cores()
           )
@@ -422,7 +422,22 @@ trees_type <- function(
 # intermediate function 2
 #######################################################
   # determine factor to fill
-  get_fact_fn <- function(a_m2) {
-    # 150M = 2; 200M = 2;...;500M = 5; 550M = 6;...; 900M = 9
-      max(round(a_m2*1e-11), 1)
+  get_fact_fn <- function(a_m2,res=30) {
+    if(res==30){
+      # 150B = 2*3; 200B = 2*3;...;500B = 5*3; 550B = 6*3;...; 900B = 9*3
+      fact <- max(round(a_m2*1e-11), 1)*3
+      huge <- fact>3
+    }else if (res>30){
+      # 150B = 2; 200B = 2;...;500B = 5; 550B = 6;...; 900B = 9
+      fact <- max(round(a_m2*1e-11), 1)
+      huge <- fact>1
+    }else{
+      # this is a guess
+      fact <- max(round(a_m2*1e-11), 1)*5
+      huge <- fact>5
+    }
+    return(list(
+      fact = fact
+      , huge = huge
+    ))
   }

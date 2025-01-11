@@ -20,7 +20,7 @@ get_foresttype <- function(
   , force = F
 ){
   # set up parameters to pass to get_url_data()
-  my_eval_url <- "https://zenodo.org/records/14343811/files/foresttype.zip?download=1"
+  my_eval_url <- "https://zenodo.org/records/14630199/files/foresttype.zip?download=1"
   my_my_name <- "foresttype"
   my_req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
   my_cleanup_zip <- T
