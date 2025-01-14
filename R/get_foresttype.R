@@ -1,6 +1,7 @@
 #' @title Download Forest Type Groups of the Continental United States data
 #' @param force Whether to overwrite existing data
 #' @param savedir Optional directory to save data in a new location. Defaults to package contents.
+#' @param res Resolution of forest type data to download. Default of "30" downloads 30m raster, any other value will download 90m raster.
 #' @references
 #' * [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
 #' Wilson, B.T. (2023). Forest Type Groups of the Continental United States.
@@ -18,9 +19,14 @@
 get_foresttype <- function(
   savedir = NULL
   , force = F
+  , res = 30
 ){
   # set up parameters to pass to get_url_data()
-  my_eval_url <- "https://zenodo.org/records/14343811/files/foresttype.zip?download=1"
+  if(as.numeric(res)==30){
+    my_eval_url <- "https://zenodo.org/records/14630199/files/foresttype.zip?download=1"
+  }else{
+    my_eval_url <- "https://zenodo.org/records/14343811/files/foresttype.zip?download=1"
+  }
   my_my_name <- "foresttype"
   my_req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
   my_cleanup_zip <- T

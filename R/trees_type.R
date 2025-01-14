@@ -167,181 +167,73 @@ trees_type <- function(
         , as.character
       ))
 
-  ##################################
-  # define extent to crop forest type raster
-  ##################################
-    # get extent of trees data
-    bbox_temp <- tree_tops %>% sf::st_bbox()
-    # find largest side
-    buffer_temp <- max(
-        bbox_temp["xmax"]-bbox_temp["xmin"]
-        , bbox_temp["ymax"]-bbox_temp["ymin"]
-      ) %>%
-      max(max_search_dist_m)
+  ####################################################################
+  # crop the raster and extract values at point locations
+  ####################################################################
+    # call crop_raster_match_points() defined in utils_rast_points.R
+    crop_raster_match_points_ans <- crop_raster_match_points(
+      points = tree_tops
+      , rast = foresttype
+      , study_boundary = study_boundary
+      , max_search_dist_m = max_search_dist_m
+    )
 
-    # check against the study boundary
-    if(inherits(study_boundary, "sf") || inherits(study_boundary, "sfc")){
-      bbox_b_temp <- study_boundary %>%
-        sf::st_union() %>%
-        sf::st_as_sf() %>%
-        sf::st_transform(sf::st_crs(tree_tops)) %>%
-        sf::st_bbox()
-      # find largest side and compare to current setting from trees
-      buffer_b_temp <- max(
-          bbox_b_temp["xmax"]-bbox_b_temp["xmin"]
-          , bbox_b_temp["ymax"]-bbox_b_temp["ymin"]
-        )
-      # reset bbox and buffer if larger
-      if(buffer_b_temp>buffer_temp){
-        buffer_temp <- buffer_b_temp
-        bbox_temp <- bbox_b_temp
-      }
-    }
+    ###############################
+    # define return data
+    ###############################
+    point_values_from_rast <- crop_raster_match_points_ans$point_values
+    rast_ret <- crop_raster_match_points_ans$rast
 
-    # apply the buffer to get the extent
-    ext_temp <- bbox_temp %>%
-      sf::st_as_sfc() %>%
-      sf::st_buffer(buffer_temp, endCapStyle = "SQUARE") %>%
-      terra::vect() %>%
-      terra::project(terra::crs(foresttype))
-
-  ##################################
-  # mask the raster to this extent
-  ##################################
-    foresttype_temp <- foresttype %>%
-      terra::crop(ext_temp) %>% # crop it first to make if faster
-      terra::mask(ext_temp)
-
-  ##################################
-  # do we even need to fill NA values for this list?
-  ##################################
-    # attempt to extract the forest type for the trees
-    # now we apply the `terra::extract()` function to attach forest type to our original tree list
-    tree_ftype_temp <-
-      terra::extract(
-        x = foresttype_temp
-        , y = tree_tops %>%
-          terra::vect() %>%
-          terra::project(terra::crs(foresttype)) # don't forget to reproject
-      )
-    # let's check with the lookup table
-    na_trees <- tree_ftype_temp %>%
+    # # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! for forest type we need to check with the lookup table
+    # # let's check with the lookup table
+    na_trees <- crop_raster_match_points_ans$point_values %>%
       dplyr::mutate(
-        forest_type_code = foresttype %>% as.character()
+        forest_type_code = raster_value %>% as.character()
       ) %>%
       dplyr::left_join(foresttype_lookup, by = "forest_type_code") %>%
       dplyr::filter(is.na(forest_type_group_code)) %>%
-      nrow() %>%
-      dplyr::coalesce(1)
-  ##################################
+      nrow()
+
+  ####################################################################
   # IF we even need to fill NA values
-  ##################################
+  ####################################################################
   if(na_trees>0){
-    # mark all non-forest cells as "NA" in the cropped raster
-      # rcl = two column matrix ("is", "becomes") can be useful for classifying integer
-       # values. In that case, the arguments right and include.lowest are ignored.
-      # unique type codes
-      type_code_temp <- foresttype_lookup %>%
-        dplyr::pull(forest_type_code) %>%
-        as.numeric() %>%
-        unique()
-    # matrix
-      rcl_temp <- c(type_code_temp, type_code_temp) %>%
-        matrix(ncol=2, byrow=F)
-    # update raster to mark all non-forest cells as NA
-      foresttype_temp <- foresttype_temp %>%
-        terra::classify(
-          rcl = rcl_temp
-          , others = NA
-        )
+    # mark all non-desired cells as "NA" in the cropped raster
+    ### non-desired cells change depending on the raster data used !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # reclass_foresttype_rast() defined in utils_rast_points.R
+     reclass_rast <- reclass_foresttype_rast(
+       rast = crop_raster_match_points_ans$rast
+       , lookup = foresttype_lookup
+      )
 
-    ##################################
-    # check if huge raster
-    ##################################
-      #  check if huge
-      area_m2_temp <- bbox_temp %>%
-        sf::st_as_sfc() %>%
-        terra::vect() %>%
-        terra::project(terra::crs(foresttype)) %>% # this way we work with the same units no matter the input
-        sf::st_as_sf() %>%
-        sf::st_area() %>%
-        as.numeric()
+    # aggregate (if needed) and fill missing raster values
+    # agg_fill_rast_match_points() defined in utils_rast_points.R
+    agg_fill_rast_match_points_ans <- agg_fill_rast_match_points(
+      rast = reclass_rast
+      , bbox = crop_raster_match_points_ans$bbox
+      , points = tree_tops
+    )
 
-      # check it
-      is_huge_temp <- get_fact_fn(area_m2_temp) > 1
-
-      # safe fill_rast_na first
-      safe_fill_rast_na <- purrr::safely(fill_rast_na)
-
-      ##### this process applies the fill_rast_na()
-        # if is_huge_temp==T: aggregate, fill, update original rast resolution with filled
-        # if is_huge_temp==F: fill
-      if(is_huge_temp==T){
-        # if huge, aggregate the cropped raster
-        agg_foresttype_temp <- foresttype_temp %>%
-          terra::aggregate(
-            fact = get_fact_fn(area_m2_temp)
-            , fun = "modal", na.rm = T
-            , cores = lasR::half_cores()
-          )
-
-        # `fill_rast_na()` process
-        fill_rast_na_ans <- safe_fill_rast_na(agg_foresttype_temp)
-
-        # if no error keep going
-        if(is.null(fill_rast_na_ans$error)){
-            # get the filled result
-            agg_foresttype_temp <- fill_rast_na_ans$result
-            # resample
-            filler_rast_temp <- terra::resample(
-              x = agg_foresttype_temp
-              , y = foresttype_temp
-              , method = "near"
-            )
-            # update the NA cells in the original raster
-            foresttype_temp <- terra::cover(
-              x = foresttype_temp
-              , y = filler_rast_temp
-              , values = NA
-            )
-        }
-
-      }else{
-        # `fill_rast_na()` process
-        fill_rast_na_ans <- safe_fill_rast_na(foresttype_temp)
-
-        # if no error keep going
-        if(is.null(fill_rast_na_ans$error)){
-            # get the filled result
-            foresttype_temp <- fill_rast_na_ans$result
-        }
-
-      }
-
-    ##################################
-    # if we successfully updated the raster
-    # attach forest type to our original tree list
-    ##################################
-    if(terra::global(foresttype_temp, fun = "isNA")==0){
-      # now we apply the `terra::extract()` function to attach forest type to our original tree list
-      tree_ftype_temp <-
-        terra::extract(
-          x = foresttype_temp
-          , y = tree_tops %>%
-            terra::vect() %>%
-            terra::project(terra::crs(foresttype)) # don't forget to reproject
-        )
+    ###############################
+    # update the return data
+    ###############################
+    if(!is.null(agg_fill_rast_match_points_ans$point_values)){
+      point_values_from_rast <- agg_fill_rast_match_points_ans$point_values
+    }
+    if(!is.null(agg_fill_rast_match_points_ans$rast)){
+      rast_ret <- agg_fill_rast_match_points_ans$rast
     }
 
   }
+
   #######################################################
   # prep final data
   #######################################################
-    if(length(tree_ftype_temp$foresttype)==nrow(tree_tops)){
+    if(length(point_values_from_rast$raster_value)==nrow(tree_tops)){
       # now let's join it back with our data and check it
       tree_tops <- tree_tops %>%
         dplyr::mutate(
-          forest_type_code = tree_ftype_temp$foresttype %>% as.character()
+          forest_type_code = point_values_from_rast$raster_value %>% as.character()
         ) %>%
         dplyr::left_join(
           foresttype_lookup %>%
@@ -354,7 +246,7 @@ trees_type <- function(
           , by = "forest_type_code"
         ) %>%
         dplyr::select(-forest_type_code)
-    }else{ # if
+    }else{
       tree_tops <- tree_tops %>%
         dplyr::mutate(
           forest_type_group_code = as.character(NA)
@@ -371,58 +263,6 @@ trees_type <- function(
   # return
   return(list(
     tree_list = tree_tops
-    , foresttype_rast = foresttype_temp
+    , foresttype_rast = rast_ret
   ))
 }
-#######################################################
-# intermediate function 1
-#######################################################
-  # fill NA values of raster using nearest neighbor interpolation
-  fill_rast_na <- function(rast){
-    # make sure there are filled cells
-    if(
-      terra::global(rast, fun = "isNA") == terra::ncell(rast)
-    ){
-      stop("All raster values are NA. Cannot fill entirely empty raster.")
-    }
-
-    # blank raster
-    r_temp <- rast
-    r_temp[] <- NA
-
-    # get points with data
-    p_temp <- terra::as.points(rast)
-
-    # get nearest neighbor "prediction" as the values of the closest location with data using
-    # terra::voronoi which creates a Voronoi diagram (also known as Delaunay triangles or Thiessen diagram)
-    #   The Voronoi diagram is created when a region with n points is partitioned into convex polygons
-    #   such that each polygon contains exactly one generating point, and every point in a given polygon
-    #   is closer to its generating point than to any other.
-    v_temp <- terra::voronoi(
-      x = p_temp
-      # set the boundary to the extent of the original raster
-      , bnd = terra::ext(rast) %>% terra::vect()
-    )
-
-    # fill in our blank raster with these predictions
-    r_temp <- terra::rasterize(x = v_temp, y = r_temp, field = names(v_temp)[1])
-
-    # nearest neighbor interpolate applied via terra::cover
-      # Replace NA or other values in SpatRaster x with the values of SpatRaster y
-    rast_fill <- terra::cover(
-      x = rast
-      , y = r_temp
-      , values = NA
-    )
-
-    # return
-    return(rast_fill)
-  }
-#######################################################
-# intermediate function 2
-#######################################################
-  # determine factor to fill
-  get_fact_fn <- function(a_m2) {
-    # 150M = 2; 200M = 2;...;500M = 5; 550M = 6;...; 900M = 9
-      max(round(a_m2*1e-11), 1)
-  }
