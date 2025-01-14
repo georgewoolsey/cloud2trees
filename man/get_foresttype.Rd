@@ -4,12 +4,14 @@
 \alias{get_foresttype}
 \title{Download Forest Type Groups of the Continental United States data}
 \usage{
-get_foresttype(savedir = NULL, force = F)
+get_foresttype(savedir = NULL, force = F, res = 30)
 }
 \arguments{
 \item{savedir}{Optional directory to save data in a new location. Defaults to package contents.}
 
 \item{force}{Whether to overwrite existing data}
+
+\item{res}{Resolution of forest type data to download. Default of "30" downloads 30m raster, any other value will download 90m raster.}
 }
 \description{
 The Forest Type Groups of the Continental United States data is used to estimate individual tree forest type group.

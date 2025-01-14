@@ -170,14 +170,14 @@ trees_type <- function(
   ####################################################################
   # crop the raster and extract values at point locations
   ####################################################################
-    # call crop_raster_match_points()
+    # call crop_raster_match_points() defined in utils_rast_points.R
     crop_raster_match_points_ans <- crop_raster_match_points(
       points = tree_tops
       , rast = foresttype
       , study_boundary = study_boundary
       , max_search_dist_m = max_search_dist_m
     )
-    
+
     ###############################
     # define return data
     ###############################
@@ -200,15 +200,20 @@ trees_type <- function(
   if(na_trees>0){
     # mark all non-desired cells as "NA" in the cropped raster
     ### non-desired cells change depending on the raster data used !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     reclass_rast <- reclass_foresttype_rast(rast = crop_raster_match_points_ans$rast, lookup = foresttype_lookup)
-    
+    # reclass_foresttype_rast() defined in utils_rast_points.R
+     reclass_rast <- reclass_foresttype_rast(
+       rast = crop_raster_match_points_ans$rast
+       , lookup = foresttype_lookup
+      )
+
     # aggregate (if needed) and fill missing raster values
+    # agg_fill_rast_match_points() defined in utils_rast_points.R
     agg_fill_rast_match_points_ans <- agg_fill_rast_match_points(
       rast = reclass_rast
       , bbox = crop_raster_match_points_ans$bbox
       , points = tree_tops
     )
-    
+
     ###############################
     # update the return data
     ###############################

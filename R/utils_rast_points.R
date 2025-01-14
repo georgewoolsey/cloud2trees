@@ -13,12 +13,53 @@
 #'    - use the point_values from agg_fill_rast_match_points() if not null
 #'    - otherwise, use the point_values from crop_raster_match_points()
 #'
+#' Note for development: currently looking at entire bounding box of points (or study boundary if defined) to fill NA raster cells
+#' this is the most computationally intensive process, especially for large areas (>100k ha), fine resolution rasters (<=30m)
+#' if the points are uniformly or randomly dispersed across the entire AOI, the current process is likely the best process
+#' if the points are clustered in groups across the AOI, future development could attempt to group points into clusters
+#' and iterate over the raster filling process for the cluster groups which may allow for finer resolution raster data as input (instead of aggregating)
+#' see examples
+#'
 #' @param points sf.
 #' @param rast SpatRaster.
 #' @param study_boundary sf.
 #' @param max_search_dist_m numeric.
 #'
 #' @keywords internal
+#'
+#' @examples
+#' \dontrun{
+#' # !!!!!!!!!!!!!!!! this is a starter example for the author if decide to cluster points
+#' # !!!!!!!!!!!!!!!! and apply raster match, fill, aggregate separately for clusters
+#' # Sample data
+#' data <- data.frame(
+#'     x = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+#'     y = c(2, 4, 3, 1, 5, 6, 7, 8, 9, 10)
+#' )
+#'
+#' # Calculate distances
+#' distances <- dist(data)
+#'
+#' # Perform hierarchical clustering
+#' hc <- hclust(distances, method = "complete")
+#'
+#' # Calculate WSS for different numbers of clusters
+#' wss <- numeric(10)
+#' for (k in 1:10) {
+#'   wss[k] <- sum(kmeans(data, centers = k)$withinss)
+#' }
+#'
+#' # Plot the elbow
+#' plot(1:10, wss, type = "b", xlab = "Number of Clusters (k)",
+#'      ylab = "Within-Cluster Sum of Squares (WSS)")
+#'
+#' # Find the optimal number of clusters (this is subjective)
+#' # You might need to visually inspect the plot
+#' optimal_k <- which.min(diff(wss, differences = 2))
+#'
+#' # Cut the dendrogram based on the optimal number of clusters
+#' clusters <- cutree(hc, k = optimal_k)
+#' }
 #'
 crop_raster_match_points <- function(
   points
@@ -45,7 +86,7 @@ crop_raster_match_points <- function(
       bbox_b_temp <- study_boundary %>%
         sf::st_union() %>%
         sf::st_as_sf() %>%
-        sf::st_transform(sf::st_crs(tree_tops)) %>%
+        sf::st_transform(sf::st_crs(points)) %>%
         sf::st_bbox()
       # find largest side and compare to current setting from trees
       buffer_b_temp <- max(
@@ -164,7 +205,7 @@ fill_rast_na <- function(rast){
       , huge = huge
     ))
   }
-    
+
   # # let's test this function
   # dplyr::tibble(
   #   a = seq(from = 0, to = 8e11, by = 1e9)
