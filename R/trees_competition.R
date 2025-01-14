@@ -53,65 +53,22 @@ trees_competition <- function(
   ##################################
   # ensure that tree height data exists
   ##################################
-  f <- tree_list %>% names()
-  if(length(f)==0){f <- ""}
+  f <- tree_list %>% names() %>% dplyr::coalesce("") # leaving in case anything below looks for this
   if(
-    max(grepl("tree_height_m", f))==0
+    !(stringr::str_equal(f, "tree_height_m") %>% any())
   ){
     stop(paste0(
-      "`tree_list` data must contain `tree_height_m` column to estimate DBH."
+      "`tree_list` data must contain `tree_height_m` column."
       , "\nRename the height column if it exists and ensure it is in meters."
     ))
   }
-  if(
-    max(grepl("treeID", f))==0
-  ){
-    stop(paste0(
-      "`tree_list` data must contain `treeID` column to estimate DBH."
-      , "\nProvide the `treeID` as a unique identifier of individual trees."
-    ))
-  }
+  tree_list <- tree_list %>%
+    dplyr::mutate(tree_height_m = as.numeric(tree_height_m))
 
   ##################################
   # convert to spatial points data
   ##################################
-  if(inherits(tree_list, "sf")){
-    # if points, just use it
-    if( min(sf::st_is(tree_list, type = c("POINT", "MULTIPOINT"))) == 1 ){
-      tree_tops <- tree_list %>%
-        dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
-    }else{ # if spatial but not points, drop geom and set to points
-      tree_tops <- tree_list %>%
-        sf::st_drop_geometry() %>%
-        sf::st_as_sf(
-          coords = c("tree_x", "tree_y"), crs = sf::st_crs(tree_list)
-          , remove = F
-        ) %>%
-        dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
-    }
-  }else{ # not spatial data
-    # convert from data.frame to spatial points
-    if(!inherits(tree_list, "data.frame")){
-      stop("must pass a data.frame or sf object to the `tree_list` parameter")
-    }
-    if(is.na(crs) | is.na(readr::parse_number(as.character(crs)))){
-      stop("must provide the EPSG code in `crs` parameter for the projection of x,y data")
-    }
-    tree_tops <- tree_list %>%
-      sf::st_as_sf(
-        coords = c("tree_x", "tree_y")
-        , crs = paste0( "EPSG:", readr::parse_number(as.character(crs)) )
-        , remove = F
-      ) %>%
-      dplyr::mutate(treeID = as.character(treeID), tree_height_m = as.numeric(tree_height_m))
-  }
-
-  # check for duplicate treeID
-  if(
-    nrow(tree_tops) != length(unique(tree_tops$treeID))
-  ){
-    stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
-  }
+    tree_tops <- check_spatial_points(tree_list, crs)
 
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
