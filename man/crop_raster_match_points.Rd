@@ -45,6 +45,8 @@ see examples
 }
 \examples{
 \dontrun{
+# !!!!!!!!!!!!!!!! this is a starter example for the author if decide to cluster points
+# !!!!!!!!!!!!!!!! and apply raster match, fill, aggregate separately for clusters
 # Sample data
 data <- data.frame(
     x = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
