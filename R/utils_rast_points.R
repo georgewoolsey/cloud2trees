@@ -144,15 +144,14 @@ fill_rast_na <- function(rast){
   # determine factor to fill
   get_fact_fn <- function(a_m2,res=30) {
     if(res==30){
-      # 150B = 2*3; 200B = 2*3;...;500B = 5*3; 550B = 6*3;...; 900B = 9*3
       fact <- dplyr::case_when(
         a_m2>1e9 & a_m2<1e10 ~ 2 # 100k ha to 1M ha
-        , a_m2>=1e10 ~ max(round(a_m2*1e-11), 1)*3
+        , a_m2>=1e10 & a_m2<1e11 ~ (max(round(a_m2*0.8e-10), 2)+1) %>% min(6)
+        , a_m2>=1e11 ~ (max(round(a_m2*1e-11), 1)+1)*3
         , T ~ 1
       )
       huge <- fact>1
     }else if (res>30){
-      # 150B = 2; 200B = 2;...;500B = 5; 550B = 6;...; 900B = 9
       fact <- max(round(a_m2*1e-11), 1)
       huge <- fact>1
     }else{
@@ -165,10 +164,10 @@ fill_rast_na <- function(rast){
       , huge = huge
     ))
   }
-
+    
   # # let's test this function
   # dplyr::tibble(
-  #   a = seq(from = 0, to = 8e11, by = 0.5e9)
+  #   a = seq(from = 0, to = 8e11, by = 1e9)
   # ) %>%
   # dplyr::rowwise() %>%
   # dplyr::mutate(
@@ -181,7 +180,9 @@ fill_rast_na <- function(rast){
   #   labs(x = "area ha", y = "raster agg fact\nfor 30m rast") +
   #   scale_y_continuous(breaks = scales::extended_breaks(n=14)) +
   #   scale_x_log10(labels = scales::comma)
-
+#######################################################
+# intermediate function 3
+#######################################################
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! function 11
   # reclassify raster to set "undesirable" cells to NA so that these get filled with the nearest "desirable" value
   # foresttype "undesirable" = non-stocked, anything not in the lookup table
@@ -234,8 +235,10 @@ fill_rast_na <- function(rast){
     # return
     return(rast)
   }
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! function 14
+#######################################################
+# intermediate function 4
+#######################################################
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! function 14
   # we only need to use this function if we got points returned from the crop_raster_match_points()
   # where the values extracted from the raster were "NA" or "undesirable"
   # this function will check if we need to aggregate the raster data using get_fact_fn()
@@ -335,5 +338,6 @@ fill_rast_na <- function(rast){
     return(list(
       point_values = tree_ftype_temp
       , rast = rast
+      , fill_rast_na_error = fill_rast_na_ans$error
     ))
   }
