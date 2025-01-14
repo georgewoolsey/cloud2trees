@@ -1,5 +1,7 @@
 # cloud2trees 0.4.2
 
+Updates point to raster matching functionality to allow for broader application and updates FIA Forest Type data to 30m resolution. See (#8, @georgewoolsey).
+
 - Change: `get_foresttype()` now defaults to download 30m resolution data. If you previously ran `get_foresttype()` or `get_data()` and you want to use 30m data you will need to manually download the data again. See example below to update your local copy.
 - New: Internal utility functions (see "utils_*.R") created to make point to raster data matching extendable to other data (e.g. LANDFIRE)
 - Change: `trees_type()` implements new internal point to raster functions
