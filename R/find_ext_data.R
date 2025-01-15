@@ -21,6 +21,7 @@
 find_ext_data <- function(
   input_treemap_dir = NULL
   , input_foresttype_dir = NULL
+  , input_landfire_dir = NULL
 ){
   ####################################################
   # let's list all possible directories to check
@@ -38,6 +39,11 @@ find_ext_data <- function(
         !dir.exists( file.path(input_foresttype_dir) ) || purrr::is_empty( normalizePath(file.path(input_foresttype_dir)) )
         , pkg_dir
         , normalizePath(file.path(input_foresttype_dir))
+      )
+    i_landfire_dir <- ifelse(
+        !dir.exists( file.path(input_landfire_dir) ) || purrr::is_empty( normalizePath(file.path(input_landfire_dir)) )
+        , pkg_dir
+        , normalizePath(file.path(input_landfire_dir))
       )
 
     # current working directory
@@ -62,15 +68,24 @@ find_ext_data <- function(
           .[1] %>%
           file.path()
       }else{s_foresttype_dir <- pkg_dir}
+      # this file is written upon the first successful run of get_landfire
+      fp_landfire <- file.path(pkg_dir, "location_landfire.csv")
+      if(file.exists(fp_landfire)){
+        s_landfire_dir <- fp_landfire %>%
+          readr::read_csv(show_col_types = F) %>%
+          dplyr::pull(1) %>%
+          .[1] %>%
+          file.path()
+      }else{s_landfire_dir <- pkg_dir}
 
   ####################################################
   # data frame the unique directories
   ####################################################
     df <- dplyr::tibble(
         dir = c(
-          i_treemap_dir, i_foresttype_dir
+          i_treemap_dir, i_foresttype_dir, i_landfire_dir
           , pkg_dir, pwd_dir
-          , s_treemap_dir, s_foresttype_dir
+          , s_treemap_dir, s_foresttype_dir, s_landfire_dir
         ) %>% normalizePath()
       ) %>%
       dplyr::distinct()
@@ -88,11 +103,17 @@ find_ext_data <- function(
       purrr::map(\(x) check_dir_files(x, "foresttype")) %>%
       purrr::detect(function(x){!is.null(x)}) %>%
       .[1]
+    # landfire
+    ret_landfire_dir <- df$dir %>%
+      purrr::map(\(x) check_dir_files(x, "landfire")) %>%
+      purrr::detect(function(x){!is.null(x)}) %>%
+      .[1]
 
   # detect files and return
   return(list(
     treemap_dir = ret_treemap_dir
     , foresttype_dir = ret_foresttype_dir
+    , landfire_dir = ret_landfire_dir
   ))
 
 }
@@ -109,6 +130,11 @@ check_dir_files <- function(dir, which_data = "treemap") {
   }else if(tolower(which_data)=="foresttype"){
     # files to look for
     req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
+    # folder to append
+    which_data <- tolower(which_data)
+  }else if(tolower(which_data)=="landfire"){
+    # files to look for
+    req_file_list <- c("lc23_cbd_240.tif")
     # folder to append
     which_data <- tolower(which_data)
   }else{

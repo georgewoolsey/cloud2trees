@@ -19,4 +19,5 @@ get_data <- function(
   # call individual download functions
   get_treemap(savedir = savedir, force = force)
   get_foresttype(savedir = savedir, force = force)
+  get_landfire(savedir = savedir, force = force)
 }
