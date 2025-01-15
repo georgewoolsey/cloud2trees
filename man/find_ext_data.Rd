@@ -4,7 +4,11 @@
 \alias{find_ext_data}
 \title{Find the location of external data}
 \usage{
-find_ext_data(input_treemap_dir = NULL, input_foresttype_dir = NULL)
+find_ext_data(
+  input_treemap_dir = NULL,
+  input_foresttype_dir = NULL,
+  input_landfire_dir = NULL
+)
 }
 \arguments{
 \item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}

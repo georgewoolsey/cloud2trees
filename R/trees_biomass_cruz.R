@@ -1,7 +1,7 @@
 #' @title Estimate tree biomass for a tree list
 #'
 #' @description
-#' `trees_biomass()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
+#' `trees_biomass_cruz()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
 #' `treeID`, `tree_x`, `tree_y` to attach species information using USDA Forest Inventory and Analysis (FIA) codes.
 #' If a spatial data frame of points is the input tree list, then the columns `tree_x`, `tree_y` are not required.
 #'
@@ -48,7 +48,7 @@
 #'  }
 #' @export
 #'
-trees_biomass <- function(
+trees_biomass_cruz <- function(
   tree_list
   , crs = NA
   , study_boundary = NA
@@ -82,7 +82,7 @@ trees_biomass <- function(
         , "crown_dia_m"
         , "crown_length_m"
         , "crown_volume_m3"
-        , "tree_kg_per_m3"
+        , "cruz_tree_kg_per_m3"
         , "cruz_biomass_kg"
       )))
 

@@ -69,6 +69,7 @@ get_landfire <- function(
     safe_reclass_landfire_rast <- purrr::safely(reclass_landfire_rast)
     rcl <- safe_reclass_landfire_rast(rast = terra::rast(fff_name))
     if(is.null(rcl$error)){
+      message("unpacking LANDFIRE data...this might take a while (24-98 mins.)")
       terra::writeRaster(rcl$result, filename = fff_name, overwrite = T)
       message("LANDFIRE raster successfully downloaded and unpacked")
     }else{

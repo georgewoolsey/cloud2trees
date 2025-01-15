@@ -69,7 +69,9 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
       stop("must pass a SpatRaster object to `rast`")
     }
     # convert to terra vector with same projection
-    if(!inherits(poly, "SpatVector") && inherits(poly, "sf")){
+    if(!inherits(poly, "SpatVector") &&
+       ( inherits(poly, "sf") || inherits(poly, "sfc") )
+    ){
       poly_vect <- poly %>%
         sf::st_union() %>%
         terra::vect() %>%
@@ -122,6 +124,8 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
   # calculate tree-level values we'll need for the back transformation
   # from stand-level metrics to tree level metrics such as crown volume
   # in kilograms per cubed meter so that the mean stand kg/m3 * tree m3 = tree kg
+  # this function will throw an error if the columns "crown_area_m2", "tree_height_m", "tree_cbh_m"
+    # (and "dbh_cm" or "basal_area_m2") are not in the data or have all missing values
   calc_tree_level_cols <- function(df){
     # # proportion of crown length to have max crown width at
     # # 0.5 is a perfect ellipsoid, 0 is more conical, 1 looks like an icecream cone
@@ -130,21 +134,15 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
 
     ## check for cols
     nms <- names(df) %>% dplyr::coalesce("")
-    has_cols <- c("crown_area_m2", "tree_height_m", "tree_cbh_m") %>%
-      purrr::map(function(x){
-        stringr::str_equal(tolower(nms), x) %>%
-        max() # do any columns match, T=1
-      }) %>%
-      unlist() %>%
-      min()
-    if(has_cols==0){
-      stop("the `df` data does not contain the columns `crown_area_m2`, `tree_height_m`, and `tree_cbh_m`, ensure columns exist")
-    }
-
+    check_df_cols_all_missing(
+      df
+      , col_names = c("crown_area_m2", "tree_height_m", "tree_cbh_m")
+      , all_numeric = T
+    )
     ## basal area
     if(
-      !(stringr::str_detect(nms, "basal_area_m2") %>% any())
-      && (stringr::str_detect(nms, "dbh_cm") %>% any())
+      !(stringr::str_equal(nms, "basal_area_m2") %>% any())
+      && (stringr::str_equal(nms, "dbh_cm") %>% any())
     ){
       df <- df %>%
         dplyr::mutate(
@@ -152,8 +150,8 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           , basal_area_m2 = pi * (((dbh_cm/100)/2)^2)
         )
     }else if(
-      !(stringr::str_detect(nms, "basal_area_m2") %>% any())
-      && (stringr::str_detect(nms, "dbh_m") %>% any())
+      !(stringr::str_equal(nms, "basal_area_m2") %>% any())
+      && (stringr::str_equal(nms, "dbh_m") %>% any())
     ){
       df <- df %>%
         dplyr::mutate(
@@ -161,7 +159,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           , basal_area_m2 = pi * ((dbh_m/2)^2)
         )
     }else if(
-      (stringr::str_detect(nms, "basal_area_m2") %>% any())
+      (stringr::str_equal(nms, "basal_area_m2") %>% any())
     ){
       df <- df %>%
         dplyr::mutate(
@@ -173,6 +171,12 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         , "\n .... at least one of these columns must be present"
       ))
     }
+
+    check_df_cols_all_missing(
+      df
+      , col_names = c("basal_area_m2")
+      , all_numeric = T
+    )
 
     ## apply the crown calculations
     r_df <- df %>%
@@ -195,6 +199,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         # #calculate height to max crown
         # , height_to_max = (crown_length_m * ht_to_max) + tree_cbh_m
       )
+    # return
     return(r_df)
   }
 #######################################################
@@ -238,14 +243,12 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
 
     # check col names
     nms <- names(tree_list) %>% dplyr::coalesce("")
-    # aggregate tree list to cell
-    trees_agg <- tree_list %>%
-      sf::st_drop_geometry() %>%
-      dplyr::group_by(cell)
 
     # summarize
     if(calc_tree_level_cols==T){
-      trees_agg <- trees_agg %>%
+      trees_agg <- tree_list %>%
+        sf::st_drop_geometry() %>%
+        dplyr::group_by(cell) %>%
         dplyr::summarise(
           trees = dplyr::n()
           , basal_area_m2 = sum(basal_area_m2, na.rm = T)
@@ -253,16 +256,18 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           , sum_crown_volume_m3 = sum(crown_volume_m3, na.rm = T)
         ) %>%
         dplyr::ungroup()
-    }else if(stringr::str_detect(nms, "basal_area_m2") %>% any()){
-      trees_agg <- trees_agg %>%
+    }else if(stringr::str_equal(nms, "basal_area_m2") %>% any()){
+      trees_agg <- tree_list %>%
+        sf::st_drop_geometry() %>%
+        dplyr::group_by(cell) %>%
         dplyr::summarise(
           trees = dplyr::n()
           , basal_area_m2 = sum(basal_area_m2, na.rm = T)
         ) %>%
         dplyr::ungroup()
     }else{
-      trees_agg <- trees_agg %>%
-        # aggregate to stand level
+      trees_agg <- tree_list %>%
+        sf::st_drop_geometry() %>%
         dplyr::group_by(cell) %>%
         dplyr::summarise(
           trees = dplyr::n()
@@ -310,13 +315,13 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     # we'll do this based on the most common code in the tree data
     nms <- names(tree_list) %>% dplyr::coalesce("")
     if(
-      !(stringr::str_detect(nms, "cell") %>% any())
+      !(stringr::str_equal(nms, "cell") %>% any())
     ){
       stop("tree_list data must have the column `cell`...should be in the output of calc_rast_cell_trees()?")
     }
     if(
       cbd_method == "cruz"
-      && !(stringr::str_detect(nms, "forest_type_group_code") %>% any())
+      && !(stringr::str_equal(nms, "forest_type_group_code") %>% any())
     ){
       stop(paste0(
         "cbd_method set to `cruz` but the `forest_type_group_code` does not exist in the tree list data"
@@ -390,3 +395,99 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
       , tree_list = tree_list
     ))
   }
+#######################################################
+# intermediate function 14
+#######################################################
+  # check vector for forest_type_group_code available in cruz
+  has_cruz_forest_type_group_code <- function(x) {
+    # check if data.frame
+    if(inherits(x, "data.frame")){
+      nms <- x %>% names() %>% dplyr::coalesce("")
+      if(
+        !(stringr::str_equal(nms, "forest_type_group_code") %>% any())
+      ){
+        stop(paste0(
+          "data must contain `forest_type_group_code` column"
+        ))
+      }
+      x <- x$forest_type_group_code
+    }
+    # cruz codes
+    cruz_codes <- c(
+      200 #Douglas-Fir Group
+      , 220 #Ponderosa Pine Group
+      , 280 #Lodgepole Pine Group
+      , c(120,260,320) #Mixed Conifer Group
+    )
+    x <- as.numeric(x)
+    # check it
+    n_cruz_codes <- x[x %in% cruz_codes] %>% length()
+    # return
+    return(
+      dplyr::coalesce(n_cruz_codes, 0) > 0
+    )
+  }
+#######################################################
+# intermediate function 15
+#######################################################
+  # check data for column missing in data or if all records missing
+  # will throw an error if either condition
+  check_df_cols_all_missing <- function(df, col_names, all_numeric=T) {
+    # check if data.frame
+    if(!inherits(df, "data.frame")){
+      stop(paste0(
+        "`df` must be a data.frame"
+      ))
+    }
+    ######################################
+    # ensure all columns exist
+    ######################################
+      nms <- names(df) %>% dplyr::coalesce("")
+      has_cols <- col_names %>%
+        purrr::map(function(x){
+          stringr::str_equal(nms, x) %>%
+          any() # do any columns match
+        }) %>%
+        unlist()
+
+      if(all(has_cols)==F){
+        stop(paste0(
+          "the data does not contain the columns: "
+          , paste(col_names[!has_cols], collapse = ", ")
+          , "\n this data must exist"
+        ))
+      }
+    ######################################
+    # ensure all columns aren't missing all data
+    ######################################
+    if(all_numeric == T){
+      all_missing_cols <- df %>%
+        sf::st_drop_geometry() %>%
+        dplyr::select(dplyr::all_of(col_names)) %>%
+        dplyr::summarise(dplyr::across(dplyr::everything(), ~ sum(is.na(as.numeric(.))))) %>%
+        tidyr::pivot_longer(dplyr::everything()) %>%
+        dplyr::mutate(all_missing = value==nrow(df)) %>%
+        dplyr::filter(all_missing==T) %>%
+        dplyr::pull(name)
+    }else{
+      all_missing_cols <- df %>%
+        sf::st_drop_geometry() %>%
+        dplyr::select(dplyr::all_of(col_names)) %>%
+        dplyr::summarise(dplyr::across(dplyr::everything(), ~ sum(is.na(.)))) %>%
+        tidyr::pivot_longer(dplyr::everything()) %>%
+        dplyr::mutate(all_missing = value==nrow(df)) %>%
+        dplyr::filter(all_missing==T) %>%
+        dplyr::pull(name)
+    }
+
+    if(length(all_missing_cols)>0){
+      stop(paste0(
+        "the columns listed below have all missing data:\n   "
+        , paste(all_missing_cols, collapse = ", ")
+      ))
+    }
+
+    # return
+    return(T)
+  }
+
