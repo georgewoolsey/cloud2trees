@@ -111,6 +111,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
       dplyr::mutate(
         overlap_area_m2 = ( area*dplyr::coalesce(pct_overlap, 0) )
         , overlap_area_ha = overlap_area_m2 / 10000
+        , rast_epsg_code = terra::crs(rast, describe=T)$code[1]
       )
 
     return(list(
@@ -328,6 +329,15 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         , "\n try running cloud2trees::trees_type() first"
       ))
     }
+    if(
+      cbd_method == "landfire"
+      && !(stringr::str_equal(nms, "landfire_cell_kg_per_m3") %>% any())
+    ){
+      stop(paste0(
+        "cbd_method set to `landfire` but the `landfire_cell_kg_per_m3` does not exist in the tree list data"
+        , "\n try running cloud2trees::trees_landfire_cbd() first"
+      ))
+    }
     #############################################
     # CRUZ
     #############################################
@@ -355,7 +365,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         dplyr::left_join(cell_ft_temp %>% dplyr::select(cell,forest_type_group_code), by = "cell") %>%
         dplyr::rowwise() %>% # this is key
         dplyr::mutate(
-          kg_per_m3 = get_cruz_stand_kg_per_m3(
+          cruz_stand_kg_per_m3 = get_cruz_stand_kg_per_m3(
             forest_type_group_code = forest_type_group_code
             , basal_area_m2_per_ha = basal_area_m2_per_ha
             , trees_per_ha = trees_per_ha
@@ -365,12 +375,25 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         # tertiary columns
         dplyr::mutate(
           # get cfl in kg/m2
-          kg_per_m2 = mean_crown_length_m * kg_per_m3
+          kg_per_m2 = mean_crown_length_m * cruz_stand_kg_per_m3
           # get stand biomass in kg at the stand level
           , biomass_kg = kg_per_m2 * overlap_area_m2
           # single tree CBD in kg/m3 will be constant by stand/cell
-          , tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
+          , cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
         )
+
+      # apply stand fuel load to trees
+      tree_list <- tree_list %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(
+          cell_df %>%
+            dplyr::select(cell, cruz_tree_kg_per_m3, cruz_stand_kg_per_m3)
+          , by = "cell"
+        ) %>%
+        dplyr::mutate(cruz_tree_biomass_kg = cruz_tree_kg_per_m3*crown_volume_m3) %>%
+        dplyr::rename(cruz_stand_id = cell)
+      # rename cell data
+      cell_df <- cell_df %>% dplyr::rename(cruz_stand_id = cell)
     }
 
     #############################################
@@ -378,17 +401,9 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     #############################################
 
 
-    # apply stand fuel load to trees
-    tree_list <- tree_list %>%
-      dplyr::ungroup() %>%
-      dplyr::left_join(
-        cell_df %>%
-          dplyr::select(cell,tree_kg_per_m3)
-        , by = "cell"
-      ) %>%
-      dplyr::mutate(cruz_biomass_kg = tree_kg_per_m3*crown_volume_m3) %>%
-      dplyr::select(-tree_kg_per_m3)
-
+    #############################################
+    # return data
+    #############################################
     #return
     return(list(
       cell_df = cell_df

@@ -2,7 +2,7 @@
 % Please edit documentation in R/trees_biomass_cruz.R
 \name{trees_biomass_cruz}
 \alias{trees_biomass_cruz}
-\title{Estimate tree biomass for a tree list}
+\title{Estimate tree biomass for a tree list based on Cruz et al. (2003)}
 \usage{
 trees_biomass_cruz(
   tree_list,
@@ -24,45 +24,89 @@ If no boundary given, regional model will be built from location of trees in the
 \item{input_foresttype_dir}{directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
 }
 \value{
-Returns a list of objects: tree_list = spatial data frame of individual trees; foresttype_rast = raster of forest types in the area.
+Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+See code in examples.
 }
 \description{
 \code{trees_biomass_cruz()} uses the input tree list (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}}) with the columns
-\code{treeID}, \code{tree_x}, \code{tree_y} to attach species information using USDA Forest Inventory and Analysis (FIA) codes.
+\code{treeID}, \code{tree_x}, \code{tree_y} to attempt to attach tree crown biomass in kilogram estimates based on
+the Cruz et al. (2003) equations (see references) and the FIA forest type group.
+
 If a spatial data frame of points is the input tree list, then the columns \code{tree_x}, \code{tree_y} are not required.
-
-FIA Forest Type Group Code is attached to each tree in the tree list based on the spatial overlap with the Forest Type Groups of the Continental United States dataset \href{https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d}{Wilson 2023}.
-
-The simplified process for attaching forest type group to a tree is:
+If the FIA forest type group data named \code{forest_type_group_code}is not in the input tree list, then the function calls
+\code{\link[=trees_type]{trees_type()}} to attempt to attach the FIA forest type group.
+Other required columns include:
 \itemize{
-\item Forest type group 30-m raster (Wilson 2023) was aggregated to 90-m to make the data more accessible over the entire continental US
-\item Nearest neighbor imputation is used to fill forest type data if a tree falls inside a no-forest cell in the original data
-\item The FIA forest type group is applied to a tree based on spatial overlap
+\item \code{crown_area_m2}, \code{tree_height_m} (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}})
+\item \code{tree_cbh_m} (e.g. as exported by \code{\link[=trees_cbh]{trees_cbh()}})
+\item and one of \code{dbh_cm}, \code{dbh_m}, or  \code{basal_area_m2} (e.g. as exported by \code{\link[=trees_dbh]{trees_dbh()}})
+}
+
+The Cruz et al. (2003) study developed models to predict canopy fuel stratum at the
+stand level for four coniferous forest types common in the western US: Douglas-fir, ponderosa pine, lodgepole pine, and mixed conifer.
+Models for other forests types are currently lacking which limits the scope of this methodology.
+If the tree list has trees that fall are in a FIA forest type group not represented in the list above, then the return data will be blank
+
+Canopy Bulk Density is mass of flammable material per unit volume of the tree crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
+
+The process for distributing the stand-level to a tree is:
+\itemize{
+\item do it
+\item keep doing it
+\item hey
 }
 }
 \examples{
  \dontrun{
- # example tree list
- tl <- dplyr::tibble(
-     treeID = c(1:21)
-     , tree_x = rnorm(n=21, mean = 458064, sd = 11)
-     , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
-   )
- # call the function
- tl_type <- trees_biomass(tree_list = tl, crs = "32613")
- # what?
- tl_type \%>\% class()
- # a list, but what is in it?
- tl_type \%>\% names()
- # plot the tree_list spatial points
- tl_type$tree_list \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=forest_type_group))
- # plot the foresttype_rast raster
- tl_type$foresttype_rast \%>\% terra::plot()
+library(tidyverse)
+library(sf)
+my_n <- 55
+# fake tree list
+tl <- dplyr::tibble(
+    treeID = c(1:my_n)
+    , tree_x = rnorm(n=my_n, mean = 458064, sd = 11)
+    , tree_y = rnorm(n=my_n, mean = 4450074, sd = 11)
+    , tree_height_m = rnorm(n=my_n, mean = 10, sd = 7)
+  ) \%>\%
+  dplyr::mutate(
+    tree_height_m = ifelse(tree_height_m<1.37, 1.37, tree_height_m) # above DBH
+    , crown_area_m2 = 0.47+(0.49*tree_height_m)
+    , tree_cbh_m = 0.72+(0.53*tree_height_m)
+    , dbh_cm = -2.3+(2.14*tree_height_m)
+  )
+# how does our fake tree list look?
+tl \%>\% dplyr::glimpse()
+tl \%>\% ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(x = dbh_cm, y = tree_height_m))
+# call the function
+tl_cruz <- trees_biomass_cruz(tree_list = tl, crs = "32613")
+# what is in it?
+tl_cruz \%>\% names()
+# look at the trees
+tl_cruz$tree_list \%>\% dplyr::glimpse()
+# look at the stand
+tl_cruz$stand_cell_data \%>\% dplyr::filter(!is.na(trees)) \%>\% dplyr::glimpse()
+# get the projection for the stand cell data
+epsg_code <- tl_cruz$stand_cell_data$rast_epsg_code[1] \%>\% as.numeric()
+# plot the stand cell data with trees overlaid
+tl_cruz$stand_cell_data \%>\% dplyr::filter(!is.na(trees)) \%>\%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = cruz_stand_kg_per_m3)) +
+  ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+  ggplot2::geom_sf(
+    data = tl_cruz$tree_list \%>\% sf::st_transform(crs = epsg_code)
+    , ggplot2::aes(color = cruz_tree_biomass_kg)
+  ) +
+  ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
+  ggplot2::scale_fill_viridis_c(option = "rocket", na.value = NA, direction = -1) +
+  ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+  ggplot2::theme_void()
  }
 }
 \references{
 \itemize{
 \item \href{https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d}{Forest Type Groups of the Continental United States}
 Wilson, B.T. (2023). Forest Type Groups of the Continental United States.
+\item \href{https://scholar.google.com/scholar?cluster=316241498622221569&oi=gsb&hl=en&as_sdt=0,5}{doi:10.1071/WF02024}
+Cruz, M.G, M.E. Alexander, and R.H. Wakimoto. 2003. Assessing canopy fuel stratum characteristics in crown fire prone fuel types of western North America. Int. J. Wildland Fire. 12(1):39-50.
 }
 }
