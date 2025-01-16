@@ -8,8 +8,7 @@ trees_biomass_landfire(
   tree_list,
   crs = NA,
   study_boundary = NA,
-  input_landfire_dir = NULL,
-  max_search_dist_m = 1000
+  input_landfire_dir = NULL
 )
 }
 \arguments{
@@ -44,30 +43,62 @@ The simplified process for attaching tree crown biomass in kilograms to a tree i
 \item Nearest neighbor imputation is used to fill LANDFIRE data if a tree falls inside a non-forest cell in the original data
 \item The LANDFIRE estimate of CBD is distributed across the individual trees that fall in a raster cell by:
 \enumerate{
-\item asdf
-\item derp
-\item hey
+\item get cfl in kg/m2 == kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3
+\item get stand biomass in kg at the stand level == biomass_kg = kg_per_m2 * overlap_area_m2
+\item single tree CBD in kg/m3 will be constant by stand/cell == landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
+\item at the tree level landfire_tree_biomass_kg = landfire_tree_kg_per_m3*crown_volume_m3
 }
 }
 }
 \examples{
  \dontrun{
- # example tree list
- tl <- dplyr::tibble(
-     treeID = c(1:21)
-     , tree_x = rnorm(n=21, mean = 458064, sd = 11)
-     , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
-   )
- # call the function
- tl_type <- trees_type(tree_list = tl, crs = "32613")
- # what?
- tl_type \%>\% class()
- # a list, but what is in it?
- tl_type \%>\% names()
- # plot the tree_list spatial points
- tl_type$tree_list \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=forest_type_group))
- # plot the landfire_rast raster
- tl_type$landfire_rast \%>\% terra::plot()
+library(tidyverse)
+library(sf)
+my_n <- 122
+# fake tree list
+tl <- dplyr::tibble(
+    treeID = c(1:my_n)
+    , tree_x = rnorm(n=my_n, mean = 458064, sd = 33)
+    , tree_y = rnorm(n=my_n, mean = 4450074, sd = 33)
+    , tree_height_m = rnorm(n=my_n, mean = 10, sd = 7)
+  ) \%>\%
+  dplyr::mutate(
+    tree_height_m = ifelse(tree_height_m<1.37, 1.37, tree_height_m) # above DBH
+    , crown_area_m2 = 0.47+(0.49*tree_height_m)
+    , tree_cbh_m = 0.72+(0.53*tree_height_m)
+    , dbh_cm = -2.3+(2.14*tree_height_m)
+  )
+# how does our fake tree list look?
+tl \%>\% dplyr::glimpse()
+tl \%>\% ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(x = dbh_cm, y = tree_height_m))
+# call the function
+tl_landfire <- trees_biomass_landfire(tree_list = tl, crs = "32613")
+# what is in it?
+tl_landfire \%>\% names()
+# look at the trees
+tl_landfire$tree_list \%>\% dplyr::glimpse()
+# look at the stand
+tl_landfire$stand_cell_data \%>\% dplyr::filter(!is.na(trees)) \%>\% dplyr::glimpse()
+# the stand CBD
+ tl_landfire$stand_cell_data \%>\%
+   dplyr::filter(trees>0) \%>\%
+   sf::st_drop_geometry() \%>\%
+   dplyr::count(landfire_stand_kg_per_m3)
+# get the projection for the stand cell data
+epsg_code <- tl_landfire$stand_cell_data$rast_epsg_code[1] \%>\% as.numeric()
+ # plot the stand cell data with trees overlaid
+ tl_landfire$stand_cell_data \%>\%
+   ggplot2::ggplot() +
+   ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = landfire_stand_kg_per_m3), color = "gray44") +
+   ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+   ggplot2::geom_sf(
+     data = tl_landfire$tree_list \%>\% sf::st_transform(crs = epsg_code)
+     , ggplot2::aes(color = landfire_tree_biomass_kg)
+   ) +
+   ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
+   ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
+   ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+   ggplot2::theme_void()
  }
 }
 \references{

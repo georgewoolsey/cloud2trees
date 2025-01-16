@@ -60,12 +60,12 @@ The process for distributing the stand-level to a tree is:
  \dontrun{
 library(tidyverse)
 library(sf)
-my_n <- 55
+my_n <- 111
 # fake tree list
 tl <- dplyr::tibble(
     treeID = c(1:my_n)
-    , tree_x = rnorm(n=my_n, mean = 458064, sd = 11)
-    , tree_y = rnorm(n=my_n, mean = 4450074, sd = 11)
+    , tree_x = rnorm(n=my_n, mean = 458064, sd = 33)
+    , tree_y = rnorm(n=my_n, mean = 4450074, sd = 33)
     , tree_height_m = rnorm(n=my_n, mean = 10, sd = 7)
   ) \%>\%
   dplyr::mutate(
@@ -83,23 +83,27 @@ tl_cruz <- trees_biomass_cruz(tree_list = tl, crs = "32613")
 tl_cruz \%>\% names()
 # look at the trees
 tl_cruz$tree_list \%>\% dplyr::glimpse()
+# tree FIA forest type groups
+tl_cruz$tree_list \%>\%
+  sf::st_drop_geometry() \%>\%
+  dplyr::count(forest_type_group_code, forest_type_group)
 # look at the stand
 tl_cruz$stand_cell_data \%>\% dplyr::filter(!is.na(trees)) \%>\% dplyr::glimpse()
 # get the projection for the stand cell data
 epsg_code <- tl_cruz$stand_cell_data$rast_epsg_code[1] \%>\% as.numeric()
-# plot the stand cell data with trees overlaid
-tl_cruz$stand_cell_data \%>\% dplyr::filter(!is.na(trees)) \%>\%
-  ggplot2::ggplot() +
-  ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = cruz_stand_kg_per_m3)) +
-  ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
-  ggplot2::geom_sf(
-    data = tl_cruz$tree_list \%>\% sf::st_transform(crs = epsg_code)
-    , ggplot2::aes(color = cruz_tree_biomass_kg)
-  ) +
-  ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
-  ggplot2::scale_fill_viridis_c(option = "rocket", na.value = NA, direction = -1) +
-  ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
-  ggplot2::theme_void()
+ # plot the stand cell data with trees overlaid
+ tl_cruz$stand_cell_data \%>\%
+   ggplot2::ggplot() +
+   ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = cruz_stand_kg_per_m3), color = "gray44") +
+   ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+   ggplot2::geom_sf(
+     data = tl_cruz$tree_list \%>\% sf::st_transform(crs = epsg_code)
+     , ggplot2::aes(color = cruz_tree_biomass_kg)
+   ) +
+   ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
+   ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
+   ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+   ggplot2::theme_void()
  }
 }
 \references{

@@ -168,7 +168,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         )
     }else{
       stop(paste0(
-        "the `df` data does not contain the columns `basal_area_m2`, `dbh_cm`, or `dbh_m`"
+        "the data does not contain the columns `basal_area_m2`, `dbh_cm`, or `dbh_m`"
         , "\n .... at least one of these columns must be present"
       ))
     }
@@ -295,19 +295,11 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
 #######################################################
 # intermediate function 5
 #######################################################
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  #### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 THIS FUNCTION IS INCOMPLETE
-  # use our `get_cruz_stand_kg_per_m3()` function to calculate
-  # the stand level CBH in kilograms per cubed meter
+  # use our calculate stand-level CBD for cruz (lf already has CBD)
+  # the stand level CBD in kilograms per cubed meter is distributed to trees
   distribute_stand_fuel_load <- function(cell_df, tree_list, cbd_method = "cruz") {
     # check the method
-    cbd_method <- dplyr::coalesce(cbd_method[1], "") %>% tolower()
+    cbd_method <- dplyr::coalesce(cbd_method[1], "") %>% tolower() %>% stringr::str_squish()
     if( !(cbd_method %in% c("cruz", "landfire")) ){
       stop("`cbd_method` parameter must be one of \"cruz\" or \"landfire\"")
     }
@@ -343,6 +335,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     #############################################
     if(cbd_method == "cruz"){
       # select most common forest type group in a cell based on tree list
+      # this should be extracted by trees_type()
       cell_ft_temp <- tree_list %>%
         sf::st_drop_geometry() %>%
         dplyr::mutate(
@@ -399,7 +392,49 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     #############################################
     # LANDFIRE
     #############################################
+    if(cbd_method == "landfire"){
+      # select median landfire_cell_kg_per_m3 in a cell based on tree list
+      # this should be extracted by trees_landfire_cbd()
+      cell_ft_temp <- tree_list %>%
+        sf::st_drop_geometry() %>%
+        dplyr::group_by(cell) %>%
+        dplyr::summarise(
+          landfire_stand_kg_per_m3 = median(as.numeric(landfire_cell_kg_per_m3), na.rm=T)
+        ) %>%
+        dplyr::ungroup()
 
+      # calculate fuel loading at the stand level
+      cell_df <- cell_df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(cell_ft_temp %>% dplyr::select(cell,landfire_stand_kg_per_m3), by = "cell") %>%
+        # tertiary columns
+        dplyr::mutate(
+          # get cfl in kg/m2
+          kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3
+          # get stand biomass in kg at the stand level
+          , biomass_kg = kg_per_m2 * overlap_area_m2
+          # single tree CBD in kg/m3 will be constant by stand/cell
+          , landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
+        )
+
+      # apply stand fuel load to trees
+      tree_list <- tree_list %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(
+          cell_df %>%
+            dplyr::select(cell, landfire_tree_kg_per_m3, landfire_stand_kg_per_m3)
+          , by = "cell"
+        ) %>%
+        dplyr::mutate(landfire_tree_biomass_kg = landfire_tree_kg_per_m3*crown_volume_m3) %>%
+        dplyr::rename(landfire_stand_id = cell) %>%
+        # drop landfire_cell_kg_per_m3 so we don't get confused
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "landfire_cell_kg_per_m3"
+        )))
+      # rename cell data
+      cell_df <- cell_df %>% dplyr::rename(landfire_stand_id = cell)
+    }
 
     #############################################
     # return data

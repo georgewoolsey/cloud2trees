@@ -48,12 +48,12 @@
 #'  \dontrun{
 #' library(tidyverse)
 #' library(sf)
-#' my_n <- 55
+#' my_n <- 111
 #' # fake tree list
 #' tl <- dplyr::tibble(
 #'     treeID = c(1:my_n)
-#'     , tree_x = rnorm(n=my_n, mean = 458064, sd = 11)
-#'     , tree_y = rnorm(n=my_n, mean = 4450074, sd = 11)
+#'     , tree_x = rnorm(n=my_n, mean = 458064, sd = 33)
+#'     , tree_y = rnorm(n=my_n, mean = 4450074, sd = 33)
 #'     , tree_height_m = rnorm(n=my_n, mean = 10, sd = 7)
 #'   ) %>%
 #'   dplyr::mutate(
@@ -71,23 +71,27 @@
 #' tl_cruz %>% names()
 #' # look at the trees
 #' tl_cruz$tree_list %>% dplyr::glimpse()
+#' # tree FIA forest type groups
+#' tl_cruz$tree_list %>%
+#'   sf::st_drop_geometry() %>%
+#'   dplyr::count(forest_type_group_code, forest_type_group)
 #' # look at the stand
 #' tl_cruz$stand_cell_data %>% dplyr::filter(!is.na(trees)) %>% dplyr::glimpse()
 #' # get the projection for the stand cell data
 #' epsg_code <- tl_cruz$stand_cell_data$rast_epsg_code[1] %>% as.numeric()
-#' # plot the stand cell data with trees overlaid
-#' tl_cruz$stand_cell_data %>% dplyr::filter(!is.na(trees)) %>%
-#'   ggplot2::ggplot() +
-#'   ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = cruz_stand_kg_per_m3)) +
-#'   ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
-#'   ggplot2::geom_sf(
-#'     data = tl_cruz$tree_list %>% sf::st_transform(crs = epsg_code)
-#'     , ggplot2::aes(color = cruz_tree_biomass_kg)
-#'   ) +
-#'   ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
-#'   ggplot2::scale_fill_viridis_c(option = "rocket", na.value = NA, direction = -1) +
-#'   ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
-#'   ggplot2::theme_void()
+#'  # plot the stand cell data with trees overlaid
+#'  tl_cruz$stand_cell_data %>%
+#'    ggplot2::ggplot() +
+#'    ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = cruz_stand_kg_per_m3), color = "gray44") +
+#'    ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+#'    ggplot2::geom_sf(
+#'      data = tl_cruz$tree_list %>% sf::st_transform(crs = epsg_code)
+#'      , ggplot2::aes(color = cruz_tree_biomass_kg)
+#'    ) +
+#'    ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
+#'    ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
+#'    ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+#'    ggplot2::theme_void()
 #'  }
 #' @export
 #'
@@ -115,6 +119,28 @@ trees_biomass_cruz <- function(
   # convert to spatial points data
   ##################################
   tree_tops <- check_spatial_points(tree_list, crs)
+  # check columns needed for biomass estimation
+  check_df_cols_all_missing(
+      tree_tops
+      , col_names = c("crown_area_m2", "tree_height_m", "tree_cbh_m")
+      , all_numeric = T
+    )
+  # check for DBH or BA
+  safe_check_df_cols_all_missing <- purrr::safely(check_df_cols_all_missing)
+  ba_chk <- c("dbh_cm","dbh_m","basal_area_m2") %>%
+    purrr::map(\(x)
+      safe_check_df_cols_all_missing(col_names = x, df = tree_tops, all_numeric = T)
+    ) %>%
+    purrr::transpose() %>%
+    purrr::pluck("result") %>%
+    purrr::flatten() %>%
+    unlist()
+  if(!any(ba_chk)){
+    stop(paste0(
+        "the data does not contain the columns `basal_area_m2`, `dbh_cm`, or `dbh_m`"
+        , "\n .... at least one of these columns must be present and have data"
+      ))
+  }
 
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
@@ -195,7 +221,6 @@ trees_biomass_cruz <- function(
   # create extent if empty
   ##################################
     # set study boundary to tree extent if missing
-    study_boundary <- NA
     if(
       !(
         c(
@@ -210,12 +235,6 @@ trees_biomass_cruz <- function(
         sf::st_as_sfc()
     }
 
-    # mapview::mapview(
-    #   study_boundary %>% sf::st_as_sf()
-    #   , color = "red", lwd = 3, alpha.regions = 0
-    #   , layer.name = "boundary", label = FALSE, legend = FALSE, popup = FALSE
-    # ) +
-    #   mapview::mapview(tree_list, zcol = "tree_height_m")
   ################################################################
   # calc_rast_cell_trees
     # function to aggregate tree list to the raster cell level
@@ -229,26 +248,10 @@ trees_biomass_cruz <- function(
       , calc_tree_level_cols = T
     )
 
-    # calc_rast_cell_trees_ans$cell_df %>% dplyr::filter(!is.na(trees)) %>% dplyr::glimpse()
-    # #
-    # calc_rast_cell_trees_ans$cell_df %>% dplyr::filter(!is.na(trees)) %>%
-    #   ggplot() +
-    #   geom_tile(aes(x=x,y=y,fill = trees_per_ha)) +
-    #   geom_text(aes(x=x,y=y,label = trees), color = "white") +
-    #   geom_sf(
-    #     data = calc_rast_cell_trees_ans$tree_list %>% sf::st_transform(terra::crs(foresttype))
-    #     , mapping = aes(color = tree_height_m)
-    #   ) +
-    #   labs(fill="TPH", color = "tree ht. (m)", caption = "# trees shown in cell") +
-    #   scale_fill_viridis_c(na.value = NA) +
-    #   scale_color_viridis_c(option = "rocket", na.value = "black", begin = 0.55, direction = -1) +
-    #   theme_void()
-
   ################################################################
   # distribute_stand_fuel_load
-    # use our `get_cruz_stand_kg_per_m3()` function to calculate
-    # the stand level CBH in kilograms per cubed meter
-    # and distribute this across the tree list
+    # use our calculate stand-level CBD for cruz (lf already has CBD)
+    # the stand level CBD in kilograms per cubed meter is distributed to trees
   ################################################################
     distribute_stand_fuel_load_ans <- distribute_stand_fuel_load(
       cell_df = calc_rast_cell_trees_ans$cell_df

@@ -75,7 +75,6 @@ trees_landfire_cbd <- function(
   ##################################
   # convert to spatial points data
   ##################################
-  f <- tree_list %>% names() %>% dplyr::coalesce("") # leaving in case anything below looks for this
   tree_tops <- check_spatial_points(tree_list, crs)
 
   # get rid of columns we'll create
