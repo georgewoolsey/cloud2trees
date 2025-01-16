@@ -19,13 +19,23 @@
 #' Models for other forests types are currently lacking which limits the scope of this methodology.
 #' If the tree list has trees that fall are in a FIA forest type group not represented in the list above, then the return data will be blank
 #'
-#' Canopy Bulk Density is mass of flammable material per unit volume of the tree crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
+#' Canopy Bulk Density is mass of flammable material per unit volume of the tree
+#' crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
 #'
-#' The process for distributing the stand-level to a tree is:
+#' The process for estimating tree crown biomass in kilograms is:
 #'
-#' * do it
-#' * keep doing it
-#' * hey
+#' * Nearest neighbor imputation is used to fill LANDFIRE data if a tree falls inside a non-forest cell in the original data
+#' * The LANDFIRE estimate of CBD is distributed across the individual trees that fall in a raster cell by:
+#'    1) At the stand level (i.e. raster cell), aggregate the tree level data within the stand to obtain:
+#'      - `mean_crown_length_m = mean(crown_length_m)`, where tree `crown_length_m = tree_height_m - tree_cbh_m`
+#'      - `sum_crown_volume_m3 = sum(crown_volume_m3)`, where tree `crown_volume_m3 = (4/3) * pi * ((crown_length_m/2)) * ((crown_dia_m/2)^2)`
+#'    2) At the stand level (i.e. raster cell), determine the area of the stand that overlaps (`overlap_area_m2`) with the AOI defined as the `study_boundary` parameter (see below) or the bounding box of all the trees
+#'    3) At the stand level (i.e. raster cell), use the Cruz equations (Table 4; see reference) to estimate of CBD in kilograms per cubic meter (`cruz_stand_kg_per_m3`)
+#'    4) At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per cubic meter (`kg_per_m2 = mean_crown_length_m * cruz_stand_kg_per_m3`)
+#'    5) At the stand level (i.e. raster cell), get the stand biomass in kilograms (`biomass_kg = kg_per_m2 * overlap_area_m2`)
+#'    6) At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (`cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3`)
+#'    7) Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
+#'    8) Calculate individual tree crown mass in kilograms as `cruz_tree_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3`
 #'
 #' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
 #' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
