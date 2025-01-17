@@ -32,6 +32,7 @@
 #'
 #' @examples
 #'  \dontrun{
+#'  library(tidyverse)
 #'  # example tree list
 #'  tl <- dplyr::tibble(
 #'      treeID = c(1:21)
@@ -39,15 +40,27 @@
 #'      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
 #'    )
 #'  # call the function
-#'  tl_type <- trees_landfire_cbd(tree_list = tl, crs = "32613")
+#'  tl_lf <- trees_landfire_cbd(tree_list = tl, crs = "32613")
 #'  # what?
-#'  tl_type %>% class()
+#'  tl_lf %>% class()
 #'  # a list, but what is in it?
-#'  tl_type %>% names()
+#'  tl_lf %>% names()
+#'  # what's in the trees data?
+#'  tl_lf$tree_list %>% dplyr::glimpse()
 #'  # plot the tree_list spatial points
-#'  tl_type$tree_list %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=forest_type_group))
-#'  # plot the foresttype_rast raster
-#'  tl_type$foresttype_rast %>% terra::plot()
+#'  tl_lf$tree_list %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=landfire_cell_kg_per_m3))
+#'  # plot the landfire cbd raster
+#'  tl_lf$landfire_rast %>% terra::plot()
+#'  # we can overlay these
+#'  tl_lf$landfire_rast %>%
+#'    terra::as.data.frame(xy = T) %>%
+#'    ggplot2::ggplot() +
+#'    ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill=kg_per_m3), color = "gray") +
+#'    ggplot2::geom_sf(
+#'      data = tl_lf$tree_list %>% sf::st_transform(terra::crs(tl_lf$landfire_rast))
+#'      , mapping = ggplot2::aes(color=landfire_cell_kg_per_m3)
+#'    ) +
+#'    ggplot2::scale_color_distiller(palette = "Oranges")
 #'  }
 #' @export
 #'
@@ -174,9 +187,12 @@ trees_landfire_cbd <- function(
       ))
     }
 
+  # rename the return raster
+    terra::set.names(rast_ret, value = "kg_per_m3")
+
   # return
   return(list(
     tree_list = tree_tops
-    , landfire_rast = terra::set.names(rast_ret, value = "kg_per_m3")
+    , landfire_rast = rast_ret
   ))
 }

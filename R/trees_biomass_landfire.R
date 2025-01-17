@@ -34,18 +34,22 @@
 #'
 #' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, and `tree_y`.
 #' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
-
+#' Other required columns include:
+#' * `crown_area_m2`, `tree_height_m` (e.g. as exported by [raster2trees()])
+#' * `tree_cbh_m` (e.g. as exported by [trees_cbh()])
+#' * and one of `dbh_cm`, `dbh_m`, or  `basal_area_m2` (e.g. as exported by [trees_dbh()])
 #' @param crs string. A crs string as returned from [sf::st_crs()] or the EPSG code of the x,y coordinates.
 #' Defaults to the crs of the `tree_list` data if of class "sf".
-#' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
-#' If no boundary given, regional model will be built from location of trees in the tree list.
-#' @param input_landfire_dir directory where LANDFIRE Forest Canopy Bulk Density data exists. Use [get_landfire()] first.
+#' @param study_boundary sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
+#' If no boundary given, the AOI will be built from location of trees in the tree list.
+#' @param input_landfire_dir directory where LANDFIRE CBD data exists. Use [get_landfire()] first.
 #'
 #' @references
 #' * [LANDFIRE Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd)
 #' U.S. Department of Agriculture and U.S. Department of the Interior.
 #'
-#' @return Returns a list of objects: tree_list = spatial data frame of individual trees; landfire_rast = raster of forest types in the area.
+#' @return Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+#' See code in examples.
 #'
 #' @examples
 #'  \dontrun{

@@ -15,16 +15,18 @@
 #' * and one of `dbh_cm`, `dbh_m`, or  `basal_area_m2` (e.g. as exported by [trees_dbh()])
 #'
 #' The Cruz et al. (2003) study developed models to predict canopy fuel stratum at the
-#' stand level for four coniferous forest types common in the western US: Douglas-fir, ponderosa pine, lodgepole pine, and mixed conifer.
+#' stand level for four coniferous forest types common in the western US:
+#' Douglas-fir, ponderosa pine, lodgepole pine, and mixed conifer.
 #' Models for other forests types are currently lacking which limits the scope of this methodology.
-#' If the tree list has trees that fall are in a FIA forest type group not represented in the list above, then the return data will be blank
+#' If the tree list has trees that are in a FIA forest type group not represented in the list above,
+#' then the return data will be blank
 #'
 #' Canopy Bulk Density is mass of flammable material per unit volume of the tree
 #' crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
 #'
 #' The process for estimating tree crown biomass in kilograms is:
 #'
-#' * Nearest neighbor imputation is used to fill LANDFIRE data if a tree falls inside a non-forest cell in the original data
+#' * Nearest neighbor imputation is used to fill the FIA forest type data if a tree falls inside a non-forest cell in the original data
 #' * The LANDFIRE estimate of CBD is distributed across the individual trees that fall in a raster cell by:
 #'    1) At the stand level (i.e. raster cell), aggregate the tree level data within the stand to obtain:
 #'      - `mean_crown_length_m = mean(crown_length_m)`, where tree `crown_length_m = tree_height_m - tree_cbh_m`
@@ -37,12 +39,16 @@
 #'    7) Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
 #'    8) Calculate individual tree crown mass in kilograms as `cruz_tree_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3`
 #'
-#' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m`.
+#' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, and `tree_y`.
 #' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
+#' Other required columns include:
+#' * `crown_area_m2`, `tree_height_m` (e.g. as exported by [raster2trees()])
+#' * `tree_cbh_m` (e.g. as exported by [trees_cbh()])
+#' * and one of `dbh_cm`, `dbh_m`, or  `basal_area_m2` (e.g. as exported by [trees_dbh()])
 #' @param crs string. A crs string as returned from [sf::st_crs()] or the EPSG code of the x,y coordinates.
 #' Defaults to the crs of the `tree_list` data if of class "sf".
-#' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
-#' If no boundary given, regional model will be built from location of trees in the tree list.
+#' @param study_boundary sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
+#' If no boundary given, the AOI will be built from location of trees in the tree list.
 #' @param input_foresttype_dir directory where Forest Type Groups data exists. Use [get_foresttype()] first.
 #'
 #' @references

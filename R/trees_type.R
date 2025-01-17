@@ -31,6 +31,7 @@
 #'
 #' @examples
 #'  \dontrun{
+#'  library(tidyverse)
 #'  # example tree list
 #'  tl <- dplyr::tibble(
 #'      treeID = c(1:21)

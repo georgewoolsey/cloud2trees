@@ -12,41 +12,64 @@ trees_biomass_landfire(
 )
 }
 \arguments{
-\item{tree_list}{data.frame. A data frame with the columns \code{treeID}, \code{tree_x}, \code{tree_y}, and \code{tree_height_m}.
-If an \code{sf} class object with POINT geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}), the program will use the data "as-is" and only require the \code{treeID} column.}
+\item{tree_list}{data.frame. A data frame with the columns \code{treeID}, \code{tree_x}, and \code{tree_y}.
+If an \code{sf} class object with POINT geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}), the program will use the data "as-is" and only require the \code{treeID} column.
+Other required columns include:
+\itemize{
+\item \code{crown_area_m2}, \code{tree_height_m} (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}})
+\item \code{tree_cbh_m} (e.g. as exported by \code{\link[=trees_cbh]{trees_cbh()}})
+\item and one of \code{dbh_cm}, \code{dbh_m}, or  \code{basal_area_m2} (e.g. as exported by \code{\link[=trees_dbh]{trees_dbh()}})
+}}
 
 \item{crs}{string. A crs string as returned from \code{\link[sf:st_crs]{sf::st_crs()}} or the EPSG code of the x,y coordinates.
 Defaults to the crs of the \code{tree_list} data if of class "sf".}
 
-\item{study_boundary}{sf. The boundary of the study are to define the area of the regional model.
-If no boundary given, regional model will be built from location of trees in the tree list.}
+\item{study_boundary}{sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
+If no boundary given, the AOI will be built from location of trees in the tree list.}
 
-\item{input_landfire_dir}{directory where LANDFIRE Forest Canopy Bulk Density data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
-
-\item{max_search_dist_m}{number. Maximum search distance (m) to obtain forest type group data for trees in \code{tree_list} that overlap with non-forest data in the original LANDFIRE data.
-Larger search distances will increase processing time and possibly result in memory issues.}
+\item{input_landfire_dir}{directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
 }
 \value{
-Returns a list of objects: tree_list = spatial data frame of individual trees; landfire_rast = raster of forest types in the area.
+Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+See code in examples.
 }
 \description{
 \code{trees_biomass_landfire()} uses the input tree list (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}}) with the columns
 \code{treeID}, \code{tree_x}, \code{tree_y} to attach an estimate of tree crown biomass using LANDFIRE's Forest Canopy Bulk Density (CBD) data
 produced jointly by the U.S. Department of Agriculture and U.S. Department of the Interior.
+
 If a spatial data frame of points is the input tree list, then the columns \code{tree_x}, \code{tree_y} are not required.
+Other required columns include:
+\itemize{
+\item \code{crown_area_m2}, \code{tree_height_m} (e.g. as exported by \code{\link[=raster2trees]{raster2trees()}})
+\item \code{tree_cbh_m} (e.g. as exported by \code{\link[=trees_cbh]{trees_cbh()}})
+\item and one of \code{dbh_cm}, \code{dbh_m}, or  \code{basal_area_m2} (e.g. as exported by \code{\link[=trees_dbh]{trees_dbh()}})
+}
 
-LANDFIRE's Forest Canopy Bulk Density (CBD) data is attached to each tree in the tree list based on the spatial overlap with the raster data set (see references).
-Canopy Bulk Density is mass of flammable material per unit volume of the tree crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
+LANDFIRE's Forest Canopy Bulk Density (CBD) data is attached to each tree in the tree list based
+on the spatial overlap with the raster data set (see references).
+Canopy Bulk Density is mass of flammable material per unit volume of the tree
+crown typically expressed in units of mass per unit volume (e.g., kilograms per cubic meter).
 
-The simplified process for attaching tree crown biomass in kilograms to a tree is:
+The process for estimating tree crown biomass in kilograms is:
 \itemize{
 \item Nearest neighbor imputation is used to fill LANDFIRE data if a tree falls inside a non-forest cell in the original data
 \item The LANDFIRE estimate of CBD is distributed across the individual trees that fall in a raster cell by:
 \enumerate{
-\item get cfl in kg/m2 == kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3
-\item get stand biomass in kg at the stand level == biomass_kg = kg_per_m2 * overlap_area_m2
-\item single tree CBD in kg/m3 will be constant by stand/cell == landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
-\item at the tree level landfire_tree_biomass_kg = landfire_tree_kg_per_m3*crown_volume_m3
+\item At the stand level (i.e. raster cell), aggregate the tree level data within the stand to obtain:
+}
+\itemize{
+\item \code{mean_crown_length_m = mean(crown_length_m)}, where tree \code{crown_length_m = tree_height_m - tree_cbh_m}
+\item \code{sum_crown_volume_m3 = sum(crown_volume_m3)}, where tree \code{crown_volume_m3 = (4/3) * pi * ((crown_length_m/2)) * ((crown_dia_m/2)^2)}
+}
+\enumerate{
+\item At the stand level (i.e. raster cell), determine the area of the stand that overlaps (\code{overlap_area_m2}) with the AOI defined as the \code{study_boundary} parameter (see below) or the bounding box of all the trees
+\item At the stand level (i.e. raster cell), get the LANDFIRE estimate of CBD in kilograms per cubic meter (\code{landfire_stand_kg_per_m3})
+\item At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per cubic meter (\code{kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3})
+\item At the stand level (i.e. raster cell), get the stand biomass in kilograms (\code{biomass_kg = kg_per_m2 * overlap_area_m2})
+\item At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (\code{landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3})
+\item Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
+\item Calculate individual tree crown mass in kilograms as \code{landfire_tree_biomass_kg = landfire_tree_kg_per_m3 * crown_volume_m3}
 }
 }
 }
