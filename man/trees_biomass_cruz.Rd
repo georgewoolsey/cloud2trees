@@ -2,7 +2,7 @@
 % Please edit documentation in R/trees_biomass_cruz.R
 \name{trees_biomass_cruz}
 \alias{trees_biomass_cruz}
-\title{Estimate tree biomass for a tree list based on Cruz et al. (2003)}
+\title{Estimate tree crown biomass for a tree list based on Cruz et al. (2003)}
 \usage{
 trees_biomass_cruz(
   tree_list,
@@ -30,7 +30,9 @@ If no boundary given, the AOI will be built from location of trees in the tree l
 \item{input_foresttype_dir}{directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
 }
 \value{
-Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+Returns a list of objects: tree_list = spatial data frame of individual trees
+; stand_cell_data = data frame of stands/cells in same projection as the FIA forest type group raster data
+
 See code in examples.
 }
 \description{

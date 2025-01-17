@@ -1,4 +1,4 @@
-#' @title Estimate tree biomass for a tree list using LANDFIRE data
+#' @title Estimate tree crown biomass for a tree list using LANDFIRE data
 #'
 #' @description
 #' `trees_biomass_landfire()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
@@ -48,7 +48,9 @@
 #' * [LANDFIRE Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd)
 #' U.S. Department of Agriculture and U.S. Department of the Interior.
 #'
-#' @return Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+#' @return Returns a list of objects: tree_list = spatial data frame of individual trees
+#' ; stand_cell_data = data frame of stands/cells in same projection as the LANDFIRE raster data
+#'
 #' See code in examples.
 #'
 #' @examples

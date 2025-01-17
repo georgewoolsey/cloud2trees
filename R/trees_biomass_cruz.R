@@ -1,4 +1,4 @@
-#' @title Estimate tree biomass for a tree list based on Cruz et al. (2003)
+#' @title Estimate tree crown biomass for a tree list based on Cruz et al. (2003)
 #'
 #' @description
 #' `trees_biomass_cruz()` uses the input tree list (e.g. as exported by [raster2trees()]) with the columns
@@ -57,7 +57,9 @@
 #' * [doi:10.1071/WF02024](https://scholar.google.com/scholar?cluster=316241498622221569&oi=gsb&hl=en&as_sdt=0,5)
 #' Cruz, M.G, M.E. Alexander, and R.H. Wakimoto. 2003. Assessing canopy fuel stratum characteristics in crown fire prone fuel types of western North America. Int. J. Wildland Fire. 12(1):39-50.
 #'
-#' @return Returns a list of objects: tree_list = spatial data frame of individual trees; stand_cell_data = data frame of stands/cells in same projection as the foresttype raster data
+#' @return Returns a list of objects: tree_list = spatial data frame of individual trees
+#' ; stand_cell_data = data frame of stands/cells in same projection as the FIA forest type group raster data
+#'
 #' See code in examples.
 #'
 #' @examples
