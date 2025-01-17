@@ -14,6 +14,8 @@ find_ext_data(
 \item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 
 \item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
+
+\item{input_landfire_dir}{character. directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
 }
 \value{
 Returns a list where the values will be either NULL if unable to locate the external data files

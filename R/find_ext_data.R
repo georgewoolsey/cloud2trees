@@ -2,6 +2,7 @@
 #'
 #' @param input_treemap_dir character. directory where Treemap 2016 exists. Use [get_treemap()] first.
 #' @param input_foresttype_dir character. directory where Forest Type Groups data exists. Use [get_foresttype()] first.
+#' @param input_landfire_dir character. directory where LANDFIRE CBD data exists. Use [get_landfire()] first.
 #'
 #' @description
 #' Find the location of external data

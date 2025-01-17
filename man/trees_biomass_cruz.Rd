@@ -76,7 +76,7 @@ The process for estimating tree crown biomass in kilograms is:
 \item At the stand level (i.e. raster cell), get the stand biomass in kilograms (\code{biomass_kg = kg_per_m2 * overlap_area_m2})
 \item At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (\code{cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3})
 \item Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
-\item Calculate individual tree crown mass in kilograms as \code{cruz_tree_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3}
+\item Calculate individual tree crown mass in kilograms as \code{cruz_crown_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3}
 }
 }
 }
@@ -122,7 +122,7 @@ epsg_code <- tl_cruz$stand_cell_data$rast_epsg_code[1] \%>\% as.numeric()
    ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
    ggplot2::geom_sf(
      data = tl_cruz$tree_list \%>\% sf::st_transform(crs = epsg_code)
-     , ggplot2::aes(color = cruz_tree_biomass_kg)
+     , ggplot2::aes(color = cruz_crown_biomass_kg)
    ) +
    ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
    ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +

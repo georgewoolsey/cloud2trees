@@ -192,7 +192,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         #calculate crown diameter (m) = SQRT(area/pi) * 2
         crown_dia_m = sqrt(crown_area_m2 / pi) * 2
         #calculate crown length (m)
-        , crown_length_m = tree_height_m - tree_cbh_m
+        , crown_length_m = ifelse(tree_height_m<tree_cbh_m, tree_height_m*0.5, tree_height_m - tree_cbh_m)
         # calculate crown volume [4/3 * pi * a * b * c]
         # which is [4/3 * pi * (crownlength/2) * (max crown radius) * (max crown radius)]
         ## !!!!!!!!!!!!!!!!!!11 source??????????????????????????????????????????????????????????????
@@ -383,7 +383,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
             dplyr::select(cell, cruz_tree_kg_per_m3, cruz_stand_kg_per_m3)
           , by = "cell"
         ) %>%
-        dplyr::mutate(cruz_tree_biomass_kg = cruz_tree_kg_per_m3*crown_volume_m3) %>%
+        dplyr::mutate(cruz_crown_biomass_kg = cruz_tree_kg_per_m3*crown_volume_m3) %>%
         dplyr::rename(cruz_stand_id = cell)
       # rename cell data
       cell_df <- cell_df %>% dplyr::rename(cruz_stand_id = cell)
@@ -425,7 +425,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
             dplyr::select(cell, landfire_tree_kg_per_m3, landfire_stand_kg_per_m3)
           , by = "cell"
         ) %>%
-        dplyr::mutate(landfire_tree_biomass_kg = landfire_tree_kg_per_m3*crown_volume_m3) %>%
+        dplyr::mutate(landfire_crown_biomass_kg = landfire_tree_kg_per_m3*crown_volume_m3) %>%
         dplyr::rename(landfire_stand_id = cell) %>%
         # drop landfire_cell_kg_per_m3 so we don't get confused
         dplyr::select( -dplyr::any_of(c(

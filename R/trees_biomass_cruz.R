@@ -37,7 +37,7 @@
 #'    5) At the stand level (i.e. raster cell), get the stand biomass in kilograms (`biomass_kg = kg_per_m2 * overlap_area_m2`)
 #'    6) At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (`cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3`)
 #'    7) Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
-#'    8) Calculate individual tree crown mass in kilograms as `cruz_tree_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3`
+#'    8) Calculate individual tree crown mass in kilograms as `cruz_crown_biomass_kg = cruz_tree_kg_per_m3 * crown_volume_m3`
 #'
 #' @param tree_list data.frame. A data frame with the columns `treeID`, `tree_x`, and `tree_y`.
 #' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
@@ -102,7 +102,7 @@
 #'    ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
 #'    ggplot2::geom_sf(
 #'      data = tl_cruz$tree_list %>% sf::st_transform(crs = epsg_code)
-#'      , ggplot2::aes(color = cruz_tree_biomass_kg)
+#'      , ggplot2::aes(color = cruz_crown_biomass_kg)
 #'    ) +
 #'    ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
 #'    ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
@@ -169,7 +169,7 @@ trees_biomass_cruz <- function(
         , "crown_volume_m3"
         , "cruz_tree_kg_per_m3"
         , "cruz_stand_kg_per_m3"
-        , "cruz_tree_biomass_kg"
+        , "cruz_crown_biomass_kg"
       )))
 
   ##################################
