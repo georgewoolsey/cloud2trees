@@ -118,28 +118,9 @@ trees_biomass <- function(
 ){
   ####################################################################
   # PARSE THE method
+  # will throw error if not in available options
   ####################################################################
-  # clean method
-  method <- dplyr::coalesce(method, "") %>%
-    tolower() %>%
-    stringr::str_squish()
-  # potential methods
-  pot_methods <- c("cruz", "landfire") %>% unique()
-  find_method <- paste(pot_methods, collapse="|")
-  # can i find one?
-  which_methods <- stringr::str_extract_all(string = method, pattern = find_method) %>%
-    unlist() %>%
-    unique()
-  # make sure at least one is selected
-  # get_list_diff() from get_url_data.R
-  n_methods_not <- get_list_diff(pot_methods, which_methods) %>% length()
-  if(n_methods_not>=length(pot_methods)){
-    stop(paste0(
-      "`method` parameter must be one or multiple of:\n"
-      , "    "
-      , paste(pot_methods, collapse=", ")
-    ))
-  }
+    which_biomass_methods <- check_biomass_method(method)
 
   ####################################################################
   # set up placeholders for return data
@@ -155,7 +136,7 @@ trees_biomass <- function(
   ####################################################################
   # cruz
   ####################################################################
-  if( any(stringr::str_equal(which_methods, "cruz")) ){
+  if( any(stringr::str_equal(which_biomass_methods, "cruz")) ){
     message("attempting to estimate biomass using the `cruz` method")
     # call the function
     safe_trees_biomass_cruz <- purrr::safely(trees_biomass_cruz)
@@ -206,7 +187,7 @@ trees_biomass <- function(
   ####################################################################
   # landfire
   ####################################################################
-  if( any(stringr::str_equal(which_methods, "landfire")) ){
+  if( any(stringr::str_equal(which_biomass_methods, "landfire")) ){
     message("attempting to estimate biomass using the `landfire` method")
     # call the function
     safe_trees_biomass_landfire <- purrr::safely(trees_biomass_landfire)

@@ -124,6 +124,7 @@ cloud2trees <- function(
   , type_max_search_dist_m = 1000
   , estimate_tree_hmd = FALSE
   , hmd_estimate_missing_hmd = FALSE
+  , biomass_method = NA
   , estimate_tree_cbh = FALSE
   , cbh_tree_sample_n = NA
   , cbh_tree_sample_prop = NA
@@ -148,6 +149,15 @@ cloud2trees <- function(
         stop(
           "`search_dist_max` deprecated. Use the `competition_max_search_dist_m` argument instead."
         )
+    }
+  ####################################################################
+  # check biomass method so we can throw error before we kick off
+  ####################################################################
+    if(
+      !is.na(biomass_method) && !is.null(biomass_method)
+      && is.character(biomass_method)
+    ){
+      which_biomass_methods <- check_biomass_method(biomass_method)
     }
   ####################################################################
   # check external data

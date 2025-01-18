@@ -478,6 +478,35 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     )
   }
 #######################################################
+# intermediate function 14.4
+#######################################################
+  # check the `method` argument of the trees_biomass() function
+  check_biomass_method <- function(method) {
+      # clean method
+      method <- dplyr::coalesce(method, "") %>%
+        tolower() %>%
+        stringr::str_squish()
+      # potential methods
+      pot_methods <- c("cruz", "landfire") %>% unique()
+      find_method <- paste(pot_methods, collapse="|")
+      # can i find one?
+      which_methods <- stringr::str_extract_all(string = method, pattern = find_method) %>%
+        unlist() %>%
+        unique()
+      # make sure at least one is selected
+      # get_list_diff() from get_url_data.R
+      n_methods_not <- get_list_diff(pot_methods, which_methods) %>% length()
+      if(n_methods_not>=length(pot_methods)){
+        stop(paste0(
+          "`method` parameter must be one or multiple of:\n"
+          , "    "
+          , paste(pot_methods, collapse=", ")
+        ))
+      }else{
+        return(which_methods)
+      }
+  }
+#######################################################
 # intermediate function 15
 #######################################################
   # check data for column missing in data or if all records missing

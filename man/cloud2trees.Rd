@@ -37,6 +37,7 @@ cloud2trees(
   type_max_search_dist_m = 1000,
   estimate_tree_hmd = FALSE,
   hmd_estimate_missing_hmd = FALSE,
+  biomass_method = NA,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
