@@ -37,51 +37,74 @@
 #'  \dontrun{
 #' library(tidyverse)
 #' library(sf)
-#' my_n <- 122
-#' # fake tree list
-#' tl <- dplyr::tibble(
-#'     treeID = c(1:my_n)
-#'     , tree_x = rnorm(n=my_n, mean = 458064, sd = 33)
-#'     , tree_y = rnorm(n=my_n, mean = 4450074, sd = 33)
-#'     , tree_height_m = rnorm(n=my_n, mean = 10, sd = 7)
-#'   ) %>%
-#'   dplyr::mutate(
-#'     tree_height_m = ifelse(tree_height_m<1.37, 1.37, tree_height_m) # above DBH
-#'     , crown_area_m2 = 0.47+(0.49*tree_height_m)
-#'     , tree_cbh_m = 0.72+(0.53*tree_height_m)
-#'     , dbh_cm = -2.3+(2.14*tree_height_m)
-#'   )
-#' # how does our fake tree list look?
+#' # use the tree list that ships with the package
+#' f <- system.file(package = "cloud2trees", "extdata", "crowns_poly.gpkg")
+#' tl <- sf::st_read(f)
 #' tl %>% dplyr::glimpse()
-#' tl %>% ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(x = dbh_cm, y = tree_height_m))
-#' # call the function
-#' tl_landfire <- trees_biomass_landfire(tree_list = tl, crs = "32613")
-#' # what is in it?
-#' tl_landfire %>% names()
-#' # look at the trees
-#' tl_landfire$tree_list %>% dplyr::glimpse()
-#' # look at the stand
-#' tl_landfire$stand_cell_data %>% dplyr::filter(!is.na(trees)) %>% dplyr::glimpse()
-#' # the stand CBD
-#'  tl_landfire$stand_cell_data %>%
-#'    dplyr::filter(trees>0) %>%
-#'    sf::st_drop_geometry() %>%
-#'    dplyr::count(landfire_stand_kg_per_m3)
+#' # call trees_biomass and get multiple biomass estimates
+#' trees_biomass_ans <- trees_biomass(tree_list = tl, method = c("landfire","cruz"))
+#' # what did we get back?
+#' trees_biomass_ans %>% names()
+#' # check out the tree list
+#' trees_biomass_ans$tree_list %>% dplyr::glimpse()
+#' # check out the landfire stand data
+#' trees_biomass_ans$stand_cell_data_landfire %>% dplyr::filter(trees>0) %>% dplyr::glimpse()
+#' # plot tree landfire crown biomass estimate
+#' trees_biomass_ans$tree_list %>%
+#'   ggplot2::ggplot(
+#'     mapping = ggplot2::aes(
+#'       x = tree_height_m
+#'       , y = landfire_crown_biomass_kg
+#'       , color = crown_area_m2
+#'     )
+#'   ) +
+#'   ggplot2::geom_point()
+#' # plot tree cruz crown biomass estimate
+#' trees_biomass_ans$tree_list %>%
+#'   ggplot2::ggplot(
+#'     mapping = ggplot2::aes(
+#'       x = tree_height_m
+#'       , y = cruz_crown_biomass_kg
+#'       , color = crown_area_m2
+#'     )
+#'   ) +
+#'   ggplot2::geom_point()
+#' # plot tree landfire vs. cruz crown biomass estimate
+#' trees_biomass_ans$tree_list %>%
+#'   ggplot2::ggplot(
+#'     mapping = ggplot2::aes(
+#'       x = landfire_crown_biomass_kg, y = cruz_crown_biomass_kg
+#'     )
+#'   ) +
+#'   ggplot2::geom_abline(lwd = 1.5) +
+#'   ggplot2::geom_smooth(method = "lm", se=F, color = "gray", linetype = "dashed") +
+#'   ggplot2::geom_point(ggplot2::aes(color = tree_height_m)) +
+#'   ggplot2::scale_x_continuous(
+#'     limits = c(0
+#'       , max(trees_biomass_ans$tree_list$cruz_crown_biomass_kg)
+#'     )
+#'   ) +
+#'   ggplot2::scale_y_continuous(
+#'     limits = c(0
+#'       , max(trees_biomass_ans$tree_list$cruz_crown_biomass_kg)
+#'     )
+#'   )
 #' # get the projection for the stand cell data
-#' epsg_code <- tl_landfire$stand_cell_data$rast_epsg_code[1] %>% as.numeric()
-#'  # plot the stand cell data with trees overlaid
-#'  tl_landfire$stand_cell_data %>%
-#'    ggplot2::ggplot() +
-#'    ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = landfire_stand_kg_per_m3), color = "gray44") +
-#'    ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
-#'    ggplot2::geom_sf(
-#'      data = tl_landfire$tree_list %>% sf::st_transform(crs = epsg_code)
-#'      , ggplot2::aes(color = landfire_crown_biomass_kg)
-#'    ) +
-#'    ggplot2::labs(fill="stand kg/m3", color = "tree kg", caption = "# trees shown in cell") +
-#'    ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
-#'    ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
-#'    ggplot2::theme_void()
+#' epsg_code <- trees_biomass_ans$stand_cell_data_landfire$rast_epsg_code[1] %>% as.numeric()
+#' # plot the stand cell data with trees overlaid
+#' trees_biomass_ans$stand_cell_data_landfire %>%
+#'   dplyr::filter(trees>0) %>%
+#'   ggplot2::ggplot() +
+#'   ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = landfire_stand_kg_per_m3), color = "gray44") +
+#'   ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+#'   ggplot2::geom_sf(
+#'     data = trees_biomass_ans$tree_list %>% sf::st_transform(crs = epsg_code)
+#'     , ggplot2::aes(color = cruz_crown_biomass_kg)
+#'   ) +
+#'   ggplot2::labs(fill="stand kg/m3", color = "landfire\ncrown kg", caption = "# trees shown in cell") +
+#'   ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
+#'   ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+#'   ggplot2::theme_void()
 #'  }
 #' @export
 #'

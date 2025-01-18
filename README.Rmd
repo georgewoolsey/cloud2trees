@@ -589,11 +589,11 @@ r_plt +
 If you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) must be manually installed first.
 
 ``` r
-# install.packages("pak")
+# install.packages("remotes")
 ## install LadderFuelsR
-pak::pak("olgaviedma/LadderFuelsR", upgrade = TRUE)
+remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
 ## install leafR
-pak::pak("DRAAlmeida/leafR", upgrade = TRUE)
+remotes::install_github(repo = "DRAAlmeida/leafR", upgrade = F)
 ```
 
 After installing these packages, if we already have spatial polygons of tree crowns and height normalized point cloud data, we can attempt to extract tree CBH from the point cloud using the `trees_cbh()` function.
@@ -604,7 +604,7 @@ We'll use the tree crown polygons and normalized point cloud data examples that 
 
 ```{r, results = FALSE}
 # read example crown polygons
-f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
 p <- sf::st_read(f, quiet = T)
 # path to the normalized point cloud data
 nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
@@ -668,7 +668,7 @@ We'll use the tree crown polygons and normalized point cloud data examples that 
 
 ```{r, results = FALSE}
 # read example crown polygons
-f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
 p <- sf::st_read(f, quiet = T)
 # path to the normalized point cloud data
 nlas <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
@@ -721,5 +721,144 @@ trees_hmd_ans %>%
   ggplot2::guides(
     color = ggplot2::guide_legend(override.aes = list(lwd = 3, fill = NA))
   )
+```
+
+## Estimate Tree Biomass for a Tree List{#trees_biomass}
+
+The `cloud2trees()` package includes methods for estimating individual tree biomass in kilograms, or the component biomass of the tree crown in kilograms.
+
+Currently supported methods for estimating biomass include:
+
+* Tree crown biomass in kilograms:
+  - "landfire" - based on [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) data (`trees_biomass_landfire()`)
+  - "cruz" - based on [Cruz et al. (2003)](https://scholar.google.com/scholar?cluster=316241498622221569&oi=gsb&hl=en&as_sdt=0,5) canopy fuel stratum equations (`trees_biomass_cruz()`)
+
+The `trees_biomass()` function streamlines the process for estimating individual tree biomass in kilograms, or the component biomass of the tree crown in kilograms. Users can select one, some, or all of the methods available in the package for estimating biomass.
+
+We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y` to the `trees_biomass*()` function. We can also use an `sf` class object with POINT or POLYGON geometry (see `sf::st_geometry_type()`) and the program will use the data "as-is" and only require the `treeID` column.
+
+Since estimating tree crown biomass using stand-based fuel estimates requires back-transformation to the tree level, the `trees_biomass_landfire()`, `trees_biomass_cruz()`, and `trees_biomass()` if using the Cruz or LANDFIRE methods also require the following data attributes:
+
+* `crown_area_m2`, `tree_height_m` (e.g. as exported by `raster2trees()`)
+* `tree_cbh_m` (e.g. as exported by `trees_cbh()`)
+* and one of `dbh_cm`, `dbh_m`, or  `basal_area_m2` (e.g. as exported by `trees_dbh()`)
+
+We'll use the tree crown polygons that ship with the `cloud2trees` package.
+
+```{r, results = FALSE}
+# read example crown polygons
+f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
+tl <- sf::st_read(f, quiet = T)
+```
+
+### `trees_biomass()`
+
+The `trees_biomass()` function streamlines the process for estimating individual tree biomass in kilograms, or the component biomass of the tree crown in kilograms. Users can select one, some, or all of the methods available in the package for estimating biomass. The following function calls are equivalent:
+
+``` r
+# trees_biomass with method = "landfire"
+trees_biomass(tree_list, method = "landfire")
+# is equivalent to
+trees_biomass_landfire(tree_list)
+```
+
+We'll use the `trees_biomass()` function and ask for both the LANDFIRE and the Cruz et al. (2003) estimates of tree crown biomass in kilograms with the argument `method = c("landfire","cruz")`
+
+```{r, warning=FALSE, results=F}
+# call trees_biomass and get multiple biomass estimates
+trees_biomass_ans <- trees_biomass(tree_list = tl, method = c("landfire","cruz"))
+```
+
+what did we get back?
+
+```{r}
+trees_biomass_ans %>% names()
+```
+
+check out the tree list data
+
+```{r}
+trees_biomass_ans$tree_list %>% dplyr::glimpse()
+```
+
+that's a lot of extra information...the `cruz_crown_biomass_kg` and `landfire_crown_biomass_kg` columns include estimates of tree crown biomass in kilograms that we are after
+
+plot tree LANDFIRE and Cruz crown biomass estimate
+
+```{r}
+library(patchwork)
+# plot tree landfire crown biomass estimate
+p1 <- trees_biomass_ans$tree_list %>%
+  ggplot2::ggplot(
+    mapping = ggplot2::aes(
+      x = tree_height_m
+      , y = landfire_crown_biomass_kg
+      , color = crown_area_m2
+    )
+  ) +
+  ggplot2::geom_point()
+# plot tree cruz crown biomass estimate
+p2 <- trees_biomass_ans$tree_list %>%
+  ggplot2::ggplot(
+    mapping = ggplot2::aes(
+      x = tree_height_m
+      , y = cruz_crown_biomass_kg
+      , color = crown_area_m2
+    )
+  ) +
+  ggplot2::geom_point()
+# patchwork it
+p1/p2
+```
+
+the estimates look similar but not exactly the same. let's plot them against each other
+
+```{r}
+# get the max for the upper limit scale
+ul <- max(
+  trees_biomass_ans$tree_list$cruz_crown_biomass_kg
+  , trees_biomass_ans$tree_list$landfire_crown_biomass_kg
+)
+# plot tree landfire vs. cruz crown biomass estimate
+trees_biomass_ans$tree_list %>%
+  ggplot2::ggplot(
+    mapping = ggplot2::aes(
+      x = landfire_crown_biomass_kg, y = cruz_crown_biomass_kg
+    )
+  ) +
+  ggplot2::geom_abline(lwd = 1.5) +
+  ggplot2::geom_smooth(method = "lm", se=F, color = "gray", linetype = "dashed") +
+  ggplot2::geom_point(ggplot2::aes(color = tree_height_m)) +
+  ggplot2::scale_x_continuous(limits = c(0, ul)) +
+  ggplot2::scale_y_continuous(limits = c(0, ul))
+```
+
+let's check out the LANDFIRE stand data
+
+```{r}
+trees_biomass_ans$stand_cell_data_landfire %>% dplyr::filter(trees>0) %>% dplyr::glimpse()
+```
+
+this data includes the cell data (where, a "stand" is represented by a raster cell) from the LANDFIRE Forest Canopy Bulk Density (CBD) data
+
+we can use this stand/cell data as raster data and overlay the tree points...let's do this for the LANDFIRE data
+
+```{r}
+# get the projection for the stand cell data
+epsg_code <- trees_biomass_ans$stand_cell_data_landfire$rast_epsg_code[1] %>% as.numeric()
+# plot the stand cell data with trees overlaid
+trees_biomass_ans$stand_cell_data_landfire %>%
+  dplyr::filter(trees>0) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x=x,y=y,fill = landfire_stand_kg_per_m3), color = "gray44") +
+  ggplot2::geom_text(ggplot2::aes(x=x,y=y,label = trees), color = "white") +
+  ggplot2::geom_sf(
+    data = trees_biomass_ans$tree_list %>% sf::st_transform(crs = epsg_code)
+    , ggplot2::aes(color = cruz_crown_biomass_kg)
+  ) +
+  ggplot2::labs(fill="landfire\nstand kg/m3", color = "landfire\ncrown kg", caption = "# trees shown in cell") +
+  ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
+  ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
+  ggplot2::theme_void()
 ```
 
