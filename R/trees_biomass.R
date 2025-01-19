@@ -101,7 +101,10 @@
 #'     data = trees_biomass_ans$tree_list %>% sf::st_transform(crs = epsg_code)
 #'     , ggplot2::aes(color = cruz_crown_biomass_kg)
 #'   ) +
-#'   ggplot2::labs(fill="stand kg/m3", color = "landfire\ncrown kg", caption = "# trees shown in cell") +
+#'   ggplot2::labs(
+#'     fill="stand kg/m3", color = "landfire\ncrown kg"
+#'     , caption = "# trees shown in cell"
+#'   ) +
 #'   ggplot2::scale_fill_viridis_c(option = "rocket", na.value = "gray", direction = -1) +
 #'   ggplot2::scale_color_viridis_c(option = "viridis", na.value = "gray22", begin = 0.6) +
 #'   ggplot2::theme_void()

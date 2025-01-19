@@ -9,6 +9,7 @@ cloud2trees(
   input_las_dir,
   input_treemap_dir = NULL,
   input_foresttype_dir = NULL,
+  input_landfire_dir = NULL,
   accuracy_level = 2,
   max_ctg_pts = 7e+07,
   max_area_m2 = 9e+07,
@@ -37,7 +38,7 @@ cloud2trees(
   type_max_search_dist_m = 1000,
   estimate_tree_hmd = FALSE,
   hmd_estimate_missing_hmd = FALSE,
-  biomass_method = NA,
+  estimate_biomass_method = NA,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
@@ -63,6 +64,8 @@ cloud2trees(
 \item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 
 \item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
+
+\item{input_landfire_dir}{character. directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
 
 \item{accuracy_level}{numeric. Choose processing accuracy.
 accuracy_level = 1 uses DTM to height normalize the points
@@ -121,6 +124,9 @@ Larger search distances will increase processing time and possibly result in mem
 
 \item{hmd_estimate_missing_hmd}{logical. It is not likely that HMD will be extracted successfully from every tree.
 Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?}
+
+\item{estimate_biomass_method}{character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See \code{\link[=trees_biomass]{trees_biomass()}}.
+Leave as blank (i.e. \code{NA}) to skip biomass estimation.}
 
 \item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
