@@ -46,6 +46,7 @@ The simplified process for attaching forest type group to a tree is:
 }
 \examples{
  \dontrun{
+ library(tidyverse)
  # example tree list
  tl <- dplyr::tibble(
      treeID = c(1:21)

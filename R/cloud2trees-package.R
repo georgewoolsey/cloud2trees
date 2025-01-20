@@ -4,6 +4,7 @@
 ## usethis namespace: start
 #' @importFrom lifecycle deprecated
 #' @importFrom magrittr %>%
+#' @importFrom stats median
 #' @importFrom stats na.omit
 #' @importFrom stats predict
 #' @importFrom utils download.file

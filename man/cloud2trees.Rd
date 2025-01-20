@@ -9,6 +9,7 @@ cloud2trees(
   input_las_dir,
   input_treemap_dir = NULL,
   input_foresttype_dir = NULL,
+  input_landfire_dir = NULL,
   accuracy_level = 2,
   max_ctg_pts = 7e+07,
   max_area_m2 = 9e+07,
@@ -37,6 +38,7 @@ cloud2trees(
   type_max_search_dist_m = 1000,
   estimate_tree_hmd = FALSE,
   hmd_estimate_missing_hmd = FALSE,
+  estimate_biomass_method = NA,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
@@ -62,6 +64,8 @@ cloud2trees(
 \item{input_treemap_dir}{character. directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 
 \item{input_foresttype_dir}{character. directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
+
+\item{input_landfire_dir}{character. directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
 
 \item{accuracy_level}{numeric. Choose processing accuracy.
 accuracy_level = 1 uses DTM to height normalize the points
@@ -121,12 +125,15 @@ Larger search distances will increase processing time and possibly result in mem
 \item{hmd_estimate_missing_hmd}{logical. It is not likely that HMD will be extracted successfully from every tree.
 Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?}
 
+\item{estimate_biomass_method}{character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See \code{\link[=trees_biomass]{trees_biomass()}}.
+Leave as blank (i.e. \code{NA}) to skip biomass estimation.}
+
 \item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
 
 \item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a CBH from the point cloud for.
-If neither are supplied, \code{tree_sample_n = 500} will be used. If both are supplied, \code{tree_sample_n} will be used.
+If neither are supplied, \code{tree_sample_n = 155} will be used. If both are supplied, \code{tree_sample_n} will be used.
 Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
 
 \item{cbh_which_cbh}{character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
@@ -176,6 +183,7 @@ The order of operations is:
 \item Model tree DBH values using \code{\link[=trees_dbh]{trees_dbh()}} (\emph{if set to TRUE})
 \item Extract tree forest type group using \code{\link[=trees_type]{trees_type()}} (\emph{if set to TRUE})
 \item Extract tree CBH values from the normalized point cloud and estimate missing values using \code{\link[=trees_cbh]{trees_cbh()}} (\emph{if set to TRUE})
+\item Estimate tree biomass (or crown biomass) using \code{\link[=trees_biomass]{trees_biomass()}} (\emph{if method is denoted})
 }
 
 See the documentation for each individual function called for more details.

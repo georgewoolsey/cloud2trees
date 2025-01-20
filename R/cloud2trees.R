@@ -12,10 +12,12 @@
 #' * Model tree DBH values using [trees_dbh()] (*if set to TRUE*)
 #' * Extract tree forest type group using [trees_type()] (*if set to TRUE*)
 #' * Extract tree CBH values from the normalized point cloud and estimate missing values using [trees_cbh()] (*if set to TRUE*)
+#' * Estimate tree biomass (or crown biomass) using [trees_biomass()] (*if method is denoted*)
 #'
 #' See the documentation for each individual function called for more details.
 #'
 #' @inheritParams cloud2raster
+#' @inheritParams find_ext_data
 #' @param ws numeric or function. Length or diameter of the moving window used to detect the local
 #' maxima in the units of the input data (usually meters). If it is numeric a fixed window size is used.
 #' If it is a function, the function determines the size of the window at any given location on the canopy.
@@ -36,11 +38,13 @@
 #' @param estimate_tree_hmd logical. Should tree height of the maximum crown diameter (HMD) be estimated? See [trees_hmd()].
 #' @param hmd_estimate_missing_hmd logical. It is not likely that HMD will be extracted successfully from every tree.
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
+#' @param estimate_biomass_method character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See [trees_biomass()].
+#'   Leave as blank (i.e. `NA`) to skip biomass estimation.
 #' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 500` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 155` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param cbh_which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 #' * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
@@ -91,6 +95,7 @@ cloud2trees <- function(
   , input_las_dir
   , input_treemap_dir = NULL
   , input_foresttype_dir = NULL
+  , input_landfire_dir = NULL
   , accuracy_level = 2
   , max_ctg_pts = 70e6
   , max_area_m2 = 90e6
@@ -124,6 +129,7 @@ cloud2trees <- function(
   , type_max_search_dist_m = 1000
   , estimate_tree_hmd = FALSE
   , hmd_estimate_missing_hmd = FALSE
+  , estimate_biomass_method = NA
   , estimate_tree_cbh = FALSE
   , cbh_tree_sample_n = NA
   , cbh_tree_sample_prop = NA
@@ -150,15 +156,40 @@ cloud2trees <- function(
         )
     }
   ####################################################################
+  # check biomass method so we can throw error before we kick off
+  ####################################################################
+    if(
+      any(!is.na(estimate_biomass_method)) && any(!is.null(estimate_biomass_method))
+      && is.character(estimate_biomass_method)
+    ){
+      which_biomass_methods <- check_biomass_method(estimate_biomass_method)
+    }else{
+      which_biomass_methods <- NULL
+    }
+
+    #### we now need to ensure we get DBH and CBH if we want biomass
+    if(!is.null(which_biomass_methods)){
+      estimate_tree_cbh <- T
+      cbh_estimate_missing_cbh <- T
+      estimate_tree_dbh <- T
+    }
+    if(any(stringr::str_equal(which_biomass_methods, "cruz"))){
+      estimate_tree_type <- T
+    }
+  ####################################################################
   # check external data
   ####################################################################
     # find external data
     find_ext_data_ans <- find_ext_data(
       input_treemap_dir = input_treemap_dir
       , input_foresttype_dir = input_foresttype_dir
+      , input_landfire_dir = input_landfire_dir
     )
     # if can't find external treemap data
-    if(estimate_tree_dbh == T && is.null(find_ext_data_ans$treemap_dir)){
+    if(
+      (estimate_dbh_from_cloud == T || estimate_tree_dbh == T) &&
+      is.null(find_ext_data_ans$treemap_dir)
+    ){
       stop(paste0(
         "Treemap data has not been downloaded to package contents. Use `get_treemap()` first."
         , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
@@ -171,6 +202,17 @@ cloud2trees <- function(
         , "\nIf you supplied a value to the `input_foresttype_dir` parameter check that directory for data."
       ))
     }
+    # if can't find external landfire data
+    if(
+      any(stringr::str_equal(which_biomass_methods, "landfire")) &&
+      is.null(find_ext_data_ans$landfire_dir)
+    ){
+      stop(paste0(
+        "LANDFIRE data has not been downloaded to package contents. Use `get_landfire()` first."
+        , "\nIf you supplied a value to the `input_landfire_dir` parameter check that directory for data."
+      ))
+    }
+
   ####################################################################
   # cloud2trees::cloud2raster()
   ####################################################################
@@ -573,14 +615,135 @@ cloud2trees <- function(
   }
 
   ####################################################################
+  # cloud2trees::trees_biomass()
+  ####################################################################
+  # start time
+  xx9_trees_biomass <- Sys.time()
+  err_trees_biomass <- NULL
+  # empty data
+    trees_biomass_ans_temp <- dplyr::tibble(
+      treeID = character(0)
+    )
+    trees_biomass_cell_landfire <- NULL
+    trees_biomass_cell_cruz <- NULL
+  ### we need to make sure:
+    ### 1. we want biomass; 2. we have dbh; 3. we have cbh
+  if(
+    !is.null(which_biomass_methods) &&
+    is.null(err_trees_cbh) &&
+    is.null(err_trees_dbh)
+  ){
+    # message
+    message(
+      "starting trees_biomass() step at ..."
+      , xx9_trees_biomass
+    )
+    # check if already done trees_type() so we don't do it twice and
+      # potentially get different answer
+    if(
+      is.null(err_trees_type) &&
+      inherits(trees_type_ans, "data.frame")
+    ){
+      # check for forest_type exists and not all missing
+      safe_check_df_cols_all_missing <- purrr::safely(check_df_cols_all_missing)
+      chk_foresttype <- safe_check_df_cols_all_missing(
+          trees_type_ans
+          , col_names = c("forest_type_group_code", "forest_type_group")
+          , all_numeric = F
+        )
+      # build join data
+      if(is.null(chk_foresttype$error)){
+        # columns added by trees_type()
+        type_names_temp <- c(
+          "treeID"
+          , get_list_diff(
+            names(trees_type_ans %>% sf::st_drop_geometry())
+            , names(raster2trees_ans %>% sf::st_drop_geometry())
+          )
+        )
+        # join data
+        df_foresttype <- trees_type_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(type_names_temp))
+      }else{
+        # blank data
+        df_foresttype <- dplyr::tibble(treeID = character(0))
+      }
+
+    }else{
+      # blank data
+      df_foresttype <- dplyr::tibble(treeID = character(0))
+    }
+
+    # trees_biomass
+    safe_trees_biomass <- purrr::safely(trees_biomass)
+    trees_biomass_ans <- safe_trees_biomass(
+      #### !!!!!!!!!!!!!!!!!!!!!! NOTICE WE HAVE TO JOIN THE TREE LIST HERE
+      tree_list = raster2trees_ans %>%
+        # join foresttype
+        dplyr::left_join(
+          df_foresttype
+          , by = "treeID"
+        ) %>%
+        # join dbh data
+        dplyr::left_join(
+          trees_dbh_ans %>%
+            sf::st_drop_geometry() %>%
+            dplyr::select(dplyr::all_of(c("treeID", "dbh_cm")))
+          , by = "treeID"
+        ) %>%
+        # join cbh data
+        dplyr::left_join(
+          trees_cbh_ans %>%
+            sf::st_drop_geometry() %>%
+            dplyr::select(dplyr::all_of(c("treeID", "tree_cbh_m")))
+          , by = "treeID"
+        )
+      , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
+      , method = which_biomass_methods
+    )
+    # handle error
+    if(is.null(trees_biomass_ans$error)){ # no error
+      # stand_cell_data_* result
+      trees_biomass_cell_landfire <- trees_biomass_ans$result$stand_cell_data_landfire # $stand_cell_data_landfire unique to this function
+      trees_biomass_cell_cruz <- trees_biomass_ans$result$stand_cell_data_cruz # $stand_cell_data_landfire unique to this function
+      # just get the result
+      trees_biomass_ans <- trees_biomass_ans$result$tree_list %>% # $tree_list unique to this function
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "dbh_m"
+          , "dbh_cm"
+          , "basal_area_m2"
+          , "tree_cbh_m"
+          , "forest_type_group_code"
+          , "forest_type_group"
+          , "hardwood_softwood"
+        )))
+
+    }else{
+      # error
+      err_trees_biomass <- trees_biomass_ans$error
+      # empty data
+      trees_biomass_ans <- trees_biomass_ans_temp
+    }
+  }else{
+    # empty data
+    trees_biomass_ans <- trees_biomass_ans_temp
+    # there were dbh, cbh errors
+    if(!is.null(which_biomass_methods)){
+      err_trees_biomass <- "Error: could not execute trees_biomass() step...see DBH and/or CBH error"
+    }
+  }
+
+  ####################################################################
   # write data
   ####################################################################
     # message
       # start time
-      xx9_return <- Sys.time()
+      xx10_return <- Sys.time()
       message(
         "started writing final data at ..."
-        , xx9_return
+        , xx10_return
       )
     # do it
     # get names from dbh data
@@ -623,6 +786,14 @@ cloud2trees <- function(
           , names(raster2trees_ans %>% sf::st_drop_geometry())
         )
       )
+    # get names from biomass data
+    biomass_names_temp <- c(
+        "treeID"
+        , get_list_diff(
+          names(trees_biomass_ans %>% sf::st_drop_geometry())
+          , names(raster2trees_ans %>% sf::st_drop_geometry())
+        )
+      )
     # join all data together for final return data
     crowns_sf_with_dbh <- raster2trees_ans %>%
       # join dbh data
@@ -658,6 +829,13 @@ cloud2trees <- function(
         trees_hmd_ans %>%
           sf::st_drop_geometry() %>%
           dplyr::select(dplyr::all_of(hmd_names_temp))
+        , by = "treeID"
+      ) %>%
+      # join biomass data
+      dplyr::left_join(
+        trees_biomass_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(biomass_names_temp))
         , by = "treeID"
       )
 
@@ -745,8 +923,36 @@ cloud2trees <- function(
       unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
     }
 
+    ##### write foresttype raster data
+    if( inherits(trees_type_rast, "SpatRaster") ){
+      # write
+      terra::writeRaster(
+        trees_type_rast
+        , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/fia_foresttype_raster.tif")
+        , overwrite = T
+      )
+    }
+
+    ##### write biomass raster data
+    if( inherits(trees_biomass_cell_landfire, "data.frame") ){
+      # write
+      write.csv(
+        trees_biomass_cell_landfire
+        , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/stand_cell_data_landfire.csv")
+        , row.names = F
+      )
+    }
+    if( inherits(trees_biomass_cell_cruz, "data.frame") ){
+      # write
+      write.csv(
+        trees_biomass_cell_cruz
+        , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/stand_cell_data_cruz.csv")
+        , row.names = F
+      )
+    }
+
     # write settings and timer data
-    xx10_fin <- Sys.time()
+    xx11_fin <- Sys.time()
     # data
       return_df <-
           # data from las_ctg
@@ -775,11 +981,13 @@ cloud2trees <- function(
               as.numeric()
             , timer_trees_type_mins = difftime(xx8_trees_hmd, xx7_trees_type, units = c("mins")) %>%
               as.numeric()
-            , timer_trees_hmd_mins = difftime(xx9_return, xx8_trees_hmd, units = c("mins")) %>%
+            , timer_trees_hmd_mins = difftime(xx9_trees_biomass, xx8_trees_hmd, units = c("mins")) %>%
               as.numeric()
-            , timer_write_data_mins = difftime(xx10_fin, xx9_return, units = c("mins")) %>%
+            , timer_trees_biomass_mins = difftime(xx10_return, xx9_trees_biomass, units = c("mins")) %>%
               as.numeric()
-            , timer_total_time_mins = difftime(xx10_fin, xx1_cloud2raster, units = c("mins")) %>%
+            , timer_write_data_mins = difftime(xx11_fin, xx10_return, units = c("mins")) %>%
+              as.numeric()
+            , timer_total_time_mins = difftime(xx11_fin, xx1_cloud2raster, units = c("mins")) %>%
               as.numeric()
             # settings
             , sttng_input_las_dir = input_las_dir
@@ -802,6 +1010,7 @@ cloud2trees <- function(
             , sttng_type_max_search_dist_m = type_max_search_dist_m
             , sttng_estimate_tree_hmd = estimate_tree_hmd
             , sttng_hmd_estimate_missing_hmd = hmd_estimate_missing_hmd
+            , sttng_estimate_biomass_method = which_biomass_methods %>% paste(collapse = ",")
             , sttng_estimate_tree_cbh = estimate_tree_cbh
             , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
@@ -830,7 +1039,7 @@ cloud2trees <- function(
     # message
     message(
       "cloud2trees() total time was "
-      , round(as.numeric(difftime(xx10_fin, xx1_cloud2raster, units = c("mins"))),2)
+      , round(as.numeric(difftime(xx11_fin, xx1_cloud2raster, units = c("mins"))),2)
       , " minutes to process "
       , scales::comma(sum(cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$Number.of.point.records))
       , " points over an area of "
@@ -892,6 +1101,15 @@ cloud2trees <- function(
           , err_trees_hmd
           , "\n..............try to run trees_hmd() with updated parameter settings"
           , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
+        ))
+      }
+      if(!is.null(err_trees_biomass)){
+        message(paste0(
+          "ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_biomass()"
+          , "\n"
+          , err_trees_biomass
+          , "\n..............try to run trees_biomass() with updated parameter settings"
+          , "\nusing `final_detected_tree_tops.gpkg` in the `point_cloud_processing_delivery` directory"
         ))
       }
 

@@ -105,15 +105,14 @@ trees_hmd <- function(
       , "\nProvide an `sf` object and see `sf::st_geometry_type()`."
     )
   if(!inherits(trees_poly, "sf")){stop(sf_msg)}
-  if( min(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON"))) == 0 ){stop(sf_msg)}
+  if( !(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){stop(sf_msg)}
 
   ##################################
   # ensure that treeID data exists
   ##################################
-  f <- trees_poly %>% names()
-  if(length(f)==0){f <- ""}
+  f <- trees_poly %>% names() %>% dplyr::coalesce("")
   if(
-    max(grepl("treeID", f))==0
+    !(stringr::str_equal(f, "treeID") %>% any())
   ){
     stop(paste0(
       "`trees_poly` data must contain `treeID` column to estimate HMD."
@@ -129,7 +128,7 @@ trees_hmd <- function(
   }
   # check for tree_height_m
   if(
-    max(grepl("tree_height_m", f))==0
+    !(stringr::str_equal(f, "tree_height_m") %>% any())
   ){
     stop(paste0(
       "`trees_poly` data must contain `tree_height_m` column to estimate HMD."
