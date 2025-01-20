@@ -158,17 +158,18 @@ cloud2trees <- function(
   # check biomass method so we can throw error before we kick off
   ####################################################################
     if(
-      !is.na(estimate_biomass_method) && !is.null(estimate_biomass_method)
+      any(!is.na(estimate_biomass_method)) && any(!is.null(estimate_biomass_method))
       && is.character(estimate_biomass_method)
     ){
       which_biomass_methods <- check_biomass_method(estimate_biomass_method)
     }else{
-      which_biomass_methods <- NA
+      which_biomass_methods <- NULL
     }
 
     #### we now need to ensure we get DBH and CBH if we want biomass
-    if(!is.na(which_biomass_methods)){
+    if(!is.null(which_biomass_methods)){
       estimate_tree_cbh <- T
+      cbh_estimate_missing_cbh <- T
       estimate_tree_dbh <- T
     }
     if(any(stringr::str_equal(which_biomass_methods, "cruz"))){
@@ -210,6 +211,7 @@ cloud2trees <- function(
         , "\nIf you supplied a value to the `input_landfire_dir` parameter check that directory for data."
       ))
     }
+
   ####################################################################
   # cloud2trees::cloud2raster()
   ####################################################################
@@ -626,7 +628,7 @@ cloud2trees <- function(
   ### we need to make sure:
     ### 1. we want biomass; 2. we have dbh; 3. we have cbh
   if(
-    !is.na(which_biomass_methods) &&
+    !is.null(which_biomass_methods) &&
     is.null(err_trees_cbh) &&
     is.null(err_trees_dbh)
   ){
@@ -691,7 +693,7 @@ cloud2trees <- function(
     # empty data
     trees_biomass_ans <- trees_biomass_ans_temp
     # there were dbh, cbh errors
-    if(!is.na(which_biomass_methods)){
+    if(!is.null(which_biomass_methods)){
       err_trees_biomass <- "Error: could not execute trees_biomass() step...see DBH and/or CBH error"
     }
   }
@@ -791,7 +793,7 @@ cloud2trees <- function(
           sf::st_drop_geometry() %>%
           dplyr::select(dplyr::all_of(hmd_names_temp))
         , by = "treeID"
-      )
+      ) %>%
       # join biomass data
       dplyr::left_join(
         trees_biomass_ans %>%

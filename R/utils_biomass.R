@@ -74,8 +74,8 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     ){
       poly_vect <- poly %>%
         sf::st_union() %>%
-        terra::vect() %>%
-        terra::project(terra::crs(rast))
+        sf::st_transform(terra::crs(rast)) %>%
+        terra::vect()
     }else if(inherits(poly, "SpatVector")){
       poly_vect <- poly %>%
         terra::union() %>%
@@ -230,8 +230,8 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
       terra::extract(
         x = overlap_ans$rast
         , y = tree_list %>%
-          terra::vect() %>%
-          terra::project(terra::crs(overlap_ans$rast))
+          sf::st_transform(terra::crs(overlap_ans$rast)) %>%
+          terra::vect()
         , cells = T # cell numbers are also returned
       ) %>%
       dplyr::pull(cell)

@@ -105,8 +105,8 @@ crop_raster_match_points <- function(
     ext_temp <- bbox_temp %>%
       sf::st_as_sfc() %>%
       sf::st_buffer(buffer_temp, endCapStyle = "SQUARE") %>%
-      terra::vect() %>%
-      terra::project(terra::crs(rast))
+      sf::st_transform(terra::crs(rast)) %>%
+      terra::vect()
 
   ##################################
   # crop the raster to this extent
@@ -123,8 +123,8 @@ crop_raster_match_points <- function(
       terra::extract(
         x = rast_temp
         , y = points %>%
-          terra::vect() %>%
-          terra::project(terra::crs(rast)) # don't forget to reproject
+          sf::st_transform(terra::crs(rast)) %>% # don't forget to reproject
+          terra::vect()
         , ID = T # this way, the 2nd column will always be the raster value of the 1st layer
       ) %>%
       dplyr::rename(point_record_number = 1, raster_value = 2)
@@ -298,9 +298,8 @@ fill_rast_na <- function(rast){
       #  check if huge
       area_m2_temp <- bbox %>%
         sf::st_as_sfc() %>%
-        terra::vect() %>%
-        terra::project(terra::crs(rast)) %>% # this way we work with the same units no matter the input
         sf::st_as_sf() %>%
+        sf::st_transform(terra::crs(rast)) %>% # this way we work with the same units no matter the input
         sf::st_area() %>%
         as.numeric()
 
@@ -366,8 +365,8 @@ fill_rast_na <- function(rast){
         terra::extract(
           x = rast
           , y = points %>%
-            terra::vect() %>%
-            terra::project(terra::crs(rast)) # don't forget to reproject
+            sf::st_transform(terra::crs(rast)) %>% # don't forget to reproject
+            terra::vect()
         , ID = T # this way, the 2nd column will always be the raster value of the 1st layer
         ) %>%
         dplyr::rename(point_record_number = 1, raster_value = 2)

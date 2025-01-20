@@ -196,14 +196,8 @@ trees_dbh <- function(
       terra::crop(
         buff %>%
           sf::st_union() %>%
-          terra::vect() %>%
-          terra::project(terra::crs(treemap_rast))
-      ) %>%
-      terra::mask(
-        buff %>%
-          sf::st_union() %>%
-          terra::vect() %>%
-          terra::project(terra::crs(treemap_rast))
+          sf::st_transform(terra::crs(treemap_rast)) %>%
+          terra::vect()
       )
 
     # ggplot(treemap_rast %>% as.data.frame(xy=T) %>% rename(f=3)) +

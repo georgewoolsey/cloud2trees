@@ -17,7 +17,7 @@
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 500` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 155` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 #'   * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
@@ -94,12 +94,12 @@ trees_cbh <- function(
   if(
     is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
   ){
-    tree_sample_n <- 500
+    tree_sample_n <- 155
   }else if(
     !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
   ){
     tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 500
+      as.numeric(tree_sample_n)<=0 ~ 155
       , T ~ as.numeric(tree_sample_n)
     )
     tree_sample_prop <- NA
@@ -116,12 +116,12 @@ trees_cbh <- function(
     !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
   ){
     tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 500
+      as.numeric(tree_sample_n)<=0 ~ 155
       , T ~ as.numeric(tree_sample_n)
     )
     tree_sample_prop <- NA
   }else{
-    tree_sample_n <- 500
+    tree_sample_n <- 155
     tree_sample_prop <- NA
   }
   ##################################
