@@ -1,5 +1,18 @@
 # cloud2trees 0.5.0
 
+Implements methods to estimate tree biomass (or crown biomass) using stand-level estimates (e.g. LANDFIRE raster estimates) distributed across the individual trees in the stand. See (#9, @georgewoolsey).
+
+- New: Adds the function `trees_biomass()` to use an input tree list (e.g. as exported by `raster2trees()`) to estimate tree (or crown) biomass using one or many of the methods made available as listed in the documentation
+- New: Adds the function `trees_biomass_cruz()` to use an input tree list (e.g. as exported by `raster2trees()`) to estimate tree crown biomass based on [Cruz et al. (2003)]((https://scholar.google.com/scholar?cluster=316241498622221569&oi=gsb&hl=en&as_sdt=0,5))
+- New: Adds the function `trees_biomass_landfire()` to use an input tree list (e.g. as exported by `raster2trees()`) to estimate tree crown biomass based on [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) data
+- New: Adds the function `trees_landfire_cbd()` to attach the raster cell value from [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) data to a tree list
+- New: Adds the function `get_landfire()` to download the external [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) data
+- Change: `get_data()` incorporates `get_landfire()`
+- Change: `find_ext_data()` looks for LANDFIRE data
+- Change: `cloud2trees()` incorporates the biomass process via `trees_biomass()` using the parameter `estimate_biomass_method`
+- Internal: R/utils_biomass.R internal utility functions for distributing stand-level biomass to the tree-level
+- Internal: R/check_spatial_points.R internal function to standardize process to check a tree list passed to the `trees_*()` functions
+
 # cloud2trees 0.4.2
 
 Updates point to raster matching functionality to allow for broader application and updates FIA Forest Type data to 30m resolution. See (#8, @georgewoolsey).
