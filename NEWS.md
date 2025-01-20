@@ -1,3 +1,5 @@
+# cloud2trees 0.5.0
+
 # cloud2trees 0.4.2
 
 Updates point to raster matching functionality to allow for broader application and updates FIA Forest Type data to 30m resolution. See (#8, @georgewoolsey).
