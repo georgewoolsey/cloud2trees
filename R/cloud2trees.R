@@ -12,6 +12,7 @@
 #' * Model tree DBH values using [trees_dbh()] (*if set to TRUE*)
 #' * Extract tree forest type group using [trees_type()] (*if set to TRUE*)
 #' * Extract tree CBH values from the normalized point cloud and estimate missing values using [trees_cbh()] (*if set to TRUE*)
+#' * Estimate tree biomass (or crown biomass) using [trees_biomass()] (*if method is denoted*)
 #'
 #' See the documentation for each individual function called for more details.
 #'
@@ -43,7 +44,7 @@
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 500` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 155` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param cbh_which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 #' * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
@@ -672,15 +673,9 @@ cloud2trees <- function(
           , "dbh_cm"
           , "basal_area_m2"
           , "tree_cbh_m"
-          # if we got forest type already
-          , ifelse(
-            estimate_tree_type==T & is.null(err_trees_type)
-            , get_list_diff(
-              names(trees_type_ans %>% sf::st_drop_geometry())
-              , names(raster2trees_ans %>% sf::st_drop_geometry())
-            )
-            , "huh_xxxxxxx"
-          )
+          , "forest_type_group_code"
+          , "forest_type_group"
+          , "hardwood_softwood"
         )))
 
     }else{

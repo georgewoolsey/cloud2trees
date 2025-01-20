@@ -133,7 +133,7 @@ Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CB
 
 \item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a CBH from the point cloud for.
-If neither are supplied, \code{tree_sample_n = 500} will be used. If both are supplied, \code{tree_sample_n} will be used.
+If neither are supplied, \code{tree_sample_n = 155} will be used. If both are supplied, \code{tree_sample_n} will be used.
 Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
 
 \item{cbh_which_cbh}{character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
@@ -183,6 +183,7 @@ The order of operations is:
 \item Model tree DBH values using \code{\link[=trees_dbh]{trees_dbh()}} (\emph{if set to TRUE})
 \item Extract tree forest type group using \code{\link[=trees_type]{trees_type()}} (\emph{if set to TRUE})
 \item Extract tree CBH values from the normalized point cloud and estimate missing values using \code{\link[=trees_cbh]{trees_cbh()}} (\emph{if set to TRUE})
+\item Estimate tree biomass (or crown biomass) using \code{\link[=trees_biomass]{trees_biomass()}} (\emph{if method is denoted})
 }
 
 See the documentation for each individual function called for more details.
