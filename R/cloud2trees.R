@@ -638,11 +638,53 @@ cloud2trees <- function(
       "starting trees_biomass() step at ..."
       , xx9_trees_biomass
     )
+    # check if already done trees_type() so we don't do it twice and
+      # potentially get different answer
+    if(
+      is.null(err_trees_type) &&
+      inherits(trees_type_ans, "data.frame")
+    ){
+      # check for forest_type exists and not all missing
+      safe_check_df_cols_all_missing <- purrr::safely(check_df_cols_all_missing)
+      chk_foresttype <- safe_check_df_cols_all_missing(
+          trees_type_ans
+          , col_names = c("forest_type_group_code", "forest_type_group")
+          , all_numeric = F
+        )
+      # build join data
+      if(is.null(chk_foresttype$error)){
+        # columns added by trees_type()
+        type_names_temp <- c(
+          "treeID"
+          , get_list_diff(
+            names(trees_type_ans %>% sf::st_drop_geometry())
+            , names(raster2trees_ans %>% sf::st_drop_geometry())
+          )
+        )
+        # join data
+        df_foresttype <- trees_type_ans %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(dplyr::all_of(type_names_temp))
+      }else{
+        # blank data
+        df_foresttype <- dplyr::tibble(treeID = character(0))
+      }
+
+    }else{
+      # blank data
+      df_foresttype <- dplyr::tibble(treeID = character(0))
+    }
+
     # trees_biomass
     safe_trees_biomass <- purrr::safely(trees_biomass)
     trees_biomass_ans <- safe_trees_biomass(
       #### !!!!!!!!!!!!!!!!!!!!!! NOTICE WE HAVE TO JOIN THE TREE LIST HERE
       tree_list = raster2trees_ans %>%
+        # join foresttype
+        dplyr::left_join(
+          df_foresttype
+          , by = "treeID"
+        ) %>%
         # join dbh data
         dplyr::left_join(
           trees_dbh_ans %>%
