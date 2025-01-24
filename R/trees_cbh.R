@@ -147,32 +147,7 @@ trees_cbh <- function(
   ##################################
   # ensure that norm las data exists
   ##################################
-  nlas_msg <- paste0(
-    "`norm_las` must contain a directory with nomalized las files, the path of a .laz|.las file"
-    , "\n, -or- an object of class `LAS`. Please update the `norm_las` parameter."
-  )
-  if(is.null(norm_las)){stop(nlas_msg)}
-  if(inherits(norm_las, "character")){
-    if(!stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # try to read directory for las files
-      fls <- list.files(normalizePath(norm_las), pattern = ".*\\.(laz|las)$", full.names = TRUE)
-      # stop it if no files
-      if(length(fls)<1){stop(nlas_msg)}
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(fls)
-    }else if(stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(norm_las)
-    }else{
-      stop(nlas_msg)
-    }
-  }else if(inherits(norm_las, "LAS")){
-    nlas_ctg <- norm_las
-  }else if(inherits(norm_las, "LAScatalog")){
-    nlas_ctg <- norm_las
-  }else{
-    stop(nlas_msg)
-  }
+  nlas_ctg <- check_las_data(norm_las)
 
   # set the lascatalog options
   if(inherits(nlas_ctg, "LAScatalog")){

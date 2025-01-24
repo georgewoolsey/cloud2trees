@@ -67,35 +67,23 @@ trees_hmd <- function(
   ##################################
   # ensure that norm las data exists
   ##################################
-  nlas_msg <- paste0(
-    "`norm_las` must contain a directory with nomalized las files, the path of a .laz|.las file"
-    , "\n, -or- an object of class `LAScatalog`. Please update the `norm_las` parameter."
-  )
-  if(is.null(norm_las)){stop(nlas_msg)}
-  if(inherits(norm_las, "character")){
-    if(!stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # try to read directory for las files
-      fls <- list.files(normalizePath(norm_las), pattern = ".*\\.(laz|las)$", full.names = TRUE)
-      # stop it if no files
-      if(length(fls)<1){stop(nlas_msg)}
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(fls)
-    }else if(stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(norm_las)
-    }else{
-      stop(nlas_msg)
-    }
-  }else if(inherits(nlas_ctg, "LAScatalog")){
-    nlas_ctg <- norm_las
-  }else{
-    stop(nlas_msg)
-  }
+  nlas_ctg <- check_las_data(norm_las)
   # set the lascatalog options
-  lidR::opt_progress(nlas_ctg) <- F
-  lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
-  lidR::opt_select(nlas_ctg) <- "xyz"
-  lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
+  if(inherits(nlas_ctg, "LAScatalog")){
+    lidR::opt_progress(nlas_ctg) <- F
+    lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
+    lidR::opt_select(nlas_ctg) <- "xyz"
+    lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
+  }else if(inherits(nlas_ctg, "LAS")){
+    stop(paste0(
+      "`norm_las` should contain: a directory with nomalized las files,"
+      ,"\n   the path of a single .laz|.las file,"
+      , "\n   -or- an object of class `LAScatalog`"
+    ))
+    # nlas_ctg <- nlas_ctg %>%
+    #   lidR::filter_poi(!Classification %in% c(2,9,18)) %>%
+    #   lidR::filter_duplicates()
+  }
 
   ##################################
   # ensure spatial polygon data
@@ -410,7 +398,7 @@ calc_tree_hmd <- function(las, id=NULL) {
   nms <- names(dta) %>% dplyr::coalesce("")
   # check for treeID column
   if(
-    max(stringr::str_equal(nms, "treeID"))==0
+    !any(stringr::str_equal(nms, "treeID"))
   ){
     stop("the `las` data does not contain the column `treeID`, ensure this column exists or set the `id` parameter")
   }
