@@ -1,7 +1,7 @@
-#' @title re-write of leafR::lad.voxels() to allow for treeID
+#' @title re-writes `leafR` steps to allow for treeID as input for `ladderfuelsR`
 #'
 #' @description
-#' `leafr_lad_voxels()` is a re-write of [leafR::lad.voxels()] which:
+#' `leafr_for_ladderfuelsr()` is a re-write of [leafR::lad.voxels()] and [leafR::lad.profile()] to:
 #'
 #' * removes the requirement to use a file written to disk
 #' * allows for the calculation of LAD by the `treeID` attribute so that don't have to pass individual tree point clouds
@@ -13,6 +13,8 @@
 #' @param k numeric. coefficient to transform effective LAI to real LAI (k = 1; for effective LAI)
 #' @param group_treeID logical. should output be grouped by treeID? If `TRUE` (default), the attribute `treeID` must exist
 #' in the `las` data and must be numeric.
+#' @param relative logical. produce lad profile by relative total LAI values. Indicate when using effective LAI value.
+#' if set to TRUE, lad value will be relative_lad; otherwise, lad value will be mean_lad
 #'
 #' @references
 #' * [https://doi.org/10.3390/rs11010092](https://doi.org/10.3390/rs11010092)
@@ -23,74 +25,39 @@
 #'
 #' @internal
 #'
-leafr_lad_voxels <- function(
+leafr_for_ladderfuelsr <- function(
   las
   , voxel_grain_size_m = 1
   , k = 1
-  , group_treeID = T
-){
-  if(!inherits(las, "LAS")){stop("must use an object of class `LAS`")}
-
-  if(group_treeID){
-    # check_df_cols_all_missing() in utils_biomass.r
-    check_df_cols_all_missing(
-      las@data
-      , col_names = "treeID"
-      , all_numeric = T
+  , group_treeID = TRUE
+  , relative = FALSE
+) {
+  ###### re-write of leafR::lad.voxels
+  lad_voxels <- leafr_lad_voxels(
+      las
+      , voxel_grain_size_m = voxel_grain_size_m
+      , k = k
+      , group_treeID = group_treeID
     )
-    # map over treeID for tree_voxel_metrics
-    voxel_metrics <- las@data %>%
-      dplyr::filter(!is.na(treeID)) %>%
-      dplyr::pull(treeID) %>%
-      unique() %>%
-      purrr::map(\(x) tree_voxel_metrics(
-        las = las, grain.size = voxel_grain_size_m, id = x
-      )) %>%
-      dplyr::bind_rows()
-    # aggregate
-    agg_df <- agg_lad_voxels(voxel_metrics, attribute="treeID") %>%
-      dplyr::arrange(treeID,x,y,desc(z))
+
+  ###### re-write of leafR::lad.profile()
+  if(nrow(lad_voxels)==0){return(NULL)}
+  if(group_treeID==T){
+    lad_profile <- leafr_lad_profile(
+        lad_voxels = lad_voxels
+        , attribute = "treeID"
+        , relative = relative
+      )
   }else{
-    # tree_voxel_metrics
-    voxel_metrics <- tree_voxel_metrics(las = las, grain.size = voxel_grain_size_m)
-    # aggregate
-    agg_df <- agg_lad_voxels(voxel_metrics) %>%
-      dplyr::arrange(x,y,desc(z))
+    lad_profile <- leafr_lad_profile(
+        lad_voxels = lad_voxels
+        , attribute = NULL
+        , relative = relative
+      )
   }
 
-  # return
-  return(agg_df)
-
+  return(lad_profile)
 }
-
-# leafr_lad_voxels(las,group_treeID = F) %>%
-#   dplyr::filter(n>0) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS() %>%
-#   # purrr::pluck("data")
-#   lidR::plot(
-#         color="LAD"
-#         , pal = harrypotter::hp_pal(option = "slytherin",begin=0.3)
-#         , size = 1, bg = "white", voxel = TRUE
-#       )
-
-# leafr_lad_voxels(las,group_treeID = T) %>%
-#   dplyr::filter(
-#     n>0 &
-#     treeID == (
-#       las@data %>% dplyr::filter(!is.na(treeID)) %>%
-#         dplyr::slice_head(n=1) %>% dplyr::pull(treeID)
-#     )
-#   ) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS() %>%
-#   # purrr::pluck("data")
-#   lidR::plot(
-#         color="LAD"
-#         , pal = harrypotter::hp_pal(option = "slytherin",begin=0.3)
-#         , size = 1, bg = "white", voxel = TRUE
-#         , legend = T
-#       )
 
 
 #####################################################################
@@ -119,6 +86,9 @@ tree_voxel_metrics = function(las, grain.size = 1, id = NULL){
   # force below ground to zero
   las@data$Z[las@data$Z < 0] <- 0
   # summary(las@data$Z)
+
+  # take the floor of the Z values as done in leafR::pointsByZSlice
+  las@data$Z <- floor(las@data$Z)
 
   # check the grain size
   # floor the grain size (resolution) and don't allow to go below 1m
@@ -261,6 +231,80 @@ agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
 }
 
 #####################################################################
+# intermediate function 2.9:
+# re-writes leafR::lad.voxels()
+#####################################################################
+leafr_lad_voxels <- function(
+  las
+  , voxel_grain_size_m = 1
+  , k = 1
+  , group_treeID = T
+){
+  if(!inherits(las, "LAS")){stop("must use an object of class `LAS`")}
+
+  if(group_treeID){
+    # check_df_cols_all_missing() in utils_biomass.r
+    check_df_cols_all_missing(
+      las@data
+      , col_names = "treeID"
+      , all_numeric = T
+    )
+    # map over treeID for tree_voxel_metrics
+    voxel_metrics <- las@data %>%
+      dplyr::filter(!is.na(treeID)) %>%
+      dplyr::pull(treeID) %>%
+      unique() %>%
+      purrr::map(\(x) tree_voxel_metrics(
+        las = las, grain.size = voxel_grain_size_m, id = x
+      )) %>%
+      dplyr::bind_rows()
+    # aggregate
+    agg_df <- agg_lad_voxels(voxel_metrics, attribute="treeID") %>%
+      dplyr::arrange(treeID,x,y,desc(z))
+  }else{
+    # tree_voxel_metrics
+    voxel_metrics <- tree_voxel_metrics(las = las, grain.size = voxel_grain_size_m)
+    # aggregate
+    agg_df <- agg_lad_voxels(voxel_metrics) %>%
+      dplyr::arrange(x,y,desc(z))
+  }
+
+  # return
+  return(agg_df)
+
+}
+
+# leafr_lad_voxels(las,group_treeID = F) %>%
+#   dplyr::filter(n>0) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS() %>%
+#   # purrr::pluck("data")
+#   lidR::plot(
+#         color="LAD"
+#         , pal = harrypotter::hp_pal(option = "slytherin",begin=0.3)
+#         , size = 1, bg = "white", voxel = TRUE
+#       )
+
+# leafr_lad_voxels(las,group_treeID = T) %>%
+#   dplyr::filter(
+#     n>0 &
+#     treeID == (
+#       las@data %>% dplyr::filter(!is.na(treeID)) %>%
+#         dplyr::slice_head(n=1) %>% dplyr::pull(treeID)
+#     )
+#   ) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS() %>%
+#   # purrr::pluck("data")
+#   lidR::plot(
+#         color="LAD"
+#         , pal = harrypotter::hp_pal(option = "slytherin",begin=0.3)
+#         , size = 1, bg = "white", voxel = TRUE
+#         , legend = T
+#       )
+
+
+#####################################################################
 # intermediate function 3:
 # take response from leafr_lad_voxels
 # and force it to native leafR::lad.voxels() return
@@ -311,13 +355,99 @@ format_leafr_lad_voxels <- function(leafr_lad_voxels, id = NA) {
   return(LAD_VOXELS)
 }
 
-# #
-# leafr_lad_voxels(las,group_treeID = T) %>%
-#   format_leafr_lad_voxels(id=41)
-# # # lets compare...we won't be exact b/c leafR uses floor(Z) values and our approach uses round(Z)
+# # # #
+# leafr_lad_voxels(las %>% lidR::filter_poi(treeID==6),group_treeID = T) %>%
+#   format_leafr_lad_voxels(id=6)
+# # # lets compare...we won't be exact b/c we will get a different x,y grid
 # f <- las %>%
-#   lidR::filter_poi(treeID==41) %>%
+#   lidR::filter_poi(treeID==6) %>%
 #   lidR::writeLAS(file.path(tempdir(),"tree.las"))
 #
 # LAD_VOXELS_og <- leafR::lad.voxels(f)
 # LAD_VOXELS_og
+
+#####################################################################
+# intermediate function 4:
+# re-writes leafR::lad.profile()
+# to ingest output from leafr_lad_voxels() or agg_lad_voxels()
+#####################################################################
+leafr_lad_profile = function(
+  lad_voxels # return from agg_lad_voxels
+  , attribute = NULL
+  , relative = FALSE
+){
+  # return nothing if not df or no rows
+  if(
+    !inherits(lad_voxels, "data.frame") ||
+    (inherits(lad_voxels, "data.frame") && nrow(lad_voxels)<1)
+  ){return(NULL)}
+  # cols to group by
+  if(inherits(attribute,"character")){
+    cols2group <- c(attribute, "z")
+    overall_cols2group <- c(attribute, "hey_xxxxxx") # hey_xxxxxx is a placeholder in case blank and works b/c using dplyr::any_of
+  }else{
+    cols2group <- c("z")
+    overall_cols2group <- c("hey_xxxxxx") # hey_xxxxxx is a placeholder in case blank and works b/c using dplyr::any_of
+  }
+
+  # check_df_cols_all_missing() in utils_biomass.r
+  check_df_cols_all_missing(
+    lad_voxels
+    , col_names = c(cols2group, "n") %>% unique()
+    , all_numeric = F
+  )
+
+  # average the height profiles (e.g. from Z= 2-3m) across the x,y to get one record per height profile
+  lad_profile <- lad_voxels %>%
+    ### this is essential...at a minimum, need to group by z
+    dplyr::group_by(
+      dplyr::across(
+        dplyr::any_of(cols2group)
+      )
+    ) %>%
+    dplyr::summarise(
+      n = sum(n, na.rm = T)
+      , mean_lad = mean(LAD, na.rm = T)
+    ) %>%
+    # calculate relative lad
+    dplyr::group_by(
+      dplyr::across(
+        dplyr::any_of(overall_cols2group)
+      )
+    ) %>%
+    dplyr::mutate(
+      relative_lad = mean_lad/sum(mean_lad, na.rm=T)*100
+      , total_pulses = sum(n, na.rm=T)
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange((dplyr::across(dplyr::any_of(cols2group))))
+
+  # # for some reason the original leafR::lad.profile() added 0.5 to the Z height
+  #   # here are all the steps with the superlatives cut out
+  #   # VOXELS_LAD$LAD is a matrix with rows of x,y and cols of lad_1_2m,...,lad_11_12m
+  #   # VOXELS_LAD[[1]] is the same thing as VOXELS_LAD$LAD...so, yeah
+  #   t.lad.profile = apply(VOXELS_LAD$LAD, 2, mean, na.rm = TRUE)
+  #   max_height = ncol(VOXELS_LAD[[1]]) + .5
+  #   t.lad.profile = data.frame(
+  #     height = seq(1.5, max_height)
+  #     , lad = t.lad.profile[length(t.lad.profile):1]
+  #   )
+
+  lad_profile <- lad_profile  %>%
+    # # for some reason the original leafR::lad.profile() added 0.5 to the Z height
+    dplyr::mutate(z = z+0.5) %>%
+    dplyr::rename(height=z)
+
+  if(relative==T){
+    lad_profile <- lad_profile  %>%
+      dplyr::mutate(lad = relative_lad)
+  }else{
+    lad_profile <- lad_profile  %>%
+      dplyr::mutate(lad = mean_lad)
+  }
+
+  # return
+  return(lad_profile)
+
+}
+
