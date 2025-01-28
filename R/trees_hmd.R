@@ -479,34 +479,12 @@ calc_tree_hmd <- function(las, id=NULL) {
 ctg_calc_tree_hmd <- function(chunk, poly_df, force_crs = F){
   las <- lidR::readLAS(chunk)
   if (lidR::is.empty(las)) return(NULL)
-  # make sure same crs
-  l_epsg <- lidR::st_crs(las, parameters = T)$epsg %>%
-    as.character() %>%
-    dplyr::coalesce("lll")
-  p_epsg <- sf::st_crs(poly_df, parameters = T) %>%
-    purrr::pluck("epsg") %>%
-    as.character() %>%
-    dplyr::coalesce("ppp")
-  if(
-    force_crs &&
-    !identical(lidR::st_crs(las), sf::st_crs(poly_df)) &&
-    !identical(l_epsg, p_epsg)
-  ){
-    lidR::st_crs(las) <- sf::st_crs(poly_df)
-  }else if(
-    !identical(lidR::st_crs(las), sf::st_crs(poly_df)) &&
-    !identical(l_epsg, p_epsg)
-  ){
-    stop(paste0(
-      "lidR::st_crs(las) != sf::st_crs(poly_df) ensure data are same projection -or-"
-      , "\nturn on the force same crs parameter if confident that data are in same projection"
-    ))
-  }
   # attach treeID
-  nlas_tree <- lidR::merge_spatial(
-    las = las
-    , source = poly_df
+  nlas_tree <- polygon_attribute_to_las(
+    las
+    , poly_df
     , attribute = "treeID"
+    , force_crs = force_crs
   )
   # calc_tree_hmd()
   df <- calc_tree_hmd(nlas_tree)
