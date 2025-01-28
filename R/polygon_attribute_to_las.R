@@ -15,7 +15,22 @@
 #'
 #' @return Returns an `LAS` class object
 #'
-#' @internal
+#' @examples
+#'  \dontrun{
+#'  # polygon data
+#'  f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
+#'  trees_poly <- sf::st_read(f)
+#'  # simplify polygons
+#'  trees_poly <- simplify_multipolygon_crowns(trees_poly)
+#'  # point cloud data
+#'  lf <- system.file(package = "cloud2trees","extdata","norm_las","RMNP_017_2018_normalize.las")
+#'  las <- lidR::readLAS(lf)
+#'  las@data %>% dplyr::glimpse()
+#'  # polygon_attribute_to_las to attach treeID to las
+#'  las <- polygon_attribute_to_las(las, trees_poly, force_crs = T, attribute = "treeID")
+#'  las@data %>% dplyr::glimpse()
+#'  }
+#' @export
 #'
 polygon_attribute_to_las <- function(las, poly_df, attribute, force_crs = F){
   # check polygons

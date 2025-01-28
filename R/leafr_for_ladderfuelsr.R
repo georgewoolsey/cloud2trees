@@ -1,4 +1,4 @@
-#' @title re-writes `leafR` steps to allow for treeID as input for `ladderfuelsR`
+#' @title re-writes `leafR` steps to allow for treeID as input for `ladderfuelsR` or [ladderfuelsr_cbh()]
 #'
 #' @description
 #' `leafr_for_ladderfuelsr()` is a re-write of [leafR::lad.voxels()] and [leafR::lad.profile()] to:
@@ -21,9 +21,34 @@
 #' Almeida, D. R. A. D., Stark, S. C., Shao, G., Schietti, J., Nelson, B. W., Silva, C. A., ... & Brancalion, P. H. S. (2019). Optimizing the remote detection of tropical rainforest structure with airborne lidar: Leaf area profile sensitivity to pulse density and spatial sampling. Remote Sensing, 11(1), 92.
 #' [https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)
 #'
-#' @return Returns an data.frame
+#' @return Returns an data.frame which can have multiple treeIDs to use as input for [ladderfuelsr_cbh()]
 #'
-#' @internal
+#' @examples
+#'  \dontrun{
+#'  # polygon data
+#'  f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
+#'  trees_poly <- sf::st_read(f)
+#'  # simplify polygons
+#'  trees_poly <- simplify_multipolygon_crowns(trees_poly)
+#'  # point cloud data
+#'  lf <- system.file(package = "cloud2trees","extdata","norm_las","RMNP_017_2018_normalize.las")
+#'  las <- lidR::readLAS(lf)
+#'  las@data %>% dplyr::glimpse()
+#'  # polygon_attribute_to_las to attach treeID to las
+#'  las <- polygon_attribute_to_las(las, trees_poly, force_crs = T, attribute = "treeID")
+#'  las@data %>% dplyr::glimpse()
+#'  # get the lad profile for each treeID
+#'  lad_profile <- leafr_for_ladderfuelsr(
+#'      las
+#'      , voxel_grain_size_m = 1
+#'      , k = 1
+#'      , group_treeID = T
+#'      , relative = F
+#'    )
+#'  dplyr::glimpse(lad_profile)
+#'  }
+#' @export
+#'
 #'
 leafr_for_ladderfuelsr <- function(
   las
@@ -65,7 +90,11 @@ leafr_for_ladderfuelsr <- function(
 # filter las for one tree, aggregate with lidR::voxel_metrics
 # attach treeID to return data frame
 #####################################################################
-tree_voxel_metrics = function(las, grain.size = 1, id = NULL){
+tree_voxel_metrics = function(
+  las
+  , grain.size = 1
+  , id = NA # id should be numeric
+){
   ## !!!!!! this is a re-write of leafR::lad.voxels()
   ## names roughly match what is in that function
 
@@ -77,7 +106,7 @@ tree_voxel_metrics = function(las, grain.size = 1, id = NULL){
     !is.na(id) &&
     !is.null(id)
   ){
-    las <- lidR::filter_poi(las, treeID == id)
+    las <- lidR::filter_poi(las, as.character(treeID) == as.character(id))
   }
 
   # return nothing
@@ -121,7 +150,7 @@ tree_voxel_metrics = function(las, grain.size = 1, id = NULL){
   t.binneds <-
     lidR::voxel_metrics(
       las = las
-      , func = ~list(N = length(Z))
+      , func = ~list(pulses = length(Z))
       , res = c(grain.size,dz)
       # , attribute = "treeID" # this doesn't do anything and only works for crown_metrics()
     ) %>%
@@ -137,8 +166,8 @@ tree_voxel_metrics = function(las, grain.size = 1, id = NULL){
     tidyr::crossing(t.binneds %>% dplyr::distinct(x,y)) %>%
     dplyr::left_join(t.binneds, by = dplyr::join_by(x,y,z)) %>%
     dplyr::mutate(
-      treeID = dplyr::coalesce(id, as.numeric(NA))
-      , n = dplyr::coalesce(n,0)
+      treeID = dplyr::coalesce(as.character(id), as.character(NA))
+      , pulses = dplyr::coalesce(pulses,0)
     ) %>%
     dplyr::relocate(treeID,x,y) %>%
     dplyr::arrange(treeID,x,y,z)
@@ -206,12 +235,13 @@ agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
     ) %>%
     dplyr::arrange(x,y,desc(z)) %>% ### this is essential for the sky be first
     dplyr::mutate(
-      total_pulses = sum(n,na.rm = T)
-      , cumsum_pulses = cumsum(n)
+      total_pulses = sum(pulses,na.rm = T)
+      , cumsum_pulses = cumsum(pulses)
       #Pulses out for each voxel
       , pulses_out = total_pulses - cumsum_pulses
       #The pulses.out of voxel 1 is the pulses.in of voxel 2 and so on...
-      , pulses_in = dplyr::lag(pulses_out, n = 1, default=dplyr::first(pulses_out))
+      #In the highest voxel (closest to sky) the pulses in is the total pulses
+      , pulses_in = dplyr::lag(pulses_out, n = 1, default=dplyr::first(total_pulses))
       # MacArthur-Horn eqquation
       # LAD = ln(S_bottom/S_top)*(1/(dz*K))
       #k value for LAD equation
@@ -247,7 +277,7 @@ leafr_lad_voxels <- function(
     check_df_cols_all_missing(
       las@data
       , col_names = "treeID"
-      , all_numeric = T
+      , all_numeric = F
     )
     # map over treeID for tree_voxel_metrics
     voxel_metrics <- las@data %>%
@@ -393,7 +423,7 @@ leafr_lad_profile = function(
   # check_df_cols_all_missing() in utils_biomass.r
   check_df_cols_all_missing(
     lad_voxels
-    , col_names = c(cols2group, "n") %>% unique()
+    , col_names = c(cols2group, "pulses") %>% unique()
     , all_numeric = F
   )
 
@@ -406,7 +436,7 @@ leafr_lad_profile = function(
       )
     ) %>%
     dplyr::summarise(
-      n = sum(n, na.rm = T)
+      pulses = sum(pulses, na.rm = T)
       , mean_lad = mean(LAD, na.rm = T)
     ) %>%
     # calculate relative lad
@@ -417,7 +447,7 @@ leafr_lad_profile = function(
     ) %>%
     dplyr::mutate(
       relative_lad = mean_lad/sum(mean_lad, na.rm=T)*100
-      , total_pulses = sum(n, na.rm=T)
+      , total_pulses = sum(pulses, na.rm=T)
     ) %>%
     dplyr::ungroup() %>%
     dplyr::arrange((dplyr::across(dplyr::any_of(cols2group))))
@@ -437,6 +467,16 @@ leafr_lad_profile = function(
     # # for some reason the original leafR::lad.profile() added 0.5 to the Z height
     dplyr::mutate(z = z+0.5) %>%
     dplyr::rename(height=z)
+    # # for some reason the original leafR::lad.profile() keeps lad values that are NaN
+    # # if we want to replace with NA, pipe the section below
+    # dplyr::mutate(dplyr::across(
+    #   .cols = tidyselect::ends_with("_lad")
+    #   , .fns = ~ ifelse(
+    #       is.nan(.x) | is.infinite(.x)
+    #       , as.numeric(NA)
+    #       , .x
+    #     )
+    # ))
 
   if(relative==T){
     lad_profile <- lad_profile  %>%
