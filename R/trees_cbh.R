@@ -50,26 +50,35 @@
 #'
 #' @examples
 #'  \dontrun{
+#'  library(tidyverse)
 #'  # example tree crown polygons
-#'  f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+#'  f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
 #'  crowns <- sf::st_read(f, quiet = T)
 #'  # example normalized las files are in this directory
-#'  norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+#'  norm_d <- system.file(package = "cloud2trees","extdata","norm_las")
 #'  # now run the trees_cbh()
 #'  trees_cbh_ans <- trees_cbh(
 #'     trees_poly = crowns
 #'     , norm_las = norm_d
-#'     , tree_sample_n = 30
-#'     , estimate_missing_cbh = T)
+#'     , estimate_missing_cbh = T
+#'     , force_same_crs = T
+#'    )
 #'  # what?
 #'  trees_cbh_ans %>% class()
-#'  trees_cbh_ans %>% dplyr::select(tidyselect::contains("cbh")) %>% dplyr::glimpse()
+#'  trees_cbh_ans %>% dplyr::select(treeID,tidyselect::contains("cbh")) %>% dplyr::glimpse()
 #'  # spatial polygons
-#'  trees_cbh_ans %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m))
+#'  trees_cbh_ans %>% ggplot2::ggplot() +
+#'    ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m,color=is_training_cbh))
 #'  # relationship between height and cbh
 #'  trees_cbh_ans %>%
-#'     ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) +
+#'     ggplot2::ggplot(
+#'       ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)
+#'      ) +
 #'     ggplot2::geom_point()
+#'  # tabulate training data
+#'  trees_cbh_ans %>%
+#'    sf::st_drop_geometry() %>%
+#'    dplyr::count(is_training_cbh)
 #'  }
 #' @export
 #'
@@ -188,16 +197,26 @@ trees_cbh <- function(
   # catalog apply
   ####################################################################
   ##################################
-  # apply the ctg_calc_tree_cbh function
+  # apply the ctg_leafr_for_ladderfuelsr function
   ##################################
+  # simplify the polygons so that lidR::merge_spatial can be used
+  simp_trees_poly <- simplify_multipolygon_crowns(trees_poly)
   # apply it
   output_temp <- lidR::catalog_apply(
     ctg = nlas_ctg
-    , FUN = ctg_calc_tree_cbh
+    , FUN = ctg_leafr_for_ladderfuelsr
     , .options = list(automerge = TRUE)
     # ctg_calc_tree_cbh options
-    , poly_df = trees_poly
+    , poly_df = simp_trees_poly
     , force_crs = force_same_crs
+    , voxel_grain_size_m = voxel_grain_size_m
+  )
+
+  ##################################
+  # ladderfuelsr_cbh() to get cbh data by tree
+  ##################################
+  cbh_df <- output_ctg_to_ladderfuelsr_cbh(
+    output = output_temp
     , min_vhp_n = min_vhp_n
     , voxel_grain_size_m = voxel_grain_size_m
     , dist_btwn_bins_m = dist_btwn_bins_m
@@ -208,18 +227,17 @@ trees_cbh <- function(
     , min_lad_pct = min_lad_pct
     , frst_layer_min_ht_m = frst_layer_min_ht_m
   )
-
   ##################################
-  # read result
+  # check the cbh data we got and use the cbh selected
   ##################################
-  rslt_temp <- output_ctg_apply_cbh(
-    output = output_temp
+  cbh_df <- clean_cbh_df(
+    cbh_df = cbh_df
     , trees_poly = trees_poly
     , force_cbh_lte_ht = force_cbh_lte_ht
     , which_cbh = which_cbh
   )
-  cbh_df <- rslt_temp$cbh_df
-  n_cbh <- rslt_temp$n_cbh
+  # ensure that there are enough data to estimate
+  n_cbh <- nrow(cbh_df)
 
   ####################################################################
   # if zero CBH records were extracted
@@ -260,16 +278,24 @@ trees_cbh <- function(
         , "\nmin_lad_pct from: ", min_lad_pct, " --> to: ", new_min_lad_pct
       ))
       ##################################
-      # apply the ctg_calc_tree_cbh function
+      # apply the ctg_leafr_for_ladderfuelsr function
       ##################################
       # apply it
       output_temp <- lidR::catalog_apply(
         ctg = nlas_ctg
-        , FUN = ctg_calc_tree_cbh
+        , FUN = ctg_leafr_for_ladderfuelsr
         , .options = list(automerge = TRUE)
         # ctg_calc_tree_cbh options
-        , poly_df = trees_poly
+        , poly_df = simp_trees_poly
         , force_crs = force_same_crs
+        , voxel_grain_size_m = voxel_grain_size_m
+      )
+
+      ##################################
+      # ladderfuelsr_cbh() to get cbh data by tree
+      ##################################
+      cbh_df <- output_ctg_to_ladderfuelsr_cbh(
+        output = output_temp
         , min_vhp_n = new_min_vhp_n
         , voxel_grain_size_m = new_voxel_grain_size_m
         , dist_btwn_bins_m = new_dist_btwn_bins_m
@@ -280,18 +306,17 @@ trees_cbh <- function(
         , min_lad_pct = new_min_lad_pct
         , frst_layer_min_ht_m = frst_layer_min_ht_m
       )
-
       ##################################
-      # read result
+      # check the cbh data we got and use the cbh selected
       ##################################
-      rslt_temp <- output_ctg_apply_cbh(
-        output=output_temp
+      cbh_df <- clean_cbh_df(
+        cbh_df = cbh_df
         , trees_poly = trees_poly
         , force_cbh_lte_ht = force_cbh_lte_ht
         , which_cbh = which_cbh
       )
-      cbh_df <- rslt_temp$cbh_df
-      n_cbh <- rslt_temp$n_cbh
+      # ensure that there are enough data to estimate
+      n_cbh <- nrow(cbh_df)
 
     }
 
@@ -490,22 +515,16 @@ trees_cbh <- function(
 ####################################
 ## function to clip the point cloud to a polygon
 ## and run it through:
-## leafr_for_ladderfuelsr()
-## ladderfuelsr_cbh() and pull out cbh values
+## leafr_for_ladderfuelsr() which is the only
+## step in the process that uses the las
+## and returns a data.frame
+## to pass to ladderfuelsr_cbh()
 ####################################
-ctg_calc_tree_cbh <- function(
+ctg_leafr_for_ladderfuelsr <- function(
   chunk
   , poly_df
   , force_crs = F
-  , min_vhp_n = 3
   , voxel_grain_size_m = 1
-  , dist_btwn_bins_m = 1
-  , min_fuel_layer_ht_m = 1
-  , lad_pct_gap = 25
-  , lad_pct_base = 25
-  , num_jump_steps = 1
-  , min_lad_pct = 10
-  , frst_layer_min_ht_m = 1
 ){
   las <- lidR::readLAS(chunk)
   if(lidR::is.empty(las)){return(NULL)}
@@ -522,14 +541,65 @@ ctg_calc_tree_cbh <- function(
     )
   }
   # get the lad profile for each treeID
-  lad_profile <- leafr_for_ladderfuelsr(
+  safe_leafr_for_ladderfuelsr <- purrr::safely(leafr_for_ladderfuelsr)
+  lad_profile <- safe_leafr_for_ladderfuelsr(
       nlas_tree
       , voxel_grain_size_m = voxel_grain_size_m
       , k = 1
       , group_treeID = T
       , relative = F
     )
+  # just get the result
+  lad_profile <- lad_profile$result
+  # return
+  return(lad_profile)
+}
+####################################
+## function to handle the lidR::catalog_apply
+## output and run it through:
+## ladderfuelsr_cbh() and pull out cbh values
+####################################
+output_ctg_to_ladderfuelsr_cbh <- function(
+  output = NULL
+  , min_vhp_n = 3
+  , voxel_grain_size_m = 1
+  , dist_btwn_bins_m = 1
+  , min_fuel_layer_ht_m = 1
+  , lad_pct_gap = 25
+  , lad_pct_base = 25
+  , num_jump_steps = 1
+  , min_lad_pct = 10
+  , frst_layer_min_ht_m = 1
+) {
+  # make sure output is a readable file
+  if(
+    inherits(output, "character")
+    && (stringr::str_ends(output, ".*\\.(txt|csv)$") %>% any())
+  ){
+    # read the output file(s)
+    lad_profile <- stringr::str_subset(output, pattern = ".*\\.(txt|csv)$") %>%
+      purrr::map(\(x) readr::read_delim(
+        file = x, progress = F, show_col_types = F
+      )) %>%
+      dplyr::bind_rows() %>%
+      # for trees on many tiles keep row with most points
+      dplyr::group_by(treeID) %>%
+      dplyr::filter(total_pulses == max(total_pulses)) %>%
+      # if one tree has multiple cases with the same total pulses
+      # need to get row unique by treeID, height
+      # just take the first record
+      # which is the first tile processed with the tree
+      dplyr::group_by(treeID, height) %>%
+      dplyr::summarise(dplyr::across(
+         .cols = dplyr::everything()
+         , .fns = dplyr::first
+      )) %>%
+      dplyr::ungroup()
+  }else{
+    return(NULL)
+  }
   if(nrow(lad_profile)<1){return(NULL)}
+
   # force treeID to numeric
   if(!inherits(lad_profile$treeID, "numeric")){
     # get numeric
@@ -551,8 +621,9 @@ ctg_calc_tree_cbh <- function(
   # dplyr::glimpse(lad_profile)
   # extract the CBH using ladderfuelsr_cbh()
   # we can map over multiple trees
-  # quiet this function
-  quiet_ladderfuelsr_cbh <- purrr::safely(ladderfuelsr_cbh)
+  # quiet this function ... which should not issue an error
+  # since all LadderFuelsR were handled with purrr::safely
+  quiet_ladderfuelsr_cbh <- purrr::quietly(ladderfuelsr_cbh)
   cbh_df <- lad_profile$treeID %>%
     unique() %>%
     purrr::map(\(x)
@@ -570,12 +641,12 @@ ctg_calc_tree_cbh <- function(
           , min_lad_pct = min_lad_pct
           , frst_layer_min_ht_m = frst_layer_min_ht_m
         ) %>%
-        purrr::pluck("error")
-        # purrr::pluck("result") %>% ## b/c purrr::quietly
-        # purrr::pluck("cbh_metrics")
-      # , .progress = "extracting CBH"
+        purrr::pluck("result") %>% ## b/c purrr::quietly
+        purrr::pluck("cbh_metrics")
+      , .progress = "extracting CBH"
     ) %>%
     dplyr::bind_rows()
+  # dplyr::glimpse(cbh_df)
 
   if(nrow(cbh_df)<1){return(NULL)}
 
@@ -622,11 +693,12 @@ ctg_calc_tree_cbh <- function(
       dplyr::relocate(treeID)
   }
 
+  # dplyr::glimpse(cbh_df)
   # return
   return(cbh_df)
 }
 
-# cbh_df <- ctg_calc_tree_cbh(chunk = chunk, poly_df = poly_df, force_crs = T)
+# cbh_df <- output_ctg_to_ladderfuelsr_cbh(output)
 # cbh_df %>% dplyr::glimpse()
 # identical(
 #   cbh_df %>% dplyr::distinct(treeID) %>% nrow
@@ -644,19 +716,17 @@ ctg_calc_tree_cbh <- function(
 #   ggplot2::theme_light()
 
 ####################################
-## function to handle the output from
-## apply the ctg_calc_tree_cbh function
+## function to check the
+## return data from
+## output_ctg_to_ladderfuelsr_cbh
 ####################################
-output_ctg_apply_cbh <- function(output, trees_poly, force_cbh_lte_ht, which_cbh) {
+clean_cbh_df <- function(cbh_df = NULL, trees_poly, force_cbh_lte_ht, which_cbh) {
   if(
-    stringr::str_ends(output, ".*\\.(txt|csv)$") %>% any()
+    inherits(cbh_df, "data.frame")
+    && dplyr::coalesce(nrow(cbh_df),0)>0
   ){
     # read the output file(s)
-    cbh_df <- stringr::str_subset(output, pattern = ".*\\.(txt|csv)$") %>%
-      purrr::map(\(x) readr::read_delim(
-        file = x, progress = F, show_col_types = F
-      )) %>%
-      dplyr::bind_rows() %>%
+    cbh_df <- cbh_df %>%
       # for trees on many tiles keep row with most points
       dplyr::group_by(treeID) %>%
       dplyr::filter(total_pulses == max(total_pulses)) %>%
@@ -708,8 +778,6 @@ output_ctg_apply_cbh <- function(output, trees_poly, force_cbh_lte_ht, which_cbh
         & tree_cbh_m < tree_height_m
       ) %>%
       dplyr::mutate(is_training_cbh=T)
-    # ensure that there are enough data to estimate
-    n_cbh <- cbh_df %>% dplyr::filter(is_training_cbh==T) %>% nrow()
   }else if(nrow(cbh_df)>0){
     # filter cbh
     cbh_df <- cbh_df %>%
@@ -717,13 +785,8 @@ output_ctg_apply_cbh <- function(output, trees_poly, force_cbh_lte_ht, which_cbh
         !is.na(tree_cbh_m)
       ) %>%
       dplyr::mutate(is_training_cbh=T)
-    # ensure that there are enough data to estimate
-    n_cbh <- cbh_df %>% dplyr::filter(is_training_cbh==T) %>% nrow()
-  }else{
-    n_cbh <- 0
   }
-  return(list(
-    cbh_df = cbh_df
-    , n_cbh = n_cbh
-  ))
+
+  # return
+  return(cbh_df)
 }

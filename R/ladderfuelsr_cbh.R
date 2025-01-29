@@ -178,8 +178,9 @@ ladderfuelsr_cbh <- function(
       (names(lad_profile_df) %>% stringr::str_equal("treeID") %>% any())
       && !is.na(treeID) && !is.null(treeID)
     ){
+      id_temp <- as.numeric(treeID)[1]
       lad_profile_df <- lad_profile_df %>%
-        dplyr::filter(as.numeric(treeID)==as.numeric(.env$treeID))
+        dplyr::filter(as.numeric(treeID)==id_temp)
       if(nrow(lad_profile_df)<1){
         stop("the treeID was not detected in the data. double-check the `treeID` parameter or leave as NA")
       }
@@ -197,7 +198,7 @@ ladderfuelsr_cbh <- function(
     check_df_cols_all_missing(
       lad_profile_df
       , col_names = req_cols %>% unique()
-      , all_numeric = F
+      , check_vals_missing = F
     )
     # filter for trees where CBH process implemented via LadderFuelsR will be successful
     ## "depurating tree lad profiles"
@@ -207,25 +208,28 @@ ladderfuelsr_cbh <- function(
       dplyr::group_by(treeID) %>%
       # count the number of vertical height profiles
       dplyr::mutate(
-        vhp = sum( ifelse(dplyr::coalesce(lad,0)>0, 1, 0) )
+        vhp = sum( ifelse(dplyr::coalesce(as.numeric(lad),0)>0, 1, 0) )
       ) %>%
       dplyr::filter(
         # the LadderFuelsR documentation filters for .las files with more than 10 points
-        total_pulses >= 6
+        as.numeric(total_pulses) >= 6
         # no fuel gaps can be determined if < 1 vhps with >0 lad
         & vhp > 0
         & dplyr::n() >= 2 ## have to have at least 2 vhps in addition to at least one vhp>0
         & dplyr::n() >= dplyr::coalesce(as.numeric(min_vhp_n),2) #user defined minimum
       ) %>%
       dplyr::ungroup() %>%
-      dplyr::mutate(lad = dplyr::coalesce(as.numeric(lad), 0.01)) %>%
+      dplyr::mutate(
+        lad = dplyr::coalesce(as.numeric(lad), 0.01)
+        , height = as.numeric(height)
+      ) %>%
       ## !!!!! not only does the treeID column have to exist...it has to be the first column
       ## !!!!! what if treeID is not numeric? idk???
       dplyr::select(treeID, height, lad) %>%
       dplyr::arrange(treeID, height)
 
     ## check rows and return null if none
-    if(nrow(lad_profile)==0){return(empty_return)}
+    if(nrow(lad_profile)<1){return(empty_return)}
 
     ## check for multiple treeIDs
     if( length(unique(lad_profile$treeID))>1 ){
@@ -372,13 +376,11 @@ ladderfuelsr_cbh <- function(
       ### LadderFuelsR::get_gaps_fbhs
       ### This function calculates gaps and fuel layers base height (FBH) as
       ### the difference in percentiles between consecutive LAD values along the vertical tree profile (VTP)
-
+      ## LadderFuelsR::get_gaps_fbhs
       # safe this function
       safe_get_gaps_fbhs <- purrr::safely(LadderFuelsR::get_gaps_fbhs)
 
       gaps_fbhs <-
-        # gw_get_gaps_fbhs(
-        # LadderFuelsR::get_gaps_fbhs(
         safe_get_gaps_fbhs(
           LAD_profiles = lad_profile
           , step = dist_btwn_bins_m
@@ -399,7 +401,8 @@ ladderfuelsr_cbh <- function(
           dplyr::mutate(dplyr::across(
             !tidyselect::starts_with("treeID")
             , as.numeric
-          ))
+          )) %>%
+          dplyr::relocate(treeID)
       ### check for all NA or 0
       gaps_na <- gaps_fbhs %>%
         dplyr::filter(
@@ -448,7 +451,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
     #######################################
     ### Step 3 - `LadderFuelsR::get_distance`
     #######################################
@@ -481,7 +485,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
     #######################################
     ### Step 4 - `LadderFuelsR::get_depths`
     #######################################
@@ -519,7 +524,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
     #######################################
     ### Step 5 - `LadderFuelsR::get_real_fbh`
     #######################################
@@ -554,7 +560,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
 
     #######################################
     ### Step 6 - `LadderFuelsR::get_real_depths`
@@ -589,7 +596,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
 
     #######################################
     ### Step 7 - `LadderFuelsR::get_effective_gap`
@@ -625,7 +633,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
 
     #######################################
     ### Step 8 - `LadderFuelsR::get_layers_lad`
@@ -673,7 +682,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
 
     #######################################
     ### Step 9 - `LadderFuelsR::get_cbh_metrics`
@@ -712,7 +722,8 @@ ladderfuelsr_cbh <- function(
         dplyr::mutate(dplyr::across(
           !tidyselect::starts_with("treeID")
           , as.numeric
-        ))
+        )) %>%
+        dplyr::relocate(treeID)
 
     # return
       return(list(

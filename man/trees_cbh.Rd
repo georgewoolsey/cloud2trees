@@ -10,16 +10,17 @@ trees_cbh(
   tree_sample_n = NA,
   tree_sample_prop = NA,
   which_cbh = "lowest",
-  estimate_missing_cbh = FALSE,
-  min_vhp_n = 4,
-  voxel_grain_size_m = 2,
+  estimate_missing_cbh = TRUE,
+  min_vhp_n = 3,
+  voxel_grain_size_m = 1,
   dist_btwn_bins_m = 1,
   min_fuel_layer_ht_m = 1,
   lad_pct_gap = 25,
   lad_pct_base = 25,
   num_jump_steps = 1,
   min_lad_pct = 10,
-  frst_layer_min_ht_m = 1
+  frst_layer_min_ht_m = 1,
+  force_same_crs = F
 )
 }
 \arguments{
@@ -60,6 +61,9 @@ Should the missing CBH values be estimated using the tree height and location in
 \item{min_lad_pct}{numeric. value for the minimum required LAD percentage in a fuel layer. See \code{threshold} in \code{\link[LadderFuelsR:get_layers_lad]{LadderFuelsR::get_layers_lad()}}}
 
 \item{frst_layer_min_ht_m}{numeric. value for the depth height of the first fuel layer. If the first fuel layer has the maximum LAD and its depth is greater than the indicated value, then this fuel layer is considered as the CBH of the tree. On the contrary, if its depth is <= the value, the CBH with maximum LAD will be the second fuel layer, although it has not the maximum LAD. See \code{hdepth1_height} in \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}}
+
+\item{force_same_crs}{logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
+data created by a \code{cloud2trees} pipeline (e.g. \code{\link[=cloud2raster]{cloud2raster()}}) will always have the same projection even if not recognized by \code{lidR} functions}
 }
 \value{
 Returns a spatial data frame of individual trees.
@@ -79,26 +83,35 @@ There are likely to be trees for which there is insufficient data in the point c
 }
 \examples{
  \dontrun{
+ library(tidyverse)
  # example tree crown polygons
- f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+ f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
  crowns <- sf::st_read(f, quiet = T)
  # example normalized las files are in this directory
- norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+ norm_d <- system.file(package = "cloud2trees","extdata","norm_las")
  # now run the trees_cbh()
  trees_cbh_ans <- trees_cbh(
     trees_poly = crowns
     , norm_las = norm_d
-    , tree_sample_n = 30
-    , estimate_missing_cbh = T)
+    , estimate_missing_cbh = T
+    , force_same_crs = T
+   )
  # what?
  trees_cbh_ans \%>\% class()
- trees_cbh_ans \%>\% dplyr::select(tidyselect::contains("cbh")) \%>\% dplyr::glimpse()
+ trees_cbh_ans \%>\% dplyr::select(treeID,tidyselect::contains("cbh")) \%>\% dplyr::glimpse()
  # spatial polygons
- trees_cbh_ans \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m))
+ trees_cbh_ans \%>\% ggplot2::ggplot() +
+   ggplot2::geom_sf(ggplot2::aes(fill=tree_cbh_m,color=is_training_cbh))
  # relationship between height and cbh
  trees_cbh_ans \%>\%
-    ggplot2::ggplot(ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) +
+    ggplot2::ggplot(
+      ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)
+     ) +
     ggplot2::geom_point()
+ # tabulate training data
+ trees_cbh_ans \%>\%
+   sf::st_drop_geometry() \%>\%
+   dplyr::count(is_training_cbh)
  }
 }
 \references{
