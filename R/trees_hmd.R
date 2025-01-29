@@ -152,7 +152,7 @@ trees_hmd <- function(
   # read result from calc_tree_hmd
   ##################################
   if(
-    max(stringr::str_ends(output_temp, ".*\\.(txt|csv)$"))==1
+    stringr::str_ends(output_temp, ".*\\.(txt|csv)$") %>% any()
   ){
     # read the output file(s)
     hmd_df <- stringr::str_subset(output_temp, pattern = ".*\\.(txt|csv)$") %>%
@@ -189,7 +189,10 @@ trees_hmd <- function(
   }
 
   # check force_hmd_lte_ht
-  if(force_hmd_lte_ht==T && max(grepl("tree_height_m", f))==1){
+  if(
+    force_hmd_lte_ht==T &&
+    (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+  ){
     trees_poly <- trees_poly %>%
       dplyr::mutate(
         max_crown_diam_height_m = dplyr::case_when(
@@ -218,7 +221,7 @@ trees_hmd <- function(
   if(
     estimate_missing_hmd==T
     && n_hmd > 10
-    && max(grepl("tree_height_m", f))==1
+    && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
   ){
     # add x,y to data
     mod_df <- trees_poly %>%
