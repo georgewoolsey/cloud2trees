@@ -17,7 +17,7 @@
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 155` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 333` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 #'   * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
@@ -104,7 +104,39 @@ trees_cbh <- function(
   ##################################
   # check sample proportion
   ##################################
-
+  if(
+    is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- 333
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 333
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else if(
+    is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_prop <- dplyr::case_when(
+      as.numeric(tree_sample_prop)<=0 ~ 0.5
+      , as.numeric(tree_sample_prop)>1 ~ 1
+      , T ~ as.numeric(tree_sample_prop)
+    )
+    tree_sample_n <- NA
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 333
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else{
+    tree_sample_n <- 333
+    tree_sample_prop <- NA
+  }
   ##################################
   # check which cbh
   ##################################
@@ -196,11 +228,23 @@ trees_cbh <- function(
   ####################################################################
   # catalog apply
   ####################################################################
+  # sample
+    if(!is.na(tree_sample_prop)){
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          prop = tree_sample_prop
+        )
+    }else{
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          n = tree_sample_n
+        )
+    }
   ##################################
   # apply the ctg_leafr_for_ladderfuelsr function
   ##################################
   # simplify the polygons so that lidR::merge_spatial can be used
-  simp_trees_poly <- simplify_multipolygon_crowns(trees_poly)
+  simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
   # apply it
   output_temp <- lidR::catalog_apply(
     ctg = nlas_ctg

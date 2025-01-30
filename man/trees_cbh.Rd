@@ -31,7 +31,7 @@ It is your responsibility to ensure that the point cloud is projected the same a
 
 \item{tree_sample_n, tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a CBH from the point cloud for.
-If neither are supplied, \code{tree_sample_n = 155} will be used. If both are supplied, \code{tree_sample_n} will be used.
+If neither are supplied, \code{tree_sample_n = 333} will be used. If both are supplied, \code{tree_sample_n} will be used.
 Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
 
 \item{which_cbh}{character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.

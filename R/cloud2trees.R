@@ -135,8 +135,8 @@ cloud2trees <- function(
   , cbh_tree_sample_prop = NA
   , cbh_which_cbh = "lowest"
   , cbh_estimate_missing_cbh = FALSE
-  , cbh_min_vhp_n = 4
-  , cbh_voxel_grain_size_m = 2
+  , cbh_min_vhp_n = 3
+  , cbh_voxel_grain_size_m = 1
   , cbh_dist_btwn_bins_m = 1
   , cbh_min_fuel_layer_ht_m = 1
   , cbh_lad_pct_gap = 25
@@ -513,6 +513,7 @@ cloud2trees <- function(
       , num_jump_steps = cbh_num_jump_steps
       , min_lad_pct = cbh_min_lad_pct
       , frst_layer_min_ht_m = cbh_frst_layer_min_ht_m
+      , force_same_crs = T
     )
     # handle error
     if(is.null(trees_cbh_ans$error)){ # no error

@@ -90,7 +90,7 @@ leafr_for_ladderfuelsr <- function(
 # filter las for one tree, aggregate with lidR::voxel_metrics
 # attach treeID to return data frame
 #####################################################################
-tree_voxel_metrics = function(
+tree_voxel_metrics <- function(
   las
   , grain.size = 1
   , id = NA # id should be numeric
@@ -284,9 +284,12 @@ leafr_lad_voxels <- function(
       dplyr::filter(!is.na(treeID)) %>%
       dplyr::pull(treeID) %>%
       unique() %>%
-      purrr::map(\(x) tree_voxel_metrics(
-        las = las, grain.size = voxel_grain_size_m, id = x
-      )) %>%
+      purrr::map(\(x)
+        tree_voxel_metrics(
+          las = las, grain.size = voxel_grain_size_m, id = x
+        )
+        , .progress = "extracting LAD (leaf area density)"
+      ) %>%
       dplyr::bind_rows()
     # aggregate
     agg_df <- agg_lad_voxels(voxel_metrics, attribute="treeID") %>%
@@ -401,7 +404,7 @@ format_leafr_lad_voxels <- function(leafr_lad_voxels, id = NA) {
 # re-writes leafR::lad.profile()
 # to ingest output from leafr_lad_voxels() or agg_lad_voxels()
 #####################################################################
-leafr_lad_profile = function(
+leafr_lad_profile <- function(
   lad_voxels # return from agg_lad_voxels
   , attribute = NULL
   , relative = FALSE
