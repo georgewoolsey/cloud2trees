@@ -325,15 +325,17 @@ trees_cbh <- function(
       # apply the ctg_leafr_for_ladderfuelsr function
       ##################################
       # apply it
-      output_temp <- lidR::catalog_apply(
-        ctg = nlas_ctg
-        , FUN = ctg_leafr_for_ladderfuelsr
-        , .options = list(automerge = TRUE)
-        # ctg_calc_tree_cbh options
-        , poly_df = simp_trees_poly
-        , force_crs = force_same_crs
-        , voxel_grain_size_m = voxel_grain_size_m
-      )
+      if(new_voxel_grain_size_m!=voxel_grain_size_m){
+        output_temp <- lidR::catalog_apply(
+          ctg = nlas_ctg
+          , FUN = ctg_leafr_for_ladderfuelsr
+          , .options = list(automerge = TRUE)
+          # ctg_calc_tree_cbh options
+          , poly_df = simp_trees_poly
+          , force_crs = force_same_crs
+          , voxel_grain_size_m = new_voxel_grain_size_m
+        )
+      }
 
       ##################################
       # ladderfuelsr_cbh() to get cbh data by tree
@@ -590,7 +592,7 @@ ctg_leafr_for_ladderfuelsr <- function(
       nlas_tree
       , voxel_grain_size_m = voxel_grain_size_m
       , k = 1
-      , group_treeID = T
+      , attribute = "treeID"
       , relative = F
     )
   # just get the result

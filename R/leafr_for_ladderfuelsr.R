@@ -74,7 +74,7 @@ leafr_for_ladderfuelsr <- function(
     , relative = relative
   )
   if(is.null(lad_profile) || nrow(lad_profile)==0){return(NULL)}
-  lad_profile %>% dplyr::glimpse()
+  # lad_profile %>% dplyr::glimpse()
 
   return(lad_profile)
 }
