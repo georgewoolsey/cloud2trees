@@ -493,4 +493,172 @@ leafr_lad_profile <- function(
   return(lad_profile)
 
 }
+#####################################################################
+# intermediate function 42:
+## this is similar to lidR::voxelize_points() but allows for
+## the grouping by attribute (e.g. treeID)
+## and returns a data.frame with full bounding box coverage
+## (can be converted to LAS) using something like:
+## lidR::LAS(df, crs = st_crs(las))
+#####################################################################
+voxelize_las_to_bbox_df <- function(
+  las
+  , horizontal_res = 1 # cannot go below 1
+  , vertical_res = 1 # cannot go below 1
+  , attribute = NULL # grouping attribute, e.g. "treeID"
+  , full_z_range = T # should the return have the full z range even if no points?
+  , force_z_gte0 = T # force Z<0 to zero
+  ## full_z_range=T & force_z_gte0=T -> for every attribute z will go from [0, max(z)] by attribute
+  ## full_z_range=F & force_z_gte0=T -> for every attribute z will go from [max(min(z),0), max(z)] by attribute
+  ## full_z_range=F & force_z_gte0=F -> for every attribute z will go from [min(z), max(z)] by attribute
+  ## full_z_range=T & force_z_gte0=F -> for every attribute z will go from [min(z@fulldata), max(z)] by attribute
+) {
+  if(!inherits(las, "LAS")){stop("must provide and object of class LAS")}
+  # return nothing
+  if (lidR::is.empty(las)) return(NULL)
 
+  if(force_z_gte0==T){
+    # force below ground to zero
+    las@data$Z[las@data$Z < 0] <- 0
+    # summary(las@data$Z)
+  }
+
+  # # take the floor of the Z values as done in leafR::pointsByZSlice
+  # las@data$Z <- floor(las@data$Z)
+
+  # check the grain size
+  # floor the grain size (resolution) and don't allow to go below 1m
+  horizontal_res <- horizontal_res %>%
+    as.numeric() %>%
+    floor() %>%
+    max(1, na.rm = T)
+
+  # check the grain size
+  # floor the grain size (resolution) and don't allow to go below 1m
+  vertical_res <- vertical_res %>%
+    as.numeric() %>%
+    floor() %>%
+    max(1, na.rm = T)
+
+  # # "vertical resolution (Delta Z or Dz) was fixed at 1 m" https://doi.org/10.3390/rs11010092
+  # dz <- 1
+
+  ## make a data.frame of the voxels by treeID
+  # cols to group by
+  if(
+    inherits(attribute,"character")
+  ){
+    cols2group <- c(attribute) %>% unique() %>% stringr::str_squish()
+    # # check_df_cols_all_missing() in utils_biomass.r
+    # check_df_cols_all_missing(
+    #   las@data
+    #   , col_names = cols2group %>% unique()
+    #   , all_numeric = F
+    #   , check_vals_missing = T
+    # )
+  }else{
+    ### make a dummy attribute
+    ### this way we can continue to use the
+    ### cols2group syntax below
+    las@data$dummy_xxx <- 1
+    cols2group <- c("dummy_xxx")
+  }
+
+  # prep the data and filter the data for this attribute
+  las_data <-
+    las@data %>%
+    dplyr::rename_with(.fn = tolower, .cols = c(X,Y,Z)) %>%
+    dplyr::select(dplyr::any_of(c(cols2group,"x","y","z"))) %>%
+    # remove rows where attribute is fully missing
+      # !!! only do this if cols2group is not null
+    dplyr::filter(
+      !dplyr::if_all(
+        .cols = dplyr::all_of(cols2group)
+        , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
+      )
+    )
+  if(nrow(las_data)<1){return(NULL)}
+
+  # create df unique by attribute with range of xyz values
+  range_df <- las_data %>%
+    dplyr::group_by(
+      dplyr::across( dplyr::all_of(cols2group) )
+    ) %>%
+    dplyr::summarise(dplyr::across(
+      .cols = c(x,y,z)
+      , .fns = list(min = ~ min(.x,na.rm=T), max = ~ max(.x,na.rm=T))
+    )) %>%
+    dplyr::ungroup()
+  if(nrow(range_df)<1){return(NULL)}
+  # expand the grid by attribute because a row is unique by attribute
+  grid_df <- range_df %>%
+    dplyr::mutate(
+      # x,y
+      x_min = round(floor(x_min))
+      , x_max = round(floor(x_max)+horizontal_res)
+      , y_min = round(floor(y_min))
+      , y_max = round(floor(y_max)+horizontal_res)
+      # we are always starting at 0 ground for vertical resolution
+      , z_min = dplyr::case_when(
+        full_z_range==T & force_z_gte0==T ~ 0
+        , full_z_range==T & force_z_gte0==F ~ dplyr::coalesce(min(las@data$Z, na.rm = T),0)
+        , full_z_range==F & force_z_gte0==F ~ dplyr::coalesce(round(floor(z_min)),0)
+        , full_z_range==F & force_z_gte0==T ~ dplyr::coalesce(round(floor(z_min)),0)
+      )
+      , z_max = round(floor(z_max)+vertical_res)
+    ) %>%
+    dplyr::rowwise() %>% # this is key
+    dplyr::mutate(
+      x = list(seq(from=x_min, to=x_max, by = horizontal_res))
+      , y = list(seq(from=y_min, to=y_max, by = horizontal_res))
+      , z = list(seq(from=z_min, to=z_max, by = vertical_res))
+    ) %>%
+    dplyr::select(-c(tidyselect::ends_with("_min"),tidyselect::ends_with("_max"))) %>%
+    tidyr::unnest(cols = x) %>%
+    tidyr::unnest(cols = y) %>%
+    tidyr::unnest(cols = z) %>%
+    ungroup()
+  if(nrow(grid_df)<1){return(NULL)}
+  # remove dummy
+  if(names(grid_df) %>% stringr::str_equal("dummy_xxx") %>% any()){
+    grid_df <- grid_df %>% dplyr::select(-dummy_xxx)
+  }
+  return(grid_df)
+}
+
+# voxelize_las_to_bbox_df(las = las, attribute = c("treeID")) %>%
+#   dplyr::glimpse()
+# voxelize_las_to_bbox_df(las = las, attribute = "treeID") %>%
+#   dplyr::relocate(x,y,z) %>%
+#   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS(crs = lidR::st_crs(las)) %>%
+#   lidR::plot(
+#     color="TREEID"
+#     , size = 1, bg = "white", voxel = TRUE
+#   )
+# voxelize_las_to_bbox_df(las = las, attribute = "treeID", full_z_range = F) %>%
+#   dplyr::relocate(x,y,z) %>%
+#   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS(crs = lidR::st_crs(las)) %>%
+#   lidR::plot(
+#     color="TREEID"
+#     , size = 1, bg = "white", voxel = TRUE
+#   )
+# voxelize_las_to_bbox_df(las = las) %>%
+#   dplyr::relocate(x,y,z) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS(crs = lidR::st_crs(las)) %>%
+#   lidR::plot(
+#     color="Z"
+#     , size = 1, bg = "white", voxel = TRUE
+#   )
+# voxelize_las_to_bbox_df(las = las, full_z_range = F) %>%
+#   dplyr::relocate(x,y,z) %>%
+#   dplyr::rename_with(toupper) %>%
+#   lidR::LAS(crs = lidR::st_crs(las)) %>%
+#   lidR::plot(
+#     color="Z"
+#     , size = 1, bg = "white", voxel = TRUE
+#   )
