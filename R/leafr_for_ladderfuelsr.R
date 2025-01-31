@@ -11,8 +11,8 @@
 #' @param las an object of class LAS that has been height normalized.
 #' @param voxel_grain_size_m numeric. horizontal resolution (suggested 1 meter for lad profiles and 10 meters for LAI maps). See `grain.size` in [leafR::lad.voxels()]
 #' @param k numeric. coefficient to transform effective LAI to real LAI (k = 1; for effective LAI)
-#' @param group_treeID logical. should output be grouped by treeID? If `TRUE` (default), the attribute `treeID` must exist
-#' in the `las` data and must be numeric.
+#' @param attribute character. The column name of the attribute to group the return LAD profile by. Default is "treeID". The attribute (whatever it is defined as)
+#' must exist in the `las` data
 #' @param relative logical. produce lad profile by relative total LAI values. Indicate when using effective LAI value.
 #' if set to TRUE, lad value will be relative_lad; otherwise, lad value will be mean_lad
 #'
@@ -54,7 +54,7 @@ leafr_for_ladderfuelsr <- function(
   las
   , voxel_grain_size_m = 1
   , k = 1
-  , group_treeID = TRUE
+  , attribute = "treeID"
   , relative = FALSE
 ) {
   ###### re-write of leafR::lad.voxels
@@ -62,141 +62,28 @@ leafr_for_ladderfuelsr <- function(
       las
       , voxel_grain_size_m = voxel_grain_size_m
       , k = k
-      , group_treeID = group_treeID
+      , attribute = attribute
     )
+  if(is.null(lad_voxels) || nrow(lad_voxels)==0){return(NULL)}
+  # lad_voxels %>% dplyr::glimpse()
 
   ###### re-write of leafR::lad.profile()
-  if(nrow(lad_voxels)==0){return(NULL)}
-  if(group_treeID==T){
-    lad_profile <- leafr_lad_profile(
-        lad_voxels = lad_voxels
-        , attribute = "treeID"
-        , relative = relative
-      )
-  }else{
-    lad_profile <- leafr_lad_profile(
-        lad_voxels = lad_voxels
-        , attribute = NULL
-        , relative = relative
-      )
-  }
+  lad_profile <- leafr_lad_profile(
+    lad_voxels = lad_voxels
+    , attribute = attribute
+    , relative = relative
+  )
+  if(is.null(lad_profile) || nrow(lad_profile)==0){return(NULL)}
+  lad_profile %>% dplyr::glimpse()
 
   return(lad_profile)
 }
 
-
-#####################################################################
-# intermediate function 1:
-# filter las for one tree, aggregate with lidR::voxel_metrics
-# attach treeID to return data frame
-#####################################################################
-tree_voxel_metrics <- function(
-  las
-  , grain.size = 1
-  , id = NA # id should be numeric
-){
-  ## !!!!!! this is a re-write of leafR::lad.voxels()
-  ## names roughly match what is in that function
-
-  # force only one id
-  id <- id[1]
-  # filter the point cloud if there is a treeID
-  if(
-    (names(las@data) %>% stringr::str_equal("treeID") %>% any()) &&
-    !is.na(id) &&
-    !is.null(id)
-  ){
-    las <- lidR::filter_poi(las, as.character(treeID) == as.character(id))
-  }
-
-  # return nothing
-  if (lidR::is.empty(las)) return(NULL)
-
-  # force below ground to zero
-  las@data$Z[las@data$Z < 0] <- 0
-  # summary(las@data$Z)
-
-  # take the floor of the Z values as done in leafR::pointsByZSlice
-  las@data$Z <- floor(las@data$Z)
-
-  # check the grain size
-  # floor the grain size (resolution) and don't allow to go below 1m
-  grain.size <- grain.size %>%
-    as.numeric() %>%
-    floor() %>%
-    max(1, na.rm = T)
-
-  # "vertical resolution (Delta Z or Dz) was fixed at 1 m" https://doi.org/10.3390/rs11010092
-  dz <- 1
-
-  ###################################################
-  # get voxel data lidR::voxel_metrics()
-  ###################################################
-  ## when res = 1: z = 0 is 0-1 meters; z = 1 is 1-2 meters;...;z = 11 is 11-12 meters
-    # lidR::voxel_metrics(
-    #     las = las
-    #     , func = ~list(N = length(Z))
-    #     , res = grain.size
-    #   ) %>%
-    #   lidR::plot(
-    #     color="N"
-    #     , pal = harrypotter::hp_pal(option = "slytherin",begin=0.3)
-    #     , size = grain.size, bg = "white", voxel = TRUE
-    #   )
-
-  ### can only do this for one tree at a time because the fn does not use the "attribute" parameter
-  ### make this a function to do one tree at a time, return df with treeID attached, bind rows
-  ### , do the rest of the steps with group_by(treeID)
-  t.binneds <-
-    lidR::voxel_metrics(
-      las = las
-      , func = ~list(pulses = length(Z))
-      , res = c(grain.size,dz)
-      # , attribute = "treeID" # this doesn't do anything and only works for crown_metrics()
-    ) %>%
-    dplyr::rename_with(tolower)
-  # t.binneds$z %>% summary()
-  # t.binneds %>% View()
-
-  # "vertical resolution (Delta Z or Dz) was fixed at 1 m" https://doi.org/10.3390/rs11010092
-  c_dz <- seq(from=0, to=max(t.binneds$z,na.rm = T), by = dz)
-
-  # fill out the voxel data so that every x,y has the same z levels
-  t.binneds <- dplyr::tibble(z=c_dz) %>%
-    tidyr::crossing(t.binneds %>% dplyr::distinct(x,y)) %>%
-    dplyr::left_join(t.binneds, by = dplyr::join_by(x,y,z)) %>%
-    dplyr::mutate(
-      treeID = dplyr::coalesce(as.character(id), as.character(NA))
-      , pulses = dplyr::coalesce(pulses,0)
-    ) %>%
-    dplyr::relocate(treeID,x,y) %>%
-    dplyr::arrange(treeID,x,y,z)
-
-  # t.binneds$z %>% summary()
-  # t.binneds %>% dplyr::mutate(dplyr::across(c(x,y),as.character)) %>% kableExtra::kbl() %>% kableExtra::kable_styling()
-
-  return(t.binneds)
-}
-
-# # example
-# tree_voxel_metrics(las, grain.size = 2, id = 41) %>% View()
-# las@data %>%
-#   dplyr::filter(!is.na(treeID)) %>%
-#   dplyr::pull(treeID) %>%
-#   unique() %>%
-#   .[1:11] %>%
-#   purrr::map(\(x) tree_voxel_metrics(
-#     las = las, grain.size = 1, id = x
-#   )) %>%
-#   dplyr::bind_rows() %>%
-#   dplyr::glimpse()
-
 #####################################################################
 # intermediate function 2:
-# take response from tree_voxel_metrics
+# take response from voxel_count_pulses
 # aggregate and apply MacArthur-Horn equation to get LAD
 #####################################################################
-
 agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
   # return nothing
   if(
@@ -205,7 +92,7 @@ agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
   ){return(NULL)}
   # cols to group by
   if(inherits(attribute,"character")){
-    cols2group <- c(attribute, "x","y")
+    cols2group <- c(attribute, "x","y") %>% unique() %>% stringr::str_squish()
   }else{
     cols2group <- c("x","y")
   }
@@ -223,6 +110,7 @@ agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
   # aggregate and calculate LAD
   pulse_df <-
     voxel_metrics %>%
+    dplyr::ungroup() %>%
     dplyr::mutate(dplyr::across(
       c("x","y","z")
       , as.numeric
@@ -230,7 +118,7 @@ agg_lad_voxels = function(voxel_metrics, attribute = NULL, k = 1){
     ### this is essential...at a minimum, need to group by x,y
     dplyr::group_by(
       dplyr::across(
-        dplyr::any_of(cols2group)
+        dplyr::all_of(cols2group)
       )
     ) %>%
     dplyr::arrange(x,y,desc(z)) %>% ### this is essential for the sky be first
@@ -268,40 +156,31 @@ leafr_lad_voxels <- function(
   las
   , voxel_grain_size_m = 1
   , k = 1
-  , group_treeID = T
+  , attribute = "treeID" # NULL
 ){
   if(!inherits(las, "LAS")){stop("must use an object of class `LAS`")}
-
-  if(group_treeID){
-    # check_df_cols_all_missing() in utils_biomass.r
-    check_df_cols_all_missing(
-      las@data
-      , col_names = "treeID"
-      , all_numeric = F
-    )
-    # map over treeID for tree_voxel_metrics
-    voxel_metrics <- las@data %>%
-      dplyr::filter(!is.na(treeID)) %>%
-      dplyr::pull(treeID) %>%
-      unique() %>%
-      purrr::map(\(x)
-        tree_voxel_metrics(
-          las = las, grain.size = voxel_grain_size_m, id = x
-        )
-        , .progress = "extracting LAD (leaf area density)"
-      ) %>%
-      dplyr::bind_rows()
-    # aggregate
-    agg_df <- agg_lad_voxels(voxel_metrics, attribute="treeID") %>%
-      dplyr::arrange(treeID,x,y,desc(z))
-  }else{
-    # tree_voxel_metrics
-    voxel_metrics <- tree_voxel_metrics(las = las, grain.size = voxel_grain_size_m)
-    # aggregate
-    agg_df <- agg_lad_voxels(voxel_metrics) %>%
-      dplyr::arrange(x,y,desc(z))
-  }
-
+  # "vertical resolution (Delta Z or Dz) was fixed at 1 m" https://doi.org/10.3390/rs11010092
+  dz <- 1
+  # count the pulses
+  voxel_metrics <- voxel_count_pulses(
+    las
+    , horizontal_res = voxel_grain_size_m # cannot go below 1
+    , vertical_res = dz # cannot go below 1
+    , attribute = attribute # grouping attribute, e.g. "treeID"
+    , force_z_gte0 = T # force Z<0 to zero
+    , trim_voxels = "xy"
+    ## trim_voxels = "xyz" -> removes voxels where the xyz combination has zero pulses
+    ### that is, returns only voxels that contain 1 or more points
+    ## trim_voxels = "xy" -> removes voxels where the xy combination has zero pulses
+    ## trim_voxels = "z" -> removes voxels where the z level has zero pulses
+    ## trim_voxels = "none" -> returns all voxels in the bounding box of the attribute
+  )
+  if(is.null(voxel_metrics) || nrow(voxel_metrics)<1){return(NULL)}
+  # voxel_metrics %>% dplyr::glimpse()
+  # aggregate
+  agg_df <- agg_lad_voxels(voxel_metrics, attribute=attribute, k = k)
+  if(is.null(agg_df) || nrow(agg_df)<1){return(NULL)}
+  # agg_df %>% dplyr::glimpse()
   # return
   return(agg_df)
 
@@ -338,68 +217,6 @@ leafr_lad_voxels <- function(
 
 
 #####################################################################
-# intermediate function 3:
-# take response from leafr_lad_voxels
-# and force it to native leafR::lad.voxels() return
-#####################################################################
-format_leafr_lad_voxels <- function(leafr_lad_voxels, id = NA) {
-  if(
-    (leafr_lad_voxels %>%
-      dplyr::ungroup() %>%
-      dplyr::summarise(n = sum(is.na(treeID)))) == nrow(leafr_lad_voxels)
-  ){
-    LAD_VOXELS = list(
-      "LAD" = leafr_lad_voxels %>%
-        dplyr::select(x,y,z,LAD) %>%
-        dplyr::arrange(x,y,desc(z)) %>%
-        tidyr::pivot_wider(
-          names_from = z
-          , values_from = LAD
-          , names_prefix = "pulses_"
-        ) %>%
-        dplyr::select(-c(x,y)) %>%
-        as.matrix()
-      , "coordenates" = leafr_lad_voxels %>%
-        dplyr::distinct(x,y) %>%
-        dplyr::arrange(x,y) %>%
-        as.matrix()
-    )
-  }else{
-
-    LAD_VOXELS = list(
-      "LAD" = leafr_lad_voxels %>%
-        dplyr::filter(treeID==id) %>%
-        dplyr::select(x,y,z,LAD) %>%
-        dplyr::arrange(x,y,desc(z)) %>%
-        tidyr::pivot_wider(
-          names_from = z
-          , values_from = LAD
-          , names_prefix = "pulses_"
-        ) %>%
-        dplyr::select(-c(x,y)) %>%
-        as.matrix()
-      , "coordenates" = leafr_lad_voxels %>%
-        dplyr::filter(treeID==id) %>%
-        dplyr::distinct(x,y) %>%
-        dplyr::arrange(x,y) %>%
-        as.matrix()
-    )
-  }
-  return(LAD_VOXELS)
-}
-
-# # # #
-# leafr_lad_voxels(las %>% lidR::filter_poi(treeID==6),group_treeID = T) %>%
-#   format_leafr_lad_voxels(id=6)
-# # # lets compare...we won't be exact b/c we will get a different x,y grid
-# f <- las %>%
-#   lidR::filter_poi(treeID==6) %>%
-#   lidR::writeLAS(file.path(tempdir(),"tree.las"))
-#
-# LAD_VOXELS_og <- leafR::lad.voxels(f)
-# LAD_VOXELS_og
-
-#####################################################################
 # intermediate function 4:
 # re-writes leafR::lad.profile()
 # to ingest output from leafr_lad_voxels() or agg_lad_voxels()
@@ -416,8 +233,10 @@ leafr_lad_profile <- function(
   ){return(NULL)}
   # cols to group by
   if(inherits(attribute,"character")){
-    cols2group <- c(attribute, "z")
-    overall_cols2group <- c(attribute, "hey_xxxxxx") # hey_xxxxxx is a placeholder in case blank and works b/c using dplyr::any_of
+    cols2group <- c(attribute, "z") %>% unique() %>% stringr::str_squish()
+    overall_cols2group <- c(attribute, "hey_xxxxxx") %>%
+       unique() %>% stringr::str_squish()
+    # hey_xxxxxx is a placeholder in case blank and works b/c using dplyr::any_of
   }else{
     cols2group <- c("z")
     overall_cols2group <- c("hey_xxxxxx") # hey_xxxxxx is a placeholder in case blank and works b/c using dplyr::any_of
@@ -855,12 +674,16 @@ voxel_count_pulses <- function(
     voxel_pulses_df <- voxel_pulses_df %>%
       dplyr::group_by(dplyr::across(
         dplyr::all_of(c(cols2group,"x","y"))
-      ))
+      )) %>%
+      dplyr::filter(sum(dplyr::coalesce(pulses,0))>0) %>%
+      dplyr::ungroup()
   }else if(trim_voxels == "z"){
     voxel_pulses_df <- voxel_pulses_df %>%
       dplyr::group_by(dplyr::across(
         dplyr::all_of(c(cols2group,"z"))
-      ))
+      )) %>%
+      dplyr::filter(sum(dplyr::coalesce(pulses,0))>0) %>%
+      dplyr::ungroup()
   } # otherwise no filter
 
   return(voxel_pulses_df)
