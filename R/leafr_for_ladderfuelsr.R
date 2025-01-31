@@ -662,3 +662,230 @@ voxelize_las_to_bbox_df <- function(
 #     color="Z"
 #     , size = 1, bg = "white", voxel = TRUE
 #   )
+
+#####################################################################
+# intermediate function 48:
+## in order to join by our cols2group we need to create a single column
+## that uniquely identifies the columns listed in cols2group
+## even if length(cols2group)>1
+## if we were only joining our las to voxel data based on cols2group..
+## ...we can use dplyr::left_join(voxel,las, by = cols2group)
+## ...however, we are also joining on the range of x,y,z values
+## ...and dplyr::join_by(cols2group, x_from<=X, x_to>X,..., z_from<=Z, z_to>Z)
+## ...fails because the "cols2group" is a character list (non standard evaluation)
+### we're going to do the same thing for both data so fn it
+#####################################################################
+cols2group_to_id <- function(df, cols2group) {
+  if(!inherits(df,"data.frame")){return(NULL)}
+  if(!inherits(cols2group,"character")){return(df)}
+  if(length(cols2group)<1){return(df)}
+  ## 1. cast the cols2group as character
+  df <-
+    df %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(dplyr::across(
+      dplyr::all_of(cols2group)
+      , .fns = ~ factor(.x) %>% as.character()
+      , .names = "{.col}_fctxxx"
+    ))
+  ## 2. combine the cols2group columns into one id column
+  df <- df %>%
+    # create a combination of the cols2group as an ID
+    dplyr::bind_cols(
+      df %>%
+      dplyr::select(tidyselect::ends_with("_fctxxx")) %>%
+      tidyr::unite(
+        col = "idxxx"
+        , tidyselect::ends_with("_fctxxx")
+        , sep = "_zzz_"
+        , remove = T
+        , na.rm = F
+      )
+    ) %>%
+    dplyr::select(-tidyselect::ends_with("_fctxxx"))
+  # return
+  return(df)
+}
+
+
+#####################################################################
+# intermediate function 50:
+# aggregate points in voxels
+# is similar to lidR::voxel_metrics()
+#####################################################################
+voxel_count_pulses <- function(
+  las
+  , horizontal_res = 1 # cannot go below 1
+  , vertical_res = 1 # cannot go below 1
+  , attribute = NULL # grouping attribute, e.g. "treeID"
+  , force_z_gte0 = T # force Z<0 to zero
+  , trim_voxels = "xyz"
+  ## trim_voxels = "xyz" -> removes voxels where the xyz combination has zero pulses
+  ### that is, returns only voxels that contain 1 or more points
+  ## trim_voxels = "xy" -> removes voxels where the xy combination has zero pulses
+  ## trim_voxels = "z" -> removes voxels where the z level has zero pulses
+  ## trim_voxels = "none" -> returns all voxels in the bounding box of the attribute
+) {
+  # get the xyz bounding box for each tree
+  voxel_df <- voxelize_las_to_bbox_df(
+    las = las
+    , horizontal_res = horizontal_res # cannot go below 1
+    , vertical_res = vertical_res # cannot go below 1
+    , attribute = attribute
+    , full_z_range = T # should the return have the full z range even if no points?
+    , force_z_gte0 = force_z_gte0 # force Z<0 to zero
+  )
+  if(is.null(voxel_df) || nrow(voxel_df)<1){return(NULL)}
+
+  # force cols2group to something
+  if(inherits(attribute,"character")){
+    cols2group <- c(attribute) %>% unique() %>% stringr::str_squish()
+  }else{
+    ### make a dummy attribute
+    ### this way we can continue to use the
+    ### cols2group syntax below
+    las@data$dummy_xxx <- 1
+    voxel_df$dummy_xxx <- 1
+    cols2group <- c("dummy_xxx")
+  }
+
+  ## in order to join by our cols2group we need to create a single column
+  ## that uniquely identifies the columns listed in cols2group
+  ## even if length(cols2group)>1
+  ## cols2group_to_id() combines the values in cols2group
+  ## and returns the data with a new column called "idxxx"
+  voxel_df <- voxel_df %>%
+    cols2group_to_id(cols2group = cols2group)
+  las_data <-
+    las@data %>%
+    # remove rows where attribute is fully missing
+    # !!! only do this if cols2group is not null
+    dplyr::filter(
+      !dplyr::if_all(
+        .cols = dplyr::all_of(cols2group)
+        , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
+      )
+    ) %>%
+    cols2group_to_id(cols2group = cols2group)
+
+  # now we join the voxel data to the las points and count
+  my_join <- dplyr::join_by(
+    idxxx
+    , x_from<=X, x_to>X # x_min <= x < x_max
+    , y_from<=Y, y_to>Y # y_min <= y < y_max
+    , z_from<=Z, z_to>Z # z_min <= z < z_max
+  )
+  # join and aggregate
+  voxel_pulses_df <- voxel_df %>%
+    dplyr::rename_with(
+      .cols = c(x,y,z)
+      , .fn = ~ paste0(.x, "_from", recycle0 = TRUE)
+    ) %>%
+    dplyr::mutate(
+      x_to = x_from+horizontal_res
+      , y_to = y_from+horizontal_res
+      , z_to = z_from+vertical_res
+    ) %>%
+    ## potential memory issues for very large point clouds?
+    dplyr::left_join(
+      las_data %>%
+        dplyr::select(dplyr::all_of(c(
+          "idxxx"
+          , "X","Y","Z"
+        ))) %>%
+        dplyr::mutate(pulses=1)
+      , by = my_join # cols2group
+    ) %>%
+    dplyr::rename_with(
+      .cols = c(x_from,y_from,z_from)
+      , .fn = ~ stringr::str_remove_all(.x, "_from")
+    ) %>%
+    dplyr::group_by(dplyr::across(
+      dplyr::all_of(c(
+        cols2group
+        , "x","y","z"
+      ))
+    )) %>%
+    dplyr::summarise(
+      pulses = sum(dplyr::coalesce(pulses,0))
+    ) %>%
+    dplyr::ungroup()
+
+  # drop the highest xyz voxels if they don't have any pulses
+  # these get introduced in voxelize_las_to_bbox_df to ensure full coverage
+  voxel_pulses_df <- voxel_pulses_df %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(cols2group))) %>%
+    dplyr::mutate(dplyr::across(
+      c(x,y,z)
+      , .fns = ~ max(ifelse(pulses>0,.x,as.numeric(NA)), na.rm = T)
+      , .names = "{.col}_maxxx"
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(
+      x<=x_maxxx
+      , y<=y_maxxx
+      , z<=z_maxxx
+    ) %>%
+    dplyr::select(-tidyselect::ends_with("_maxxx"))
+
+  # voxel_pulses_df %>%
+  #   dplyr::relocate(x,y,z) %>%
+  #   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
+  #   dplyr::rename_with(toupper) %>%
+  #   lidR::LAS(crs = lidR::st_crs(las)) %>%
+  #   lidR::plot(
+  #     color="PULSES", breaks = "kmeans"
+  #     , size = 1, bg = "white", voxel = TRUE
+  #   )
+
+  ##### trim voxels
+  ## trim_voxels = "xyz" -> removes voxels where the xyz combination has zero pulses
+    ### that is, returns only voxels that contain 1 or more points
+  ## trim_voxels = "xy" -> removes voxels where the xy combination has zero pulses
+  ## trim_voxels = "z" -> removes voxels where the z level has zero pulses
+  ## trim_voxels = "none" -> returns all voxels in the bounding box of the attribute
+  trim_voxels <- dplyr::coalesce(trim_voxels,"") %>%
+    .[1] %>%
+    tolower() %>%
+    stringr::str_replace_all("[^[:alnum:]]", "")
+  if(trim_voxels == "xyz"){
+    voxel_pulses_df <- voxel_pulses_df %>%
+      dplyr::filter(dplyr::coalesce(pulses,0)>0)
+  }else if(trim_voxels == "xy"){
+    voxel_pulses_df <- voxel_pulses_df %>%
+      dplyr::group_by(dplyr::across(
+        dplyr::all_of(c(cols2group,"x","y"))
+      ))
+  }else if(trim_voxels == "z"){
+    voxel_pulses_df <- voxel_pulses_df %>%
+      dplyr::group_by(dplyr::across(
+        dplyr::all_of(c(cols2group,"z"))
+      ))
+  } # otherwise no filter
+
+  return(voxel_pulses_df)
+
+  # voxel_pulses_df %>%
+  #   dplyr::filter(dplyr::coalesce(pulses,0)>0) %>%
+  #   dplyr::filter(treeID == voxel_pulses_df$treeID[1111]) %>%
+  #   dplyr::relocate(x,y,z) %>%
+  #   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
+  #   dplyr::rename_with(toupper) %>%
+  #   lidR::LAS(crs = lidR::st_crs(las)) %>%
+  #   lidR::plot(
+  #     color="PULSES", legend = T
+  #     , size = 1, bg = "white", voxel = TRUE
+  #   )
+  # voxel_pulses_df %>%
+  #   dplyr::filter(dplyr::coalesce(pulses,0)>0) %>%
+  #   dplyr::filter(treeID == voxel_pulses_df$treeID[1]) %>%
+  #   dplyr::arrange(x,y,z)
+  #
+  # lidR::voxel_metrics(
+  #   las = las %>% lidR::filter_poi(treeID==voxel_pulses_df$treeID[1])
+  #   , func = ~list(pulses = length(Z))
+  #   , res = c(horizontal_res,vertical_res)
+  # ) %>%
+  # dplyr::rename_with(tolower) %>%
+  # dplyr::arrange(x,y,z)
+}
