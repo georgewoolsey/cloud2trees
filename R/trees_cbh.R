@@ -229,16 +229,24 @@ trees_cbh <- function(
   # catalog apply
   ####################################################################
   # sample
-    if(!is.na(tree_sample_prop)){
+    if(
+      !is.na(tree_sample_prop)
+      && tree_sample_prop<1
+    ){
       samp_trees <- trees_poly %>%
         dplyr::slice_sample(
           prop = tree_sample_prop
         )
-    }else{
+    }else if(
+      !is.na(tree_sample_n)
+      && tree_sample_n<nrow(trees_poly)
+    ){
       samp_trees <- trees_poly %>%
         dplyr::slice_sample(
           n = tree_sample_n
         )
+    }else{
+      samp_trees <- trees_poly
     }
   ##################################
   # apply the ctg_leafr_for_ladderfuelsr function

@@ -436,7 +436,7 @@ voxelize_las_to_bbox_df <- function(
     tidyr::unnest(cols = x) %>%
     tidyr::unnest(cols = y) %>%
     tidyr::unnest(cols = z) %>%
-    ungroup()
+    dplyr::ungroup()
   if(nrow(grid_df)<1){return(NULL)}
   # remove dummy
   if(names(grid_df) %>% stringr::str_equal("dummy_xxx") %>% any()){

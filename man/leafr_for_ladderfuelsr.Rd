@@ -8,7 +8,7 @@ leafr_for_ladderfuelsr(
   las,
   voxel_grain_size_m = 1,
   k = 1,
-  group_treeID = TRUE,
+  attribute = "treeID",
   relative = FALSE
 )
 }
@@ -19,8 +19,8 @@ leafr_for_ladderfuelsr(
 
 \item{k}{numeric. coefficient to transform effective LAI to real LAI (k = 1; for effective LAI)}
 
-\item{group_treeID}{logical. should output be grouped by treeID? If \code{TRUE} (default), the attribute \code{treeID} must exist
-in the \code{las} data and must be numeric.}
+\item{attribute}{character. The column name of the attribute to group the return LAD profile by. Default is "treeID". The attribute (whatever it is defined as)
+must exist in the \code{las} data}
 
 \item{relative}{logical. produce lad profile by relative total LAI values. Indicate when using effective LAI value.
 if set to TRUE, lad value will be relative_lad; otherwise, lad value will be mean_lad}
