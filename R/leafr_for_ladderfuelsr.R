@@ -405,7 +405,8 @@ voxelize_las_to_bbox_df <- function(
 
   # filter for min pulses
   if(dplyr::coalesce(as.numeric(min_pulses),0)>0){
-    las_data <- dplyr::group_by(
+    las_data <- las_data %>%
+    dplyr::group_by(
       dplyr::across( dplyr::all_of(cols2group) )
     ) %>%
     dplyr::filter(dplyr::n()>as.numeric(min_pulses)) %>%
