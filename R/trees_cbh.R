@@ -601,6 +601,7 @@ ctg_leafr_for_ladderfuelsr <- function(
       , voxel_grain_size_m = voxel_grain_size_m
       , k = 1
       , attribute = "treeID"
+      , min_pulses = 6
       , relative = F
     )
   # just get the result
