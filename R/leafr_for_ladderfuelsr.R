@@ -585,50 +585,59 @@ voxel_count_pulses <- function(
         , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
       )
     ) %>%
-    cols2group_to_id(cols2group = cols2group)
+    cols2group_to_id(cols2group = cols2group) %>%
+    dplyr::distinct(idxxx,X,Y,Z) %>%
+    # round xyz similar to lidR::voxel_metrics
+    dplyr::mutate(dplyr::across(
+      c("X","Y","Z")
+      , round
+    ))
+
+  ### joining with numeric data improves performance compared to joining character data
+  ## https://github.com/tidyverse/dplyr/issues/1386
+  ## https://tysonbarrett.com/jekyll/update/2019/10/11/speed_of_joins/
+  lvl_temp <- unique(c(voxel_df$idxxx, las_data$idxxx))
+  voxel_df <- voxel_df %>% dplyr::mutate(idxxx = factor(idxxx, levels = lvl_temp))
+  las_data <- las_data %>% dplyr::mutate(idxxx = factor(idxxx, levels = lvl_temp))
+
+  ## aggregate the pulses by round(x),round(y),floor(z)
+  ## prior to joining to speed things up
+  las_data <- las_data %>%
+    dplyr::select(dplyr::all_of(c(
+      "idxxx"
+      , "X","Y","Z"
+    ))) %>%
+    dplyr::rename_with(tolower) %>%
+    dplyr::mutate(pulses=1) %>%
+    dplyr::group_by(idxxx,x,y,z) %>%
+    dplyr::summarise(pulses = sum(pulses)) %>%
+    dplyr::ungroup()
 
   # now we join the voxel data to the las points and count
   my_join <- dplyr::join_by(
     idxxx
-    , x_from<=X, x_to>X # x_min <= x < x_max
-    , y_from<=Y, y_to>Y # y_min <= y < y_max
-    , z_from<=Z, z_to>Z # z_min <= z < z_max
+    , x_from<=x, x_to>x # x_min <= x < x_max
+    , y_from<=y, y_to>y # y_min <= y < y_max
+    , z_from<=z, z_to>z # z_min <= z < z_max
   )
-  # join and aggregate
-  voxel_pulses_df <- voxel_df %>%
-    dplyr::rename_with(
-      .cols = c(x,y,z)
-      , .fn = ~ paste0(.x, "_from", recycle0 = TRUE)
+
+  # join
+  ## potential memory issues for very large point clouds?
+  ## since we are using a complex join
+  ## one option is to map the join over the idxxx and bind_rows
+  voxel_pulses_df <-
+    voxel_df$idxxx %>%
+    unique() %>%
+    purrr::map(\(x)
+      join_voxels(
+        id = x
+        , voxel_df = voxel_df
+        , las_data = las_data
+        , my_join = my_join
+        , cols2group = cols2group
+      )
     ) %>%
-    dplyr::mutate(
-      x_to = x_from+horizontal_res
-      , y_to = y_from+horizontal_res
-      , z_to = z_from+vertical_res
-    ) %>%
-    ## potential memory issues for very large point clouds?
-    dplyr::left_join(
-      las_data %>%
-        dplyr::select(dplyr::all_of(c(
-          "idxxx"
-          , "X","Y","Z"
-        ))) %>%
-        dplyr::mutate(pulses=1)
-      , by = my_join # cols2group
-    ) %>%
-    dplyr::rename_with(
-      .cols = c(x_from,y_from,z_from)
-      , .fn = ~ stringr::str_remove_all(.x, "_from")
-    ) %>%
-    dplyr::group_by(dplyr::across(
-      dplyr::all_of(c(
-        cols2group
-        , "x","y","z"
-      ))
-    )) %>%
-    dplyr::summarise(
-      pulses = sum(dplyr::coalesce(pulses,0))
-    ) %>%
-    dplyr::ungroup()
+    dplyr::bind_rows()
 
   # drop the highest xyz voxels if they don't have any pulses
   # these get introduced in voxelize_las_to_bbox_df to ensure full coverage
@@ -711,4 +720,45 @@ voxel_count_pulses <- function(
   # ) %>%
   # dplyr::rename_with(tolower) %>%
   # dplyr::arrange(x,y,z)
+}
+
+
+#####################################################################
+# intermediate function 50:
+# join las to voxel data to map over idxxx
+join_voxels <- function(id,voxel_df,las_data,my_join,cols2group) {
+  # join
+  voxel_pulses_df <- voxel_df %>%
+    dplyr::filter(idxxx==id) %>%
+    dplyr::rename_with(
+      .cols = c(x,y,z)
+      , .fn = ~ paste0(.x, "_from", recycle0 = TRUE)
+    ) %>%
+    dplyr::mutate(
+      x_to = x_from+horizontal_res
+      , y_to = y_from+horizontal_res
+      , z_to = z_from+vertical_res
+    ) %>%
+    dplyr::left_join(
+      las_data %>% dplyr::filter(idxxx==id)
+      , by = my_join # cols2group
+    ) %>%
+    dplyr::select(-c(x,y,z)) %>%
+    dplyr::rename_with(
+      .cols = c(x_from,y_from,z_from)
+      , .fn = ~ stringr::str_remove_all(.x, "_from")
+    )
+  # and aggregate
+  voxel_pulses_df <- voxel_pulses_df %>%
+    dplyr::group_by(dplyr::across(
+      dplyr::all_of(c(
+        cols2group
+        , "x","y","z"
+      ))
+    )) %>%
+    dplyr::summarise(
+      pulses = sum(dplyr::coalesce(pulses,0))
+    ) %>%
+    dplyr::ungroup()
+  return(voxel_pulses_df)
 }
