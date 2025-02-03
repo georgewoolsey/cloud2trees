@@ -511,7 +511,7 @@ voxelize_las_to_bbox_df <- function(
 ## ...fails because the "cols2group" is a character list (non standard evaluation)
 ### we're going to do the same thing for both data so fn it
 #####################################################################
-cols2group_to_id <- function(df, cols2group) {
+cols2group_to_id <- function(df, cols2group, as_factor = F) {
   if(!inherits(df,"data.frame")){return(NULL)}
   if(!inherits(cols2group,"character")){return(df)}
   if(length(cols2group)<1){return(df)}
@@ -539,6 +539,10 @@ cols2group_to_id <- function(df, cols2group) {
       )
     ) %>%
     dplyr::select(-tidyselect::ends_with("_fctxxx"))
+
+  if(as_factor==T){
+    df <- df %>% dplyr::mutate(idxxx = as.factor(idxxx))
+  }
   # return
   return(df)
 }
@@ -557,205 +561,253 @@ voxel_count_pulses <- function(
   , force_z_gte0 = T # force Z<0 to zero
   , trim_voxels = "xyz"
   ## trim_voxels = "xyz" -> removes voxels where the xyz combination has zero pulses
-  ### that is, returns only voxels that contain 1 or more points
+    ### that is, returns only voxels that contain 1 or more points
   ## trim_voxels = "xy" -> removes voxels where the xy combination has zero pulses
+    # this expands the data to all possible xyz combinations for which there is
+    # a value in the xy even if there is no value in the z
+    # so, a column from the ground up for all xy with points
   ## trim_voxels = "z" -> removes voxels where the z level has zero pulses
-  ## trim_voxels = "none" -> returns all voxels in the bounding box of the attribute
+    # this expands the data to all possible xyz combinations for which there is
+    # a value in the z even if there is no value in the xy
+    # so, a row/bbox for all z levels with points
 ) {
-  # get the xyz bounding box for each tree
-  voxel_df <- voxelize_las_to_bbox_df(
-    las = las
-    , horizontal_res = horizontal_res # cannot go below 1
-    , vertical_res = vertical_res # cannot go below 1
-    , attribute = attribute
-    , min_pulses = min_pulses
-    , full_z_range = T # should the return have the full z range even if no points?
-    , force_z_gte0 = force_z_gte0 # force Z<0 to zero
-  )
-  if(is.null(voxel_df) || nrow(voxel_df)<1){return(NULL)}
+  # las?
+    if(!inherits(las, "LAS")){stop("must provide and object of class LAS")}
+  # return nothing
+    if (lidR::is.empty(las)) return(NULL)
+
+    if(force_z_gte0==T){
+      # force below ground to zero
+      las@data$Z[las@data$Z < 0] <- 0
+      # summary(las@data$Z)
+    }
+
+  # check the grain size
+  # floor the grain size (resolution) and don't allow to go below 1m
+    horizontal_res <- horizontal_res %>%
+      as.numeric() %>%
+      floor() %>%
+      max(1, na.rm = T)
+
+  # check the grain size
+  # floor the grain size (resolution) and don't allow to go below 1m
+    vertical_res <- vertical_res %>%
+      as.numeric() %>%
+      floor() %>%
+      max(1, na.rm = T)
 
   # force cols2group to something
-  if(inherits(attribute,"character")){
-    cols2group <- c(attribute) %>% unique() %>% stringr::str_squish()
-  }else{
-    ### make a dummy attribute
-    ### this way we can continue to use the
-    ### cols2group syntax below
-    las@data$dummy_xxx <- 1
-    voxel_df$dummy_xxx <- 1
-    cols2group <- c("dummy_xxx")
-  }
+    if(inherits(attribute,"character")){
+      cols2group <- c(attribute) %>% unique() %>% stringr::str_squish()
+    }else{
+      ### make a dummy attribute
+      ### this way we can continue to use the
+      ### cols2group syntax below
+      las@data$dummy_xxx <- 1
+      cols2group <- c("dummy_xxx")
+    }
+
+  # filter if missing all of the cols2group
+    las_data <-
+      las@data %>%
+      # remove rows where attribute is fully missing
+      # !!! only do this if cols2group is not null
+      dplyr::filter(
+        !dplyr::if_all(
+          .cols = dplyr::all_of(cols2group)
+          , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
+        )
+      )
+
+  # filter for min pulses
+    if(dplyr::coalesce(as.numeric(min_pulses),0)>0){
+      las_data <- las_data %>%
+        dplyr::group_by(
+          dplyr::across( dplyr::all_of(cols2group) )
+        ) %>%
+        dplyr::filter(dplyr::n()>as.numeric(min_pulses)) %>%
+        dplyr::ungroup()
+    }
+
+    if(nrow(las_data)<1){return(NULL)}
 
   ## in order to join by our cols2group we need to create a single column
-  ## that uniquely identifies the columns listed in cols2group
-  ## even if length(cols2group)>1
-  ## cols2group_to_id() combines the values in cols2group
-  ## and returns the data with a new column called "idxxx"
-  voxel_df <- voxel_df %>%
-    cols2group_to_id(cols2group = cols2group)
-  las_data <-
-    las@data %>%
-    # remove rows where attribute is fully missing
-    # !!! only do this if cols2group is not null
-    dplyr::filter(
-      !dplyr::if_all(
-        .cols = dplyr::all_of(cols2group)
-        , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
-      )
-    ) %>%
-    cols2group_to_id(cols2group = cols2group) %>%
-    dplyr::distinct(idxxx,X,Y,Z) %>%
-    # round xyz similar to lidR::voxel_metrics
-    dplyr::mutate(dplyr::across(
-      c("X","Y","Z")
-      , round
-    ))
+    ## that uniquely identifies the columns listed in cols2group
+    ## even if length(cols2group)>1
+    ## cols2group_to_id() combines the values in cols2group
+    ## and returns the data with a new column called "idxxx"
+    las_data <- las_data %>%
+        cols2group_to_id(cols2group = cols2group, as_factor = T)
+  # lookup table of grouping cols to id
+    cols2group_to_id_df <- las_data %>%
+      dplyr::select(dplyr::all_of(c(cols2group,"idxxx"))) %>%
+      dplyr::distinct()
 
-  ### joining with numeric data improves performance compared to joining character data
-  ## https://github.com/tidyverse/dplyr/issues/1386
-  ## https://tysonbarrett.com/jekyll/update/2019/10/11/speed_of_joins/
-  lvl_temp <- unique(c(voxel_df$idxxx, las_data$idxxx))
-  voxel_df <- voxel_df %>% dplyr::mutate(idxxx = factor(idxxx, levels = lvl_temp))
-  las_data <- las_data %>% dplyr::mutate(idxxx = factor(idxxx, levels = lvl_temp))
-
-  ## aggregate the pulses by round(x),round(y),floor(z)
-  ## prior to joining to speed things up
-  las_data <- las_data %>%
-    dplyr::select(dplyr::all_of(c(
-      "idxxx"
-      , "X","Y","Z"
-    ))) %>%
-    dplyr::rename_with(tolower) %>%
-    dplyr::mutate(pulses=1) %>%
-    dplyr::group_by(idxxx,x,y,z) %>%
-    dplyr::summarise(pulses = sum(pulses)) %>%
-    dplyr::ungroup()
-
-  # now we join the voxel data to the las points and count
-  my_join <- dplyr::join_by(
-    idxxx
-    , x_from<=x, x_to>x # x_min <= x < x_max
-    , y_from<=y, y_to>y # y_min <= y < y_max
-    , z_from<=z, z_to>z # z_min <= z < z_max
-  )
-
-  # join
-  ## potential memory issues for very large point clouds?
-  ## since we are using a complex join
-  voxel_pulses_df <- voxel_df %>%
-    dplyr::rename_with(
-      .cols = c(x,y,z)
-      , .fn = ~ paste0(.x, "_from", recycle0 = TRUE)
-    ) %>%
-    dplyr::mutate(
-      x_to = x_from+horizontal_res
-      , y_to = y_from+horizontal_res
-      , z_to = z_from+vertical_res
-    ) %>%
-    dplyr::arrange(idxxx,x_from,x_to,y_from,y_to,z_from,z_to) %>%
-    dplyr::left_join(
+  ## aggregate the pulses by rounding of our xyz to the nearest multiple of resolution
+    voxel_pulses_df <-
       las_data %>%
-        dplyr::arrange(idxxx,x,y,z)
-      , by = my_join # cols2group
-    ) %>%
-    dplyr::select(-c(x,y,z)) %>%
-    dplyr::rename_with(
-      .cols = c(x_from,y_from,z_from)
-      , .fn = ~ stringr::str_remove_all(.x, "_from")
-    )
-  # and aggregate
-  voxel_pulses_df <- voxel_pulses_df %>%
-    dplyr::group_by(dplyr::across(
-      dplyr::all_of(c(
-        cols2group
-        , "x","y","z"
-      ))
-    )) %>%
-    dplyr::summarise(
-      pulses = sum(dplyr::coalesce(pulses,0))
-    ) %>%
-    dplyr::ungroup()
-  # drop the highest xyz voxels if they don't have any pulses
-  # these get introduced in voxelize_las_to_bbox_df to ensure full coverage
-  voxel_pulses_df <- voxel_pulses_df %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(cols2group))) %>%
-    dplyr::mutate(dplyr::across(
-      c(x,y,z)
-      , .fns = ~ max(ifelse(pulses>0,.x,as.numeric(NA)), na.rm = T)
-      , .names = "{.col}_maxxx"
-    )) %>%
-    dplyr::ungroup() %>%
-    dplyr::filter(
-      x<=x_maxxx
-      , y<=y_maxxx
-      , z<=z_maxxx
-    ) %>%
-    dplyr::select(-tidyselect::ends_with("_maxxx"))
+      dplyr::select(dplyr::all_of(c(
+        "idxxx"
+        , "X","Y","Z"
+      ))) %>%
+      dplyr::rename_with(tolower) %>%
+      dplyr::group_by(idxxx) %>%
+      # get the minimum or "starting" values
+      dplyr::mutate(
+        dplyr::across(
+          c("x","y")
+          , .fns = ~ min(.x,na.rm = T) %>%
+            floor() %>%
+            round_to_multiple(multiple = horizontal_res)
+          , .names = "{.col}_min"
+        )
+        , z_min = min(z,na.rm = T) %>%
+          floor() %>%
+          round_to_multiple(multiple = vertical_res)
+      ) %>%
+      dplyr::ungroup() %>%
+      # now group into voxels
+      dplyr::mutate(
+        x = round_to_multiple(x, multiple = horizontal_res, start = x_min)
+        , y = round_to_multiple(y, multiple = horizontal_res, start = y_min)
+        , z = round_to_multiple(floor(z), multiple = vertical_res, start = z_min) #leafR floors z
+        , pulses=1
+      ) %>%
+      dplyr::group_by(idxxx,x,y,z) %>%
+      dplyr::summarise(pulses = sum(pulses)) %>%
+      dplyr::ungroup()
 
-  # voxel_pulses_df %>%
-  #   dplyr::relocate(x,y,z) %>%
-  #   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
-  #   dplyr::rename_with(toupper) %>%
-  #   lidR::LAS(crs = lidR::st_crs(las)) %>%
-  #   lidR::plot(
-  #     color="PULSES", breaks = "kmeans"
-  #     , size = 1, bg = "white", voxel = TRUE
-  #   )
+  # voxel_pulses_df %>% dplyr::glimpse()
+  # voxel_pulses_df %>% summary()
 
-  ##### trim voxels
+  ### we are really expanding voxels here ;)
   ## trim_voxels = "xyz" -> removes voxels where the xyz combination has zero pulses
     ### that is, returns only voxels that contain 1 or more points
   ## trim_voxels = "xy" -> removes voxels where the xy combination has zero pulses
+    # this expands the data to all possible xyz combinations for which there is
+    # a value in the xy even if there is no value in the z
+    # so, a column from the ground up for all xy with points
   ## trim_voxels = "z" -> removes voxels where the z level has zero pulses
-  ## trim_voxels = "none" -> returns all voxels in the bounding box of the attribute
+    # this expands the data to all possible xyz combinations for which there is
+    # a value in the z even if there is no value in the xy
+    # so, a row/bbox for all z levels with points
   trim_voxels <- dplyr::coalesce(trim_voxels,"") %>%
     .[1] %>%
     tolower() %>%
     stringr::str_replace_all("[^[:alnum:]]", "")
+
   if(trim_voxels == "xyz"){
+    # this is the same thing as no filter since started with las data
+    # so a voxel has to have ate least one record
     voxel_pulses_df <- voxel_pulses_df %>%
       dplyr::filter(dplyr::coalesce(pulses,0)>0)
   }else if(trim_voxels == "xy"){
-    voxel_pulses_df <- voxel_pulses_df %>%
-      dplyr::group_by(dplyr::across(
-        dplyr::all_of(c(cols2group,"x","y"))
-      )) %>%
-      dplyr::filter(sum(dplyr::coalesce(pulses,0))>0) %>%
-      dplyr::ungroup()
+    voxel_pulses_df <-
+      # get full range of z values by idxxx
+      # from ground (or lowest point in the data) to highest point in group
+      voxel_pulses_df %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(z_min = min(z,na.rm = T)) %>%
+        dplyr::group_by(idxxx,z_min) %>%
+        dplyr::summarise(z_max = max(z,na.rm = T)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rowwise() %>% # this is key
+        dplyr::mutate(
+          z = list(seq(from=z_min, to=z_max, by = vertical_res))
+        ) %>%
+        dplyr::select(-c(tidyselect::ends_with("_min"),tidyselect::ends_with("_max"))) %>%
+        tidyr::unnest(cols = z) %>%
+        dplyr::ungroup() %>%
+        # this expands the data to all possible xyz combinations for which there is
+        # a value in the xy even if there is no value in the z
+        # so, a column from the ground up for all xy with points
+        dplyr::inner_join(
+          # all x,y combinations by idxxx
+          voxel_pulses_df %>%
+            dplyr::distinct(idxxx,x,y)
+          , by = "idxxx"
+          , relationship = "many-to-many"
+        ) %>%
+        ## now join on voxel counts
+        dplyr::left_join(
+          voxel_pulses_df
+          , by = dplyr::join_by(idxxx,x,y,z)
+        ) %>%
+        dplyr::mutate(pulses = dplyr::coalesce(pulses,0))
   }else if(trim_voxels == "z"){
-    voxel_pulses_df <- voxel_pulses_df %>%
-      dplyr::group_by(dplyr::across(
-        dplyr::all_of(c(cols2group,"z"))
+    voxel_pulses_df <-
+      # get full range of xy values (bbox) by idxxx
+      voxel_pulses_df %>%
+      dplyr::group_by(idxxx) %>%
+      dplyr::summarise(dplyr::across(
+        .cols = c(x,y)
+        , .fns = list(min = ~ min(.x,na.rm=T), max = ~ max(.x,na.rm=T))
       )) %>%
-      dplyr::filter(sum(dplyr::coalesce(pulses,0))>0) %>%
-      dplyr::ungroup()
-  } # otherwise no filter
-
-  return(voxel_pulses_df)
+      dplyr::ungroup() %>%
+      dplyr::rowwise() %>% # this is key
+      dplyr::mutate(
+        x = list(seq(from=x_min, to=x_max, by = horizontal_res))
+        , y = list(seq(from=y_min, to=y_max, by = horizontal_res))
+      ) %>%
+      dplyr::select(-c(tidyselect::ends_with("_min"),tidyselect::ends_with("_max"))) %>%
+      tidyr::unnest(cols = x) %>%
+      tidyr::unnest(cols = y) %>%
+      dplyr::ungroup() %>%
+      # this expands the data to all possible xyz combinations for which there is
+      # a value in the z even if there is no value in the xy
+      # so, a row/bbox for all z levels with points
+      dplyr::inner_join(
+        # all x,y combinations by idxxx
+        voxel_pulses_df %>%
+          dplyr::distinct(idxxx,z)
+        , by = "idxxx"
+        , relationship = "many-to-many"
+      ) %>%
+      ## now join on voxel counts
+      dplyr::left_join(
+        voxel_pulses_df
+        , by = dplyr::join_by(idxxx,x,y,z)
+      ) %>%
+      dplyr::mutate(pulses = dplyr::coalesce(pulses,0))
+  } # otherwise no filter which is same as all_voxels from lidR::voxel_metrics
+  # attach id via lookup
+  voxel_pulses_df <-
+    voxel_pulses_df %>%
+    dplyr::inner_join(
+      cols2group_to_id_df
+      , by = "idxxx"
+      , relationship = "many-to-one"
+    ) %>%
+    dplyr::select(-c(idxxx)) %>%
+    dplyr::relocate(dplyr::all_of(cols2group))
+  # voxel_pulses_df %>% dplyr::glimpse()
+  # voxel_pulses_df %>% summary()
 
   # voxel_pulses_df %>%
-  #   dplyr::filter(dplyr::coalesce(pulses,0)>0) %>%
-  #   dplyr::filter(treeID == voxel_pulses_df$treeID[1111]) %>%
+  #   dplyr::filter(pulses>0) %>%
+  #   dplyr::filter(treeID == voxel_pulses_df$treeID[5555]) %>%
   #   dplyr::relocate(x,y,z) %>%
   #   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
   #   dplyr::rename_with(toupper) %>%
   #   lidR::LAS(crs = lidR::st_crs(las)) %>%
   #   lidR::plot(
   #     color="PULSES", legend = T
-  #     , size = 1, bg = "white", voxel = TRUE
+  #     , size = horizontal_res, bg = "white", voxel = TRUE
   #   )
-  # voxel_pulses_df %>%
-  #   dplyr::filter(dplyr::coalesce(pulses,0)>0) %>%
-  #   dplyr::filter(treeID == voxel_pulses_df$treeID[1]) %>%
-  #   dplyr::arrange(x,y,z)
-  #
-  # lidR::voxel_metrics(
-  #   las = las %>% lidR::filter_poi(treeID==voxel_pulses_df$treeID[1])
-  #   , func = ~list(pulses = length(Z))
-  #   , res = c(horizontal_res,vertical_res)
-  # ) %>%
-  # dplyr::rename_with(tolower) %>%
-  # dplyr::arrange(x,y,z)
+
+  # return
+  return(voxel_pulses_df)
 }
 
-
+#####################################################################
+# intermediate function 53:
+# round any number to the nearest multiple of a number
+#####################################################################
+round_to_multiple <- function(x, multiple, start=NULL) {
+  remainder <- x %% multiple
+  nearest <- ifelse(remainder < (multiple/2), x-remainder, x-remainder+multiple)
+  y <- ifelse(nearest<dplyr::coalesce(start,nearest), start, nearest)
+  return(y)
+}
+# round_to_multiple(c(0,1.5,5.3,11.0,24.1,25),2,4)
+# round_to_multiple(c(0,1.5,5.3,11.0,24.1,25),2)
