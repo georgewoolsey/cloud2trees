@@ -907,9 +907,16 @@ cloud2trees <- function(
       sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf_with_dbh))
 
     # remove temp files
-    if(keep_intrmdt==F & estimate_tree_cbh==F & estimate_dbh_from_cloud==F){
+    if(
+      keep_intrmdt==F &&
+      estimate_tree_cbh==F &&
+      estimate_tree_hmd==F &&
+      estimate_dbh_from_cloud==F
+    ){
       unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
-    }else if(keep_intrmdt==F & (estimate_tree_cbh==T | estimate_dbh_from_cloud==T)){
+    }else if(
+      (estimate_tree_cbh==T || estimate_tree_hmd==T || estimate_dbh_from_cloud==T)
+    ){
       # move the normalized laz files to delivery
       ### Create the directories
       to_dir <- file.path(cloud2raster_ans$create_project_structure_ans$delivery_dir, "norm_las")

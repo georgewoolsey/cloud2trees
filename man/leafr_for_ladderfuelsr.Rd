@@ -9,6 +9,7 @@ leafr_for_ladderfuelsr(
   voxel_grain_size_m = 1,
   k = 1,
   attribute = "treeID",
+  min_pulses = 0,
   relative = FALSE
 )
 }
@@ -21,6 +22,8 @@ leafr_for_ladderfuelsr(
 
 \item{attribute}{character. The column name of the attribute to group the return LAD profile by. Default is "treeID". The attribute (whatever it is defined as)
 must exist in the \code{las} data}
+
+\item{min_pulses}{numeric. minimum number of pulses required to return a record by attribute. set to zero (default) to leave data unfiltered.}
 
 \item{relative}{logical. produce lad profile by relative total LAI values. Indicate when using effective LAI value.
 if set to TRUE, lad value will be relative_lad; otherwise, lad value will be mean_lad}

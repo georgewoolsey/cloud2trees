@@ -5,6 +5,7 @@ testthat::test_that("trees_cbh() returns a spatial data frame", {
       , norm_las = paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
       , tree_sample_n = 30
       , estimate_missing_cbh = T
+      , force_same_crs = T
     )
     , class = c("sf","data.frame")
   )
