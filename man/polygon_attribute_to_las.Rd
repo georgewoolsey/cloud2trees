@@ -19,13 +19,7 @@ polygon_attribute_to_las(las, poly_df, attribute, force_crs = F)
 Returns an \code{LAS} class object
 }
 \description{
-\code{leafr_lad_voxels()} is a re-write of \code{\link[leafR:lad.voxels]{leafR::lad.voxels()}} which:
-\itemize{
-\item removes the requirement to use a file written to disk
-\item allows for the calculation of LAD by the \code{treeID} attribute so that don't have to pass individual tree point clouds
-\item updates to the use of the latest \code{lidR} functionality and removes the use of \code{sp} and \code{raster} functions
-\item updates the function to \code{tidy} data manipulation
-}
+\code{polygon_attribute_to_las()} function to attach polygon attribute to point cloud
 }
 \examples{
  \dontrun{

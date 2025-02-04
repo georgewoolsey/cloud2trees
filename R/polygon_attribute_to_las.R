@@ -1,12 +1,7 @@
 #' @title function to attach polygon attribute to point cloud
 #'
 #' @description
-#' `leafr_lad_voxels()` is a re-write of [leafR::lad.voxels()] which:
-#'
-#' * removes the requirement to use a file written to disk
-#' * allows for the calculation of LAD by the `treeID` attribute so that don't have to pass individual tree point clouds
-#' * updates to the use of the latest `lidR` functionality and removes the use of `sp` and `raster` functions
-#' * updates the function to `tidy` data manipulation
+#' `polygon_attribute_to_las()` function to attach polygon attribute to point cloud
 #'
 #' @param las an object of class LAS
 #' @param poly_df an object of class sf with only POLYGON geometry (use cloud2trees::simplify_multipolygon_crowns() first)

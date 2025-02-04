@@ -1,3 +1,13 @@
+# cloud2trees 0.5.1
+
+Updates the process to extract tree CBH by implementing a re-creation of some of the steps needed that were initially developed in other packages. Improves performance of extraction of CBH from the point cloud to possibly allow users to increase the `tree_sample_n` and/or `tree_sample_prop` parameters in the `trees_cbh()` function. See (#10, @georgewoolsey).
+
+- New: Adds the `leafr_for_ladderfuelsr()` which re-writes `leafR` package steps ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) to allow for an attribute input (e.g. "treeID") and removes the need to write individual tree point clouds to disk to extract LAD. The output of this function is used as input for the `ladderfuelsR` ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) steps as implemented in `ladderfuelsr_cbh()` in the present package.
+- New: Adds the `polygon_attribute_to_las()` function to attach polygon attribute to point cloud
+- Change: `ladderfuelsr_cbh()` now accepts input generated from `leafr_for_ladderfuelsr()` in addition to maintaining backwards capability
+- Change: `trees_cbh()` incorporates the new process to extract CBH noted above and increases the default sample size
+- Internal: R/check_las_data.R internal utility to check if input is a readable point cloud
+
 # cloud2trees 0.5.0
 
 Implements methods to estimate tree biomass (or crown biomass) using stand-level estimates (e.g. LANDFIRE raster estimates) distributed across the individual trees in the stand. See (#9, @georgewoolsey).
