@@ -67,35 +67,23 @@ trees_hmd <- function(
   ##################################
   # ensure that norm las data exists
   ##################################
-  nlas_msg <- paste0(
-    "`norm_las` must contain a directory with nomalized las files, the path of a .laz|.las file"
-    , "\n, -or- an object of class `LAScatalog`. Please update the `norm_las` parameter."
-  )
-  if(is.null(norm_las)){stop(nlas_msg)}
-  if(inherits(norm_las, "character")){
-    if(!stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # try to read directory for las files
-      fls <- list.files(normalizePath(norm_las), pattern = ".*\\.(laz|las)$", full.names = TRUE)
-      # stop it if no files
-      if(length(fls)<1){stop(nlas_msg)}
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(fls)
-    }else if(stringr::str_ends(norm_las, ".*\\.(laz|las)$")){
-      # read it
-      nlas_ctg <- lidR::readLAScatalog(norm_las)
-    }else{
-      stop(nlas_msg)
-    }
-  }else if(inherits(nlas_ctg, "LAScatalog")){
-    nlas_ctg <- norm_las
-  }else{
-    stop(nlas_msg)
-  }
+  nlas_ctg <- check_las_data(norm_las)
   # set the lascatalog options
-  lidR::opt_progress(nlas_ctg) <- F
-  lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
-  lidR::opt_select(nlas_ctg) <- "xyz"
-  lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
+  if(inherits(nlas_ctg, "LAScatalog")){
+    lidR::opt_progress(nlas_ctg) <- F
+    lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
+    lidR::opt_select(nlas_ctg) <- "xyz"
+    lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
+  }else if(inherits(nlas_ctg, "LAS")){
+    stop(paste0(
+      "`norm_las` should contain: a directory with nomalized las files,"
+      ,"\n   the path of a single .laz|.las file,"
+      , "\n   -or- an object of class `LAScatalog`"
+    ))
+    # nlas_ctg <- nlas_ctg %>%
+    #   lidR::filter_poi(!Classification %in% c(2,9,18)) %>%
+    #   lidR::filter_duplicates()
+  }
 
   ##################################
   # ensure spatial polygon data
@@ -164,7 +152,7 @@ trees_hmd <- function(
   # read result from calc_tree_hmd
   ##################################
   if(
-    max(stringr::str_ends(output_temp, ".*\\.(txt|csv)$"))==1
+    stringr::str_ends(output_temp, ".*\\.(txt|csv)$") %>% any()
   ){
     # read the output file(s)
     hmd_df <- stringr::str_subset(output_temp, pattern = ".*\\.(txt|csv)$") %>%
@@ -201,7 +189,10 @@ trees_hmd <- function(
   }
 
   # check force_hmd_lte_ht
-  if(force_hmd_lte_ht==T && max(grepl("tree_height_m", f))==1){
+  if(
+    force_hmd_lte_ht==T &&
+    (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+  ){
     trees_poly <- trees_poly %>%
       dplyr::mutate(
         max_crown_diam_height_m = dplyr::case_when(
@@ -230,7 +221,7 @@ trees_hmd <- function(
   if(
     estimate_missing_hmd==T
     && n_hmd > 10
-    && max(grepl("tree_height_m", f))==1
+    && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
   ){
     # add x,y to data
     mod_df <- trees_poly %>%
@@ -410,7 +401,7 @@ calc_tree_hmd <- function(las, id=NULL) {
   nms <- names(dta) %>% dplyr::coalesce("")
   # check for treeID column
   if(
-    max(stringr::str_equal(nms, "treeID"))==0
+    !any(stringr::str_equal(nms, "treeID"))
   ){
     stop("the `las` data does not contain the column `treeID`, ensure this column exists or set the `id` parameter")
   }
@@ -491,34 +482,12 @@ calc_tree_hmd <- function(las, id=NULL) {
 ctg_calc_tree_hmd <- function(chunk, poly_df, force_crs = F){
   las <- lidR::readLAS(chunk)
   if (lidR::is.empty(las)) return(NULL)
-  # make sure same crs
-  l_epsg <- lidR::st_crs(las, parameters = T)$epsg %>%
-    as.character() %>%
-    dplyr::coalesce("lll")
-  p_epsg <- sf::st_crs(poly_df, parameters = T) %>%
-    purrr::pluck("epsg") %>%
-    as.character() %>%
-    dplyr::coalesce("ppp")
-  if(
-    force_crs &&
-    !identical(lidR::st_crs(las), sf::st_crs(poly_df)) &&
-    !identical(l_epsg, p_epsg)
-  ){
-    lidR::st_crs(las) <- sf::st_crs(poly_df)
-  }else if(
-    !identical(lidR::st_crs(las), sf::st_crs(poly_df)) &&
-    !identical(l_epsg, p_epsg)
-  ){
-    stop(paste0(
-      "lidR::st_crs(las) != sf::st_crs(poly_df) ensure data are same projection -or-"
-      , "\nturn on the force same crs parameter if confident that data are in same projection"
-    ))
-  }
   # attach treeID
-  nlas_tree <- lidR::merge_spatial(
-    las = las
-    , source = poly_df
+  nlas_tree <- polygon_attribute_to_las(
+    las
+    , poly_df
     , attribute = "treeID"
+    , force_crs = force_crs
   )
   # calc_tree_hmd()
   df <- calc_tree_hmd(nlas_tree)

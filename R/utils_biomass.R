@@ -511,7 +511,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
 #######################################################
   # check data for column missing in data or if all records missing
   # will throw an error if either condition
-  check_df_cols_all_missing <- function(df, col_names, all_numeric=T) {
+  check_df_cols_all_missing <- function(df, col_names, all_numeric=T, check_vals_missing=T) {
     # check if data.frame
     if(!inherits(df, "data.frame")){
       stop(paste0(
@@ -539,6 +539,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     ######################################
     # ensure all columns aren't missing all data
     ######################################
+    if(check_vals_missing==F){return(T)}
     if(all_numeric == T){
       all_missing_cols <- df %>%
         sf::st_drop_geometry() %>%

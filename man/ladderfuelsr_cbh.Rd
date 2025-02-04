@@ -2,13 +2,14 @@
 % Please edit documentation in R/ladderfuelsr_cbh.R
 \name{ladderfuelsr_cbh}
 \alias{ladderfuelsr_cbh}
-\title{estimate CBH using \code{LadderFuelsR} package}
+\title{estimate CBH for a \emph{single tree} using \code{LadderFuelsR} package}
 \usage{
 ladderfuelsr_cbh(
-  las,
+  lad_profile_df = NULL,
+  las = NULL,
   treeID = NA,
   min_vhp_n = 4,
-  voxel_grain_size_m = 2,
+  voxel_grain_size_m = 1,
   dist_btwn_bins_m = 1,
   min_fuel_layer_ht_m = 1,
   lad_pct_gap = 25,
@@ -19,13 +20,21 @@ ladderfuelsr_cbh(
 )
 }
 \arguments{
-\item{las}{string -or- object. a .las|.laz file path -OR- an object of class LAS that has been height normalized.}
+\item{lad_profile_df}{data.frame. the return of \code{\link[=leafr_for_ladderfuelsr]{leafr_for_ladderfuelsr()}} or a data.frame
+that must have the columns: treeID, lad, total_pulses, height.
+if both the \code{lad_profile_df} and \code{las} parameters are defined, the preference is the data.frame}
 
-\item{treeID}{string. the LadderFuelsR process requires a treeID that uniquely identifies points within a tree, if left as NA this process will attempt to locate the \code{treeID} data based on an attribute in the point cloud.}
+\item{las}{string -or- object. a single tree .las|.laz file path -OR- an object of class LAS that has been height normalized.}
+
+\item{treeID}{numeric. the LadderFuelsR process requires a treeID that uniquely identifies points within a tree
+, if left as NA this process will attempt to locate the \code{treeID}
+data based on an attribute in the point cloud or data.frame which should be numeric}
 
 \item{min_vhp_n}{numeric. the minimum number of vertical height profiles (VHPs) needed to estimate a CBH.}
 
-\item{voxel_grain_size_m}{numeric. horizontal resolution (suggested 1 meter for lad profiles and 10 meters for LAI maps). See \code{grain.size} in \code{\link[leafR:lad.voxels]{leafR::lad.voxels()}}}
+\item{voxel_grain_size_m}{numeric. only used if \code{las} parameter is defined.
+horizontal resolution (suggested 1 meter for lad profiles).
+See \code{grain.size} in \code{\link[leafR:lad.voxels]{leafR::lad.voxels()}}}
 
 \item{dist_btwn_bins_m}{numeric. value for the actual height bin step (in meters). See \code{step} in \code{\link[LadderFuelsR:get_gaps_fbhs]{LadderFuelsR::get_gaps_fbhs()}}}
 
@@ -45,7 +54,7 @@ If the first fuel layer has the maximum LAD and its depth is greater than the in
 See \code{hdepth1_height} in \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}}
 }
 \value{
-Returns an a list of data.frame objects that are the results of the different LadderFuelsR steps. Returns NULL if the process is unable to detect a CBH from the point cloud.
+Returns an list of data.frame objects that are the results of the different LadderFuelsR steps. Returns NULL if the process is unable to detect a CBH from the point cloud.
 }
 \description{
 \code{ladderfuelsr_cbh()} is an all-in-one function to process height normalized .las|.laz files
@@ -67,6 +76,58 @@ The order of operations is:
 \item Calculate the percentage of LAD within each fuel layer (first output) and removes those fuel layers with LAD percentage less than a specified threshold using \code{\link[LadderFuelsR:get_layers_lad]{LadderFuelsR::get_layers_lad()}}
 \item Determine the CBH of a segmented tree using three criteria: maximum LAD percentage, maximum distance and the last distance using \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}
 }
+}
+\examples{
+ \dontrun{
+ # polygon data
+ f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
+ trees_poly <- sf::st_read(f)
+ # simplify polygons
+ trees_poly <- simplify_multipolygon_crowns(trees_poly)
+ # point cloud data
+ lf <- system.file(package = "cloud2trees","extdata","norm_las","RMNP_017_2018_normalize.las")
+ las <- lidR::readLAS(lf)
+ las@data \%>\% dplyr::glimpse()
+ # polygon_attribute_to_las to attach treeID to las
+ las <- polygon_attribute_to_las(las, trees_poly, force_crs = T, attribute = "treeID")
+ las@data \%>\% dplyr::glimpse()
+ # get the lad profile for each treeID
+ lad_profile <- leafr_for_ladderfuelsr(
+     las
+     , voxel_grain_size_m = 1
+     , k = 1
+     , group_treeID = T
+     , relative = F
+   )
+ dplyr::glimpse(lad_profile)
+ # extract the CBH using ladderfuelsr_cbh()
+ # before we extract the CBH using ladderfuelsr_cbh(), treeID has to be numeric
+ lad_profile <- lad_profile \%>\%
+   dplyr::mutate(
+     treeID_backup = treeID, treeID = as.factor(treeID)
+   )
+ # for one tree
+ ladderfuelsr_cbh(
+     lad_profile_df = lad_profile
+     , treeID = lad_profile$treeID[1]
+   ) \%>\%
+   purrr::pluck("cbh_metrics") \%>\%
+   dplyr::glimpse()
+ # we can map over multiple trees
+ cbhs <- lad_profile$treeID \%>\%
+   unique() \%>\%
+   .[1:22] \%>\%
+   purrr::map(\(x) ladderfuelsr_cbh(
+       lad_profile_df = lad_profile
+       , treeID = x
+     ) \%>\%
+     purrr::pluck("cbh_metrics")
+   ) \%>\%
+   dplyr::bind_rows()
+ dplyr::glimpse(cbhs)
+ ggplot2::ggplot(data = cbhs, mapping = ggplot2::aes(x=last_Hcbh)) +
+   ggplot2::geom_density()
+ }
 }
 \references{
 \itemize{

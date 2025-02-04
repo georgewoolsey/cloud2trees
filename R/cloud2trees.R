@@ -135,8 +135,8 @@ cloud2trees <- function(
   , cbh_tree_sample_prop = NA
   , cbh_which_cbh = "lowest"
   , cbh_estimate_missing_cbh = FALSE
-  , cbh_min_vhp_n = 4
-  , cbh_voxel_grain_size_m = 2
+  , cbh_min_vhp_n = 3
+  , cbh_voxel_grain_size_m = 1
   , cbh_dist_btwn_bins_m = 1
   , cbh_min_fuel_layer_ht_m = 1
   , cbh_lad_pct_gap = 25
@@ -513,6 +513,7 @@ cloud2trees <- function(
       , num_jump_steps = cbh_num_jump_steps
       , min_lad_pct = cbh_min_lad_pct
       , frst_layer_min_ht_m = cbh_frst_layer_min_ht_m
+      , force_same_crs = T
     )
     # handle error
     if(is.null(trees_cbh_ans$error)){ # no error
@@ -906,9 +907,16 @@ cloud2trees <- function(
       sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf_with_dbh))
 
     # remove temp files
-    if(keep_intrmdt==F & estimate_tree_cbh==F & estimate_dbh_from_cloud==F){
+    if(
+      keep_intrmdt==F &&
+      estimate_tree_cbh==F &&
+      estimate_tree_hmd==F &&
+      estimate_dbh_from_cloud==F
+    ){
       unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
-    }else if(keep_intrmdt==F & (estimate_tree_cbh==T | estimate_dbh_from_cloud==T)){
+    }else if(
+      (estimate_tree_cbh==T || estimate_tree_hmd==T || estimate_dbh_from_cloud==T)
+    ){
       # move the normalized laz files to delivery
       ### Create the directories
       to_dir <- file.path(cloud2raster_ans$create_project_structure_ans$delivery_dir, "norm_las")
