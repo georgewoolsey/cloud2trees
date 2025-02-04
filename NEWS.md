@@ -1,3 +1,8 @@
+# cloud2trees 0.5.2
+
+- Fix: `trees_cbh()` could not check CBH against height and could not estimate missing CBH values if an attribute named "treeID" pre-existed in the point cloud data. This fix forces the overwrite of the "treeID" attribute in the point cloud data using polygon data.
+- Change: `cloud2trees()` limits the number of trees to extract CBH from to 20,000. If users desire to attempt to extract CBH for >20,000 trees, `trees_cbh()` can be used in standalone with outputs from `cloud2trees()`.
+
 # cloud2trees 0.5.1
 
 Updates the process to extract tree CBH by implementing a re-creation of some of the steps needed that were initially developed in other packages. Improves performance of extraction of CBH from the point cloud to possibly allow users to increase the `tree_sample_n` and/or `tree_sample_prop` parameters in the `trees_cbh()` function. See (#10, @georgewoolsey).

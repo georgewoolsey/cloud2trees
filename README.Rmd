@@ -253,8 +253,8 @@ Customizing the `cloud2trees()` function parameters we'll:
 * Estimate tree DBH using allometry from FIA plot data with `estimate_tree_dbh`
 * Extract tree FIA Forest Type Group with `estimate_tree_type`
 * Quantify tree competition metrics with `estimate_tree_competition`
-* Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 333 trees using `cbh_tree_sample_n`
-* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 333 trees
+* Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 555 trees using `cbh_tree_sample_n`
+* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 555 trees
 
 ```{r, results = FALSE}
 # run it
@@ -268,7 +268,7 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , estimate_tree_type = TRUE
   , estimate_tree_competition = TRUE
   , estimate_tree_cbh = TRUE
-  , cbh_tree_sample_n = 333
+  , cbh_tree_sample_n = 555
   , cbh_estimate_missing_cbh = TRUE
 )
 ```
