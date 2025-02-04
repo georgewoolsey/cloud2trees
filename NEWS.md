@@ -1,3 +1,5 @@
+# cloud2trees 0.5.2
+
 # cloud2trees 0.5.1
 
 Updates the process to extract tree CBH by implementing a re-creation of some of the steps needed that were initially developed in other packages. Improves performance of extraction of CBH from the point cloud to possibly allow users to increase the `tree_sample_n` and/or `tree_sample_prop` parameters in the `trees_cbh()` function. See (#10, @georgewoolsey).
