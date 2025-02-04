@@ -583,17 +583,21 @@ ctg_leafr_for_ladderfuelsr <- function(
   las <- lidR::readLAS(chunk)
   if(lidR::is.empty(las)){return(NULL)}
   # check for treeID in las already
-  if(names(las@data) %>% stringr::str_equal("treeID") %>% any()){
-    nlas_tree <- las
-  }else{
+  #### !!! this causes issues for if treeID in the las is not the same as in poly:
+    #### !!! 1) trees don't match for checking cbh vs height
+    #### !!! 2) trees don't match for estimating missing cbh values
+    #### !!! how to make this work if treeID is alread in las?
+  #### if(names(las@data) %>% stringr::str_equal("treeID") %>% any()){
+  ####   nlas_tree <- las
+  #### }else{
     # attach treeID
     nlas_tree <- polygon_attribute_to_las(
       las
-      , simplify_multipolygon_crowns(poly_df)
+      , simplify_multipolygon_crowns(poly_df) # if already simplified, does nothing
       , attribute = "treeID"
       , force_crs = force_crs
     )
-  }
+  #### }
   # get the lad profile for each treeID
   safe_leafr_for_ladderfuelsr <- purrr::safely(leafr_for_ladderfuelsr)
   lad_profile <- safe_leafr_for_ladderfuelsr(

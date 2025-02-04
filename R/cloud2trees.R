@@ -44,8 +44,10 @@
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 155` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 333` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
+#'   The maximum number of trees to extract tree CBH using `cloud2trees()` is 20,000.
+#'   Try `trees_cbh()` with outputs from `cloud2trees()` if you want to attempt to extract CBH for >20,000 trees.
 #' @param cbh_which_cbh character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 #' * "lowest" - Height of the CBH of the segmented tree based on the last distance found in its profile
 #' * "highest" - Height of the CBH of the segmented tree based on the maximum distance found in its profile
@@ -483,6 +485,7 @@ cloud2trees <- function(
   # start time
   xx6_trees_cbh <- Sys.time()
   err_trees_cbh <- NULL
+  err_trees_cbh_sample <- F
   # empty data
     trees_cbh_ans_temp <- dplyr::tibble(
       treeID = character(0)
@@ -495,6 +498,22 @@ cloud2trees <- function(
       "starting trees_cbh() step at ..."
       , xx6_trees_cbh
     )
+    ### limit cbh sample to 20,000
+    ### if one wants more, they can run trees_cbh in standalone
+    if(
+      dplyr::coalesce(cbh_tree_sample_n,0)>20000
+      || dplyr::coalesce(cbh_tree_sample_prop,0)*nrow(raster2trees_ans)>20000
+    ){
+      cbh_tree_sample_n <- 20000
+      err_trees_cbh_sample <- T
+      message(paste0(
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        , "\n"
+        , "The maximum number of trees to extract tree CBH using cloud2trees() is 20,000"
+        , "\n..............try trees_cbh() if want to attempt to extract CBH for >20,000 trees"
+        , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
+      ))
+    }
     # trees_cbh
     safe_trees_cbh <- purrr::safely(trees_cbh)
     trees_cbh_ans <- safe_trees_cbh(
@@ -1090,6 +1109,15 @@ cloud2trees <- function(
           , "\n"
           , err_trees_cbh
           , "\n..............try to run trees_cbh() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
+        ))
+      }
+      if(err_trees_cbh_sample==T){
+        message(paste0(
+          "WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_cbh()"
+          , "\n"
+          , "The maximum number of trees to extract tree CBH using cloud2trees() is 20,000"
+          , "\n..............try trees_cbh() if want to attempt to extract CBH for >20,000 trees"
           , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }

@@ -133,8 +133,10 @@ Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CB
 
 \item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a CBH from the point cloud for.
-If neither are supplied, \code{tree_sample_n = 155} will be used. If both are supplied, \code{tree_sample_n} will be used.
-Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
+If neither are supplied, \code{tree_sample_n = 333} will be used. If both are supplied, \code{tree_sample_n} will be used.
+Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.
+The maximum number of trees to extract tree CBH using \code{cloud2trees()} is 20,000.
+Try \code{trees_cbh()} with outputs from \code{cloud2trees()} if you want to attempt to extract CBH for >20,000 trees.}
 
 \item{cbh_which_cbh}{character. One of: "lowest"; "highest"; or "max_lad". See Viedma et al. (2024) reference.
 \itemize{
