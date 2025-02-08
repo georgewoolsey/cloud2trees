@@ -74,24 +74,30 @@
 #'      ggplot2::theme_light() +
 #'      ggplot2::theme(axis.text = ggplot2::element_blank())
 #'   ####################################################
-#'   # let's test our own window functions
+#'   # let's test some custom window functions
 #'   ####################################################
-#'   # a constant window size
-#'    my_constant <- function(x){3}
-#'   # a custom linear function
-#'    my_linear <- function(x) {x * 0.1 + 3}
-#'   # run it with custom functions
-#'    itd_tuning_ans2 <- itd_tuning(
-#'      input_las_dir = i
-#'      , ws_fn_list = list(
-#'         my_constant=my_constant
-#'         , my_linear=my_linear
-#'         , best_default=best_default # the best from our first test
+#'     # a constant window size has to be defined as:
+#'      ## x*0 + constant
+#'      my_constant <- function(x){(x * 0) + 3} ## will always return 3
+#'     # a custom linear function
+#'      my_linear <- function(x) {(x * 0.1) + 3}
+#'     # run it with custom functions
+#'      itd_tuning_ans2 <- itd_tuning(
+#'        input_las_dir = i
+#'        , ws_fn_list = list(
+#'           my_constant=my_constant
+#'           , my_linear=my_linear
+#'           , best_default=best_default # the best from our first test
+#'         )
+#'        , n_samples = 2
 #'       )
-#'     )
-#'   # look at the tuning plot
-#'    itd_tuning_ans2$plot_samples
-#'   #'
+#'     # look at the tuning plot
+#'      itd_tuning_ans2$plot_samples
+#'     # we can see what our custom "my_linear" function looks like
+#'      ggplot2::ggplot() +
+#'        ggplot2::geom_function(fun = itd_tuning_ans2$ws_fn_list$my_linear) +
+#'        ggplot2::xlim(-5,60) +
+#'        ggplot2::labs(x = "heights", y = "ws", color = "")
 #'  }
 #' @export
 #'
@@ -167,6 +173,7 @@ big_ans_list <- 1:nrow(sample_pts) %>%
   purrr::map(\(x) quiet_sample_las_point_extract_trees(
       las = las
       , sample_point = sample_pts[x,]
+      , ws_fn_list = ws_fn_list
       , min_height = min_height
       , chm_res_m = chm_res_m
     )
