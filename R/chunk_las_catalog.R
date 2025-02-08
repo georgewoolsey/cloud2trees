@@ -305,7 +305,10 @@ chunk_las_catalog <- function(
       dplyr::select(processing_grid, filename, area_m2, pts, pts_m2) %>%
       # get rid of tiny edge files with very few points which cannot be utilized for delauny triangulation
         # !!!!!!!!!!!!!!! upgrade to remove tiles completely spatially covered by other tiles
-      dplyr::filter(pts>max_ctg_pts*0.0001) %>%
+      dplyr::filter(
+        ( pts>max_ctg_pts*0.0001 & dplyr::n() > 1 ) ## only remove small chunks if more than one
+        | (dplyr::n()==1)
+      ) %>%
       # sometimes there are super small chunks created which can lead to 0 points after filtering for performing calcs
       dplyr::mutate(
         processing_grid = dplyr::case_when(

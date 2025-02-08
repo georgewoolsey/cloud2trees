@@ -31,46 +31,67 @@
 #'  \dontrun{
 #'   # do it
 #'   library(tidyverse)
-#'   # test directory path with >=1 .las|.laz files but this could also be a single las file path
-#'   i <- system.file(package="cloud2trees", "extdata", "norm_las")
-#'   # run it with
-#'   itd_tuning_ans <- itd_tuning(input_las_dir = i)
-#'   # what's in it?
-#'   names(itd_tuning_ans)
+#'   # test las file but this could also be a directory path with >1 .las|.laz files
+#'   i <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
+#'   ####################################################
+#'   # check the default itd_tuning() window functions
+#'   ####################################################
+#'    # run it with defaults
+#'    itd_tuning_ans <- itd_tuning(input_las_dir = i)
+#'    # what's in it?
+#'    names(itd_tuning_ans)
+#'    # look at the tuning plot
+#'    itd_tuning_ans$plot_samples
+#'    # the "nonlin_fn" looks pretty good, let's store it
+#'    best_default <- itd_tuning_ans$ws_fn_list$nonlin_fn
+#'    # we can see what this function looks like for window size
+#'    ggplot2::ggplot() +
+#'      ggplot2::geom_function(fun = best_default) +
+#'      ggplot2::xlim(-5,60) +
+#'      ggplot2::labs(x = "heights", y = "ws", color = "")
+#'    # pass our best function to the cloud2trees() to process the full point cloud coverage
+#'    cloud2trees_ans <- cloud2trees(output_dir = tempdir(), input_las_dir = i, ws = best_default)
+#'    # the same plot as the the tuning plot with tree crowns overlaid on CHM
+#'    ggplot2::ggplot() +
+#'      ggplot2::geom_tile(
+#'        data = cloud2trees_ans$chm_rast %>%
+#'          terra::as.data.frame(xy=T) %>%
+#'          dplyr::rename(f=3)
+#'        , mapping = ggplot2::aes(x = x, y = y, fill = f)
+#'        , na.rm = T
+#'      ) +
+#'      ggplot2::scale_fill_viridis_c(
+#'        option = "plasma"
+#'        , breaks = scales::breaks_extended(n=10)
+#'      ) +
+#'      ggplot2::geom_sf(
+#'        data = cloud2trees_ans$crowns_sf
+#'        , fill = NA, color = "gray33", lwd = 1
+#'      ) +
+#'      ggplot2::scale_x_continuous(expand = c(0, 0)) +
+#'      ggplot2::scale_y_continuous(expand = c(0, 0)) +
+#'      ggplot2::labs(x = "", y = "", fill = "CHM (m)") +
+#'      ggplot2::theme_light() +
+#'      ggplot2::theme(axis.text = ggplot2::element_blank())
+#'   ####################################################
+#'   # let's test our own window functions
+#'   ####################################################
+#'   # a constant window size
+#'    my_constant <- function(x){3}
+#'   # a custom linear function
+#'    my_linear <- function(x) {x * 0.1 + 3}
+#'   # run it with custom functions
+#'    itd_tuning_ans2 <- itd_tuning(
+#'      input_las_dir = i
+#'      , ws_fn_list = list(
+#'         my_constant=my_constant
+#'         , my_linear=my_linear
+#'         , best_default=best_default # the best from our first test
+#'       )
+#'     )
 #'   # look at the tuning plot
-#'   itd_tuning_ans$plot_samples
-#'   # the "nonlin_fn" looks pretty good, let's get it
-#'   best_ws_fn <- itd_tuning_ans$ws_fn_list$nonlin_fn
-#'   # we can see what this function does
-#'   ggplot2::ggplot() +
-#'     ggplot2::geom_function(fun = best_ws_fn) +
-#'     ggplot2::xlim(-5,60) +
-#'     ggplot2::labs(x = "heights", y = "ws", color = "")
-#'   # pass our best function to the cloud2trees() to process the full point cloud coverage
-#'   cloud2trees_ans <- cloud2trees(output_dir = tempdir(), input_las_dir = i, ws = best_ws_fn)
-#'   # the same plot as the the tuning plot with tree crowns overlaid on CHM
-#'   ggplot2::ggplot() +
-#'     ggplot2::geom_tile(
-#'       data = cloud2trees_ans$chm_rast %>%
-#'         terra::as.data.frame(xy=T) %>%
-#'         dplyr::rename(f=3)
-#'       , mapping = ggplot2::aes(x = x, y = y, fill = f)
-#'       , na.rm = T
-#'     ) +
-#'     ggplot2::scale_fill_viridis_c(
-#'       option = "plasma"
-#'       , breaks = scales::breaks_extended(n=10)
-#'     ) +
-#'     ggplot2::geom_sf(
-#'       data = cloud2trees_ans$crowns_sf
-#'       , fill = NA, color = "gray33", lwd = 1
-#'     ) +
-#'     ggplot2::scale_x_continuous(expand = c(0, 0)) +
-#'     ggplot2::scale_y_continuous(expand = c(0, 0)) +
-#'     ggplot2::labs(x = "", y = "", fill = "CHM (m)") +
-#'     ggplot2::theme_light() +
-#'     ggplot2::theme(axis.text = ggplot2::element_blank())
-#'
+#'    itd_tuning_ans2$plot_samples
+#'   #'
 #'  }
 #' @export
 #'
