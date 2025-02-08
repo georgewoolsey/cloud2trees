@@ -17,6 +17,8 @@
 #' The center of the point cloud data coverage will always be the first plot sampled so long as points exist in the central 0.1 ha.
 #' @param ws_fn_list list. A function or a named list of functions. Leave as NULL to test default exponential, linear, and non-linear functions.
 #' If providing a custom function, it must always return a numeric value >0 (see examples).
+#' @param min_height numeric. Set the minimum height (m) for individual tree detection
+#' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
 #'
 #' @references
 #' [https://r-lidar.github.io/lidRbook/itd.html](https://r-lidar.github.io/lidRbook/itd.html)
@@ -61,7 +63,7 @@
 #'     ) +
 #'     ggplot2::geom_sf(
 #'       data = cloud2trees_ans$crowns_sf
-#'       , fill = NA, color = "gray33"
+#'       , fill = NA, color = "gray33", lwd = 1
 #'     ) +
 #'     ggplot2::scale_x_continuous(expand = c(0, 0)) +
 #'     ggplot2::scale_y_continuous(expand = c(0, 0)) +
@@ -76,6 +78,8 @@ itd_tuning <- function(
   input_las_dir
   , n_samples = 3
   , ws_fn_list = NULL
+  , min_height = 2
+  , chm_res_m = 0.25
 ){
 #####################################################
 # check n_samples
@@ -142,6 +146,8 @@ big_ans_list <- 1:nrow(sample_pts) %>%
   purrr::map(\(x) quiet_sample_las_point_extract_trees(
       las = las
       , sample_point = sample_pts[x,]
+      , min_height = min_height
+      , chm_res_m = chm_res_m
     )
   )
 # get the result
@@ -216,6 +222,8 @@ sample_las_point_extract_trees <- function(
   ### ws_fn_list = a function or a named list of functions
   ### leave as NULL to test default exponential and linear functions
   ### if providing a custom function, it must always return a numeric value >0.
+  , min_height = 2
+  , chm_res_m = 0.25
 ) {
   #check las
   if(
@@ -368,7 +376,8 @@ sample_las_point_extract_trees <- function(
     cloud2raster_ans <- safe_cloud2raster(
       input_las_dir = las_fp
       , output_dir = tempdir()
-      , min_height = 1.37 ## dbh
+      , min_height = min_height # 1.37 ## dbh
+      , chm_res_m = chm_res_m
     )
     # get the result
     if(is.null(cloud2raster_ans$error)){
@@ -387,7 +396,7 @@ sample_las_point_extract_trees <- function(
         safe_raster2trees(
           chm_rast = cloud2raster_ans$chm_rast
           , outfolder = tempdir()
-          , min_height = 1.37 ## dbh
+          , min_height = min_height # 1.37 ## dbh
           , ws = x
         )
       )

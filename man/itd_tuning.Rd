@@ -4,7 +4,13 @@
 \alias{itd_tuning}
 \title{Individual Tree Detection (ITD) tuning}
 \usage{
-itd_tuning(input_las_dir, n_samples = 3, ws_fn_list = NULL)
+itd_tuning(
+  input_las_dir,
+  n_samples = 3,
+  ws_fn_list = NULL,
+  min_height = 2,
+  chm_res_m = 0.25
+)
 }
 \arguments{
 \item{input_las_dir}{character. directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one}
@@ -14,6 +20,10 @@ The center of the point cloud data coverage will always be the first plot sample
 
 \item{ws_fn_list}{list. A function or a named list of functions. Leave as NULL to test default exponential, linear, and non-linear functions.
 If providing a custom function, it must always return a numeric value >0 (see examples).}
+
+\item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
+
+\item{chm_res_m}{numeric. The desired resolution of the CHM produced in meters.}
 }
 \value{
 Returns a list with: 1) "plot_samples" is a plot of the sample canopy height model (CHM) and extracted tree crowns for each window size tested;
@@ -67,7 +77,7 @@ parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=clo
     ) +
     ggplot2::geom_sf(
       data = cloud2trees_ans$crowns_sf
-      , fill = NA, color = "gray33"
+      , fill = NA, color = "gray33", lwd = 1
     ) +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::scale_y_continuous(expand = c(0, 0)) +
