@@ -21,6 +21,7 @@ Imports:
     lidR,
     lifecycle,
     magrittr,
+    patchwork,
     posterior,
     purrr,
     randomForest,

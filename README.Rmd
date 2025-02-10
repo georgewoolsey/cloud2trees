@@ -264,11 +264,11 @@ itd_tuning_ans %>% names()
 
 there is a plot of the different window size functions tested (plot columns) over the different 0.1 ha sample plots (plot rows) and the number of individual trees extracted shown outlined in gray overlaid on the canopy height model (CHM).
 
-```{r, fig.height=8}
+```{r, fig.height=7.7}
 itd_tuning_ans$plot_samples
 ```
 
-if we think that the "exp_fn" was the most appropriate for out area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
+if we think that the "exp_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
 
 ```{r}
 # get the best function
@@ -279,7 +279,7 @@ we can plot what the function looks like
 
 ```{r}
 ggplot2::ggplot() +
-  ggplot2::geom_function(fun = best_ws, color = "navy", lwd = 1) +
+  ggplot2::geom_function(fun = best_ws, color = "brown", lwd = 1) +
   ggplot2::xlim(-5,60) +
   ggplot2::labs(x = "heights", y = "ws", color = "") +
   ggplot2::theme_light()
@@ -399,7 +399,7 @@ Let's look at the relationship between tree height and tree DBH estimated from t
 ```{r}
 cloud2trees_ans_c$crowns_sf %>%
   ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = dbh_cm)) + 
-  ggplot2::geom_point(color = "brown", alpha = 0.6) +
+  ggplot2::geom_point(color = "navy", alpha = 0.6) +
   ggplot2::labs(x = "tree ht. (m)", y = "tree DBH (cm)") +
   ggplot2::scale_x_continuous(limits = c(0,NA)) +
   ggplot2::scale_y_continuous(limits = c(0,NA)) +
