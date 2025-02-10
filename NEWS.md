@@ -1,3 +1,5 @@
+# cloud2trees 0.5.3
+
 # cloud2trees 0.5.2
 
 - Fix: `trees_cbh()` could not check CBH against height and could not estimate missing CBH values if an attribute named "treeID" pre-existed in the point cloud data. This fix forces the overwrite of the "treeID" attribute in the point cloud data using polygon data.
