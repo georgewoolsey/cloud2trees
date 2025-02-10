@@ -109,16 +109,16 @@ cloud2trees <- function(
   , chm_res_m = 0.25
   , min_height = 2
   , max_height = 70
-  , ws = function(x){
-         y <- dplyr::case_when(
-           is.na(x) ~ 0.001
-           , x < 0 ~ 0.001
-           , x < 2 ~ 1
-           , x > 30 ~ 5
-           , TRUE ~ 0.75 + (x * 0.14)
-          )
-         return(y)
-    }
+  , ws = function(x) {
+    y <- dplyr::case_when(
+      is.na(x) ~ 1e-3
+      , x < 0 ~ 1e-3
+      , x < 3.6 ~ 1.25 + x*0.15
+      , x > 32.5 ~ 5
+      , TRUE ~ exp( (0.0446*x) + (x^-0.555) )
+    )
+    return(y)
+  }
   , estimate_tree_dbh = FALSE
   , max_dbh = 2
   , dbh_model = "lin"

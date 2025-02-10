@@ -241,6 +241,101 @@ ggplot2::ggplot() +
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
+# Individual Tree Detection (ITD) Tuning
+
+The `cloud2trees` package performs individual tree detection using `lidR::locate_trees()` with the `lidR::lmf()` algorithm. The local maximum filter algorithm allows for a constant window size or a variable window size defined by a function. See the `lidR` [package book section](https://r-lidar.github.io/lidRbook/itd.html) by point cloud processing expert, [Jean-Romain Roussel](https://github.com/Jean-Romain), for excellent detail on ITD and defining window size.
+
+The `itd_tuning()` function is used to visually assess tree crown delineation results from different window size functions used for the detection of individual trees. `itd_tuning()` allows users to test different window size functions on a sample of data to determine which function is most suitable for the area being analyzed. The preferred function can then be used in the `ws` parameter in `raster2trees()` and `cloud2trees()`.
+
+## Default ITD window size functions
+
+We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package for our example. `itd_tuning()` enables users to sample from up to five 0.1 ha plots (`n_samples` parameter) that are randomly selected from within the bounding box of the point cloud data coverage. A function or a named list of functions can be tested using the `ws_fn_list` parameter which can also be left at the default value (`NULL`) to test default exponential, linear, and non-linear functions. We'll run `itd_tuning()` with all default options to start.
+
+```{r, results=F}
+itd_tuning_ans <- itd_tuning(input_las_dir = i)
+```
+
+Let's check out what is included in the return from the `itd_tuning()` function.
+
+```{r}
+# what is it?
+itd_tuning_ans %>% names()
+```
+
+there is a plot of the different window size functions tested (plot columns) over the different 0.1 ha sample plots (plot rows) and the number of individual trees extracted shown outlined in gray overlaid on the canopy height model (CHM).
+
+```{r, fig.height=7.7}
+itd_tuning_ans$plot_samples
+```
+
+if we think that the "exp_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
+
+```{r}
+# get the best function
+best_ws <- itd_tuning_ans$ws_fn_list$exp_fn
+```
+
+we can plot what the function looks like
+
+```{r}
+ggplot2::ggplot() +
+  ggplot2::geom_function(fun = best_ws, color = "brown", lwd = 1) +
+  ggplot2::xlim(-5,60) +
+  ggplot2::labs(x = "heights", y = "ws", color = "") +
+  ggplot2::theme_light()
+```
+
+## Custom ITD window size functions
+
+Let's work through how to test some custom window size functions. We'll test a constant window size of 3 m and a custom function where the windows size is linearly related to the point height
+
+```{r}
+# a constant window size has to be defined as:
+ ## x*0 + constant
+ my_constant <- function(x){(x * 0) + 3} ## will always return 3
+# a custom linear function
+ my_linear <- function(x) {(x * 0.1) + 3}
+# let's put these in a list to test with the best default function we saved from above
+  my_fn_list <- list(
+    my_constant = my_constant
+    , my_linear = my_linear
+    , best_default_ws = best_ws
+  )
+```
+
+run `itd_tuning()` with our custom window size definitions and this time we'll only try on two sample plots of 0.1 ha
+
+```{r}
+# run it with custom functions
+itd_tuning_ans2 <- itd_tuning(
+ input_las_dir = i
+ , ws_fn_list = my_fn_list
+ , n_samples = 2
+)
+```
+
+let's check out that tuning plot
+
+```{r}
+# look at the tuning plot
+itd_tuning_ans2$plot_samples
+```
+
+we can also check out what our custom "my_linear" function looks like
+
+```{r}
+ggplot2::ggplot() +
+  ggplot2::geom_function(
+    fun = itd_tuning_ans2$ws_fn_list$my_linear
+    , color = "gold"
+    , lwd = 1
+  ) +
+  ggplot2::xlim(-5,60) +
+  ggplot2::ylim(-0.5,NA) +
+  ggplot2::labs(x = "heights", y = "ws", color = "") +
+  ggplot2::theme_light()
+```
+
 # Extract Trees from Point Cloud: Custom
 
 We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package for our example.
@@ -248,8 +343,7 @@ We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package 
 Customizing the `cloud2trees()` function parameters we'll:
 
 * Change the resolution of the DTM using `dtm_res_m`
-* Change the minimum height to classify trees using `min_height`
-* Change moving window used to detect the local maxima tree tops using `ws`
+* Change moving window used to detect the local maxima tree tops using `ws` with our best window size from our `itd_tuning()` exploration above
 * Estimate tree DBH using allometry from FIA plot data with `estimate_tree_dbh`
 * Extract tree FIA Forest Type Group with `estimate_tree_type`
 * Quantify tree competition metrics with `estimate_tree_competition`
@@ -262,8 +356,7 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   output_dir = tempdir()
   , input_las_dir = i
   , dtm_res_m = 0.5
-  , min_height = 3
-  , ws = function(x){x*0.1}
+  , ws = best_ws
   , estimate_tree_dbh = TRUE
   , estimate_tree_type = TRUE
   , estimate_tree_competition = TRUE
@@ -290,7 +383,7 @@ Check that our spatial data frame with tree crown polygons has data in the `dbh`
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 ```
 
-Remember, we also changed the `ws` parameter used to detect the local maxima for identifying tree tops so we got a lot more trees compared to the default settings.
+Remember, we also changed the `ws` parameter used to detect the local maxima for identifying tree tops so we got a few less trees compared to the default settings.
 
 ```{r}
 paste(

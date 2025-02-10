@@ -1,3 +1,8 @@
+# cloud2trees 0.5.3
+
+- New: Adds the function `itd_tuning()` to to visually assess tree crown delineation results from different window size functions used for the detection of individual trees.
+- Change: `cloud2trees()` and `raster2trees()` now use the same non-linear window function for individual tree detection (at some point the settings got out of alignment)
+
 # cloud2trees 0.5.2
 
 - Fix: `trees_cbh()` could not check CBH against height and could not estimate missing CBH values if an attribute named "treeID" pre-existed in the point cloud data. This fix forces the overwrite of the "treeID" attribute in the point cloud data using polygon data.
