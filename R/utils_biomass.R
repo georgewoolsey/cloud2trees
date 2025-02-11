@@ -254,6 +254,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           trees = dplyr::n()
           , basal_area_m2 = sum(basal_area_m2, na.rm = T)
           , mean_crown_length_m = mean(crown_length_m, na.rm = T)
+          , mean_crown_dia_m = mean(crown_dia_m, na.rm = T)
           , sum_crown_volume_m3 = sum(crown_volume_m3, na.rm = T)
         ) %>%
         dplyr::ungroup()
@@ -297,7 +298,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
 #######################################################
   # use our calculate stand-level CBD for cruz (lf already has CBD)
   # the stand level CBD in kilograms per cubed meter is distributed to trees
-  distribute_stand_fuel_load <- function(cell_df, tree_list, cbd_method = "cruz") {
+  distribute_stand_fuel_load <- function(cell_df, tree_list, cbd_method = "cruz", max_crown_kg_per_m3 = 2) {
     # check the method
     cbd_method <- dplyr::coalesce(cbd_method[1], "") %>% tolower() %>% stringr::str_squish()
     if( !(cbd_method %in% c("cruz", "landfire")) ){
@@ -348,7 +349,7 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         dplyr::group_by(cell, forest_type_group_code, is_na_ft) %>%
         dplyr::summarise(trees = dplyr::n()) %>%
         dplyr::group_by(cell) %>%
-        dplyr::arrange(cell, desc(is_na_ft), desc(trees)) %>%
+        dplyr::arrange(cell, is_na_ft, desc(trees)) %>% # sorts non-na first even if more trees in na
         dplyr::filter(dplyr::row_number()==1) %>%
         dplyr::ungroup()
 
@@ -374,6 +375,39 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           # single tree CBD in kg/m3 will be constant by stand/cell
           , cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
         )
+
+      # check max_crown_kg_per_m3
+      max_crown_kg_per_m3 <- as.numeric(max_crown_kg_per_m3) %>%
+        dplyr::coalesce(1e10) # set really high so no replacement if missing
+      # do we need to do it?
+      if(
+        # are there records?
+        !is.na(max(cell_df$cruz_tree_kg_per_m3, na.rm = T))
+        # are there records over the max?
+        && max(cell_df$cruz_tree_kg_per_m3, na.rm = T) > max_crown_kg_per_m3
+        # are there records under the max to generate replacement?
+        && ( cell_df %>%
+          dplyr::filter(
+            cruz_tree_kg_per_m3<max_crown_kg_per_m3
+            & !is.na(cruz_tree_kg_per_m3)
+          ) %>%
+          nrow() ) > 0
+      ){
+        # replacement value is median of cells with < max
+        new_tree_kg_per_m3 <- cell_df %>%
+          dplyr::filter(cruz_tree_kg_per_m3<max_crown_kg_per_m3) %>%
+          dplyr::pull(cruz_tree_kg_per_m3) %>%
+          stats::median(na.rm = T)
+        # replace value in data
+        cell_df <- cell_df %>%
+          dplyr::mutate(
+            cruz_tree_kg_per_m3 = ifelse(
+              !is.na(cruz_tree_kg_per_m3) & cruz_tree_kg_per_m3>max_crown_kg_per_m3
+              , dplyr::coalesce(new_tree_kg_per_m3, cruz_tree_kg_per_m3)
+              , cruz_tree_kg_per_m3
+            )
+          )
+      }
 
       # apply stand fuel load to trees
       tree_list <- tree_list %>%
@@ -416,6 +450,39 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
           # single tree CBD in kg/m3 will be constant by stand/cell
           , landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3
         )
+
+      # check max_crown_kg_per_m3
+      max_crown_kg_per_m3 <- as.numeric(max_crown_kg_per_m3) %>%
+        dplyr::coalesce(1e10) # set really high so no replacement if missing
+      # do we need to do it?
+      if(
+        # are there records?
+        !is.na(max(cell_df$landfire_tree_kg_per_m3, na.rm = T))
+        # are there records over the max?
+        && max(cell_df$landfire_tree_kg_per_m3, na.rm = T) > max_crown_kg_per_m3
+        # are there records under the max to generate replacement?
+        && ( cell_df %>%
+          dplyr::filter(
+            landfire_tree_kg_per_m3<max_crown_kg_per_m3
+            & !is.na(landfire_tree_kg_per_m3)
+          ) %>%
+          nrow() ) > 0
+      ){
+        # replacement value is median of cells with < max
+        new_tree_kg_per_m3 <- cell_df %>%
+          dplyr::filter(landfire_tree_kg_per_m3<max_crown_kg_per_m3) %>%
+          dplyr::pull(landfire_tree_kg_per_m3) %>%
+          stats::median(na.rm = T)
+        # replace value in data
+        cell_df <- cell_df %>%
+          dplyr::mutate(
+            landfire_tree_kg_per_m3 = ifelse(
+              !is.na(landfire_tree_kg_per_m3) & landfire_tree_kg_per_m3>max_crown_kg_per_m3
+              , dplyr::coalesce(new_tree_kg_per_m3, landfire_tree_kg_per_m3)
+              , landfire_tree_kg_per_m3
+            )
+          )
+      }
 
       # apply stand fuel load to trees
       tree_list <- tree_list %>%

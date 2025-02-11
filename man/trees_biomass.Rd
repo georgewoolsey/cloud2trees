@@ -10,7 +10,8 @@ trees_biomass(
   study_boundary = NA,
   input_landfire_dir = NULL,
   input_foresttype_dir = NULL,
-  method = NA
+  method = NA,
+  max_tree_kg_per_m3 = 2
 )
 }
 \arguments{

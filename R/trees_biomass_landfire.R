@@ -43,10 +43,18 @@
 #' @param study_boundary sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
 #' If no boundary given, the AOI will be built from location of trees in the tree list.
 #' @param input_landfire_dir directory where LANDFIRE CBD data exists. Use [get_landfire()] first.
+#' @param max_crown_kg_per_m3 numeric. the maximum CBD of the tree crown in kilograms per kilograms per cubic meter.
+#' Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
+#' The default value of 2 kilograms per cubic meter was based on [Mell et al. (2009)](https://doi.org/10.1016/j.combustflame.2009.06.015)
+#' who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
+#' using Douglas-fir trees grown on Christmas tree farms.
+#' Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.
 #'
 #' @references
 #' * [LANDFIRE Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd)
 #' U.S. Department of Agriculture and U.S. Department of the Interior.
+#' * [https://doi.org/10.1016/j.combustflame.2009.06.015](https://doi.org/10.1016/j.combustflame.2009.06.015)
+#' Mell, W., Maranghides, A., McDermott, R., & Manzello, S. L. (2009). Numerical simulation and experiments of burning douglas fir trees. Combustion and Flame, 156(10), 2023-2041.
 #'
 #' @return Returns a list of objects: tree_list = spatial data frame of individual trees
 #' ; stand_cell_data = data frame of stands/cells in same projection as the LANDFIRE raster data
@@ -110,6 +118,7 @@ trees_biomass_landfire <- function(
   , crs = NA
   , study_boundary = NA
   , input_landfire_dir = NULL
+  , max_crown_kg_per_m3 = 2
 ){
   ####################################################################
   # check external data
@@ -255,6 +264,7 @@ trees_biomass_landfire <- function(
       cell_df = calc_rast_cell_trees_ans$cell_df
       , tree_list = calc_rast_cell_trees_ans$tree_list
       , cbd_method = "landfire"
+      , max_crown_kg_per_m3 = max_crown_kg_per_m3
     )
 
   # return
