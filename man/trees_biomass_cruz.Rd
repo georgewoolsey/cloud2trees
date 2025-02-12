@@ -8,7 +8,8 @@ trees_biomass_cruz(
   tree_list,
   crs = NA,
   study_boundary = NA,
-  input_foresttype_dir = NULL
+  input_foresttype_dir = NULL,
+  max_crown_kg_per_m3 = 2
 )
 }
 \arguments{
@@ -28,6 +29,13 @@ Defaults to the crs of the \code{tree_list} data if of class "sf".}
 If no boundary given, the AOI will be built from location of trees in the tree list.}
 
 \item{input_foresttype_dir}{directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}
+
+\item{max_crown_kg_per_m3}{numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
+Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
+The default value of 2 kilograms per cubic meter was based on \href{https://doi.org/10.1016/j.combustflame.2009.06.015}{Mell et al. (2009)}
+who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
+using Douglas-fir trees grown on Christmas tree farms.
+Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.}
 }
 \value{
 Returns a list of objects: tree_list = spatial data frame of individual trees
@@ -138,5 +146,7 @@ epsg_code <- tl_cruz$stand_cell_data$rast_epsg_code[1] \%>\% as.numeric()
 Wilson, B.T. (2023). Forest Type Groups of the Continental United States.
 \item \href{https://scholar.google.com/scholar?cluster=316241498622221569&oi=gsb&hl=en&as_sdt=0,5}{doi:10.1071/WF02024}
 Cruz, M.G, M.E. Alexander, and R.H. Wakimoto. 2003. Assessing canopy fuel stratum characteristics in crown fire prone fuel types of western North America. Int. J. Wildland Fire. 12(1):39-50.
+\item \url{https://doi.org/10.1016/j.combustflame.2009.06.015}
+Mell, W., Maranghides, A., McDermott, R., & Manzello, S. L. (2009). Numerical simulation and experiments of burning douglas fir trees. Combustion and Flame, 156(10), 2023-2041.
 }
 }

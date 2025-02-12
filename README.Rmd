@@ -126,7 +126,7 @@ cloud2trees::get_treemap()
 
 To estimate FIA forest type group for trees requires external data to spatially determine the type of a tree.
 
-Forest type groups are identified using the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program and has been aggregated to 90-meter resolution for this specific project to make the data more accessible over the entire continental US.
+Forest type groups are identified using the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program. This raster layer has 30-meter resolution and covers the forested extent of the continental US.
 
 Unless you have already executed the `get_data()` function, you must first download the FIA data (~2 GB) using `get_foresttype()` which only needs to be run the first time you use the `cloud2trees` package.
 
@@ -601,7 +601,7 @@ plt_ht2 + plt_dbh2
 
 # Estimate Tree Forest Type for a Tree List
 
-If we already have a list of trees with tree coordinate, we can use the `trees_type()` function attach the tree forest type based on the spatial overlap with the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program and has been aggregated to 90-meter resolution for this specific project to make the data more accessible over the entire continental US.
+If we already have a list of trees with tree coordinate, we can use the `trees_type()` function attach the tree forest type based on the spatial overlap with the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program at 30-meter resolution covering the forested extent of the continental US.
 
 We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y` to the `trees_type()` function. We can also use an `sf` class object with POINT or POLYGON geometry (see `sf::st_geometry_type()`) and the program will use the data "as-is" and only require the `treeID` column.
 

@@ -40,6 +40,12 @@
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param estimate_biomass_method character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See [trees_biomass()].
 #'   Leave as blank (i.e. `NA`) to skip biomass estimation.
+#' @param biomass_max_crown_kg_per_m3 numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
+#' Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
+#' The default value of 2 kilograms per cubic meter was based on [Mell et al. (2009)](https://doi.org/10.1016/j.combustflame.2009.06.015)
+#' who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
+#' using Douglas-fir trees grown on Christmas tree farms.
+#' Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.
 #' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -132,6 +138,7 @@ cloud2trees <- function(
   , estimate_tree_hmd = FALSE
   , hmd_estimate_missing_hmd = FALSE
   , estimate_biomass_method = NA
+  , biomass_max_crown_kg_per_m3 = 2
   , estimate_tree_cbh = FALSE
   , cbh_tree_sample_n = NA
   , cbh_tree_sample_prop = NA
@@ -721,6 +728,7 @@ cloud2trees <- function(
         )
       , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
       , method = which_biomass_methods
+      , max_crown_kg_per_m3 = biomass_max_crown_kg_per_m3
     )
     # handle error
     if(is.null(trees_biomass_ans$error)){ # no error
@@ -1038,6 +1046,7 @@ cloud2trees <- function(
             , sttng_estimate_tree_hmd = estimate_tree_hmd
             , sttng_hmd_estimate_missing_hmd = hmd_estimate_missing_hmd
             , sttng_estimate_biomass_method = which_biomass_methods %>% paste(collapse = ",")
+            , sttng_biomass_max_crown_kg_per_m3 = biomass_max_crown_kg_per_m3
             , sttng_estimate_tree_cbh = estimate_tree_cbh
             , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop
