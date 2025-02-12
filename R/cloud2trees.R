@@ -40,7 +40,7 @@
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param estimate_biomass_method character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See [trees_biomass()].
 #'   Leave as blank (i.e. `NA`) to skip biomass estimation.
-#' @param biomass_max_crown_kg_per_m3 numeric. the maximum CBD of the tree crown in kilograms per kilograms per cubic meter.
+#' @param biomass_max_crown_kg_per_m3 numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
 #' Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
 #' The default value of 2 kilograms per cubic meter was based on [Mell et al. (2009)](https://doi.org/10.1016/j.combustflame.2009.06.015)
 #' who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
@@ -1046,6 +1046,7 @@ cloud2trees <- function(
             , sttng_estimate_tree_hmd = estimate_tree_hmd
             , sttng_hmd_estimate_missing_hmd = hmd_estimate_missing_hmd
             , sttng_estimate_biomass_method = which_biomass_methods %>% paste(collapse = ",")
+            , sttng_biomass_max_crown_kg_per_m3 = biomass_max_crown_kg_per_m3
             , sttng_estimate_tree_cbh = estimate_tree_cbh
             , sttng_cbh_tree_sample_n = cbh_tree_sample_n
             , sttng_cbh_tree_sample_prop = cbh_tree_sample_prop

@@ -11,7 +11,7 @@ trees_biomass(
   input_landfire_dir = NULL,
   input_foresttype_dir = NULL,
   method = NA,
-  max_tree_kg_per_m3 = 2
+  max_crown_kg_per_m3 = 2
 )
 }
 \arguments{
@@ -46,6 +46,13 @@ If no boundary given, the AOI will be built from location of trees in the tree l
 \item coming soon
 }
 }}
+
+\item{max_crown_kg_per_m3}{numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
+Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
+The default value of 2 kilograms per cubic meter was based on \href{https://doi.org/10.1016/j.combustflame.2009.06.015}{Mell et al. (2009)}
+who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
+using Douglas-fir trees grown on Christmas tree farms.
+Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.}
 }
 \value{
 Returns a list of objects: tree_list = spatial data frame of individual trees

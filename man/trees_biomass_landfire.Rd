@@ -30,7 +30,7 @@ If no boundary given, the AOI will be built from location of trees in the tree l
 
 \item{input_landfire_dir}{directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
 
-\item{max_crown_kg_per_m3}{numeric. the maximum CBD of the tree crown in kilograms per kilograms per cubic meter.
+\item{max_crown_kg_per_m3}{numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
 Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
 The default value of 2 kilograms per cubic meter was based on \href{https://doi.org/10.1016/j.combustflame.2009.06.015}{Mell et al. (2009)}
 who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter

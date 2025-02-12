@@ -40,6 +40,7 @@ cloud2trees(
   estimate_tree_hmd = FALSE,
   hmd_estimate_missing_hmd = FALSE,
   estimate_biomass_method = NA,
+  biomass_max_crown_kg_per_m3 = 2,
   estimate_tree_cbh = FALSE,
   cbh_tree_sample_n = NA,
   cbh_tree_sample_prop = NA,
@@ -128,6 +129,13 @@ Should the missing HMD values be estimated using the tree height and location in
 
 \item{estimate_biomass_method}{character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See \code{\link[=trees_biomass]{trees_biomass()}}.
 Leave as blank (i.e. \code{NA}) to skip biomass estimation.}
+
+\item{biomass_max_crown_kg_per_m3}{numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
+Values above this limit will be set at the median value for the area using only stands that have CBD values lower than this limit.
+The default value of 2 kilograms per cubic meter was based on \href{https://doi.org/10.1016/j.combustflame.2009.06.015}{Mell et al. (2009)}
+who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
+using Douglas-fir trees grown on Christmas tree farms.
+Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.}
 
 \item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
