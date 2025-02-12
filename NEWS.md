@@ -1,3 +1,5 @@
+# cloud2trees 0.5.4
+
 # cloud2trees 0.5.3
 
 - New: Adds the function `itd_tuning()` to to visually assess tree crown delineation results from different window size functions used for the detection of individual trees.
