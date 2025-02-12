@@ -118,7 +118,7 @@ trees_biomass <- function(
   , input_landfire_dir = NULL
   , input_foresttype_dir = NULL
   , method = NA
-  , max_tree_kg_per_m3 = 2
+  , max_crown_kg_per_m3 = 2
 ){
   ####################################################################
   # PARSE THE method
@@ -149,7 +149,7 @@ trees_biomass <- function(
       , crs = crs
       , study_boundary = study_boundary
       , input_foresttype_dir = input_foresttype_dir
-      , max_tree_kg_per_m3 = max_tree_kg_per_m3
+      , max_crown_kg_per_m3 = max_crown_kg_per_m3
     )
     # check result
     if(is.null(trees_biomass_cruz_ans$error)){
@@ -201,7 +201,7 @@ trees_biomass <- function(
       , crs = crs
       , study_boundary = study_boundary
       , input_landfire_dir = input_landfire_dir
-      , max_tree_kg_per_m3 = max_tree_kg_per_m3
+      , max_crown_kg_per_m3 = max_crown_kg_per_m3
     )
     # check result
     if(is.null(trees_biomass_landfire_ans$error)){

@@ -377,7 +377,9 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
         )
 
       # check max_crown_kg_per_m3
-      max_crown_kg_per_m3 <- as.numeric(max_crown_kg_per_m3) %>%
+      max_crown_kg_per_m3 <-
+        ifelse(is.null(max_crown_kg_per_m3),NA,max_crown_kg_per_m3) %>%
+        as.numeric() %>%
         dplyr::coalesce(1e10) # set really high so no replacement if missing
       # do we need to do it?
       if(
