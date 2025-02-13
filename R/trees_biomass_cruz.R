@@ -33,7 +33,7 @@
 #'      - `sum_crown_volume_m3 = sum(crown_volume_m3)`, where tree `crown_volume_m3 = (4/3) * pi * ((crown_length_m/2)) * ((crown_dia_m/2)^2)`
 #'    2) At the stand level (i.e. raster cell), determine the area of the stand that overlaps (`overlap_area_m2`) with the AOI defined as the `study_boundary` parameter (see below) or the bounding box of all the trees
 #'    3) At the stand level (i.e. raster cell), use the Cruz equations (Table 4; see reference) to estimate of CBD in kilograms per cubic meter (`cruz_stand_kg_per_m3`)
-#'    4) At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per cubic meter (`kg_per_m2 = mean_crown_length_m * cruz_stand_kg_per_m3`)
+#'    4) At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per square meter (`kg_per_m2 = mean_crown_length_m * cruz_stand_kg_per_m3`)
 #'    5) At the stand level (i.e. raster cell), get the stand biomass in kilograms (`biomass_kg = kg_per_m2 * overlap_area_m2`)
 #'    6) At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (`cruz_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3`)
 #'    7) Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap

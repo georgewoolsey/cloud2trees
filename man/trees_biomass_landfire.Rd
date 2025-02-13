@@ -75,7 +75,7 @@ The process for estimating tree crown biomass in kilograms is:
 \enumerate{
 \item At the stand level (i.e. raster cell), determine the area of the stand that overlaps (\code{overlap_area_m2}) with the AOI defined as the \code{study_boundary} parameter (see below) or the bounding box of all the trees
 \item At the stand level (i.e. raster cell), get the LANDFIRE estimate of CBD in kilograms per cubic meter (\code{landfire_stand_kg_per_m3})
-\item At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per cubic meter (\code{kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3})
+\item At the stand level (i.e. raster cell), get canopy fuel loading (CFL) in kilograms per square meter (\code{kg_per_m2 = mean_crown_length_m * landfire_stand_kg_per_m3})
 \item At the stand level (i.e. raster cell), get the stand biomass in kilograms (\code{biomass_kg = kg_per_m2 * overlap_area_m2})
 \item At the stand level (i.e. raster cell), the single tree CBD in kilograms per cubic meter will be a constant (\code{landfire_tree_kg_per_m3 = biomass_kg / sum_crown_volume_m3})
 \item Attach the the single tree CBD in kilograms per cubic meter to the tree level based on raster cell spatial overlap
