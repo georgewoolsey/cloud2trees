@@ -388,7 +388,7 @@ raster2trees <- function(
   remove_overlap_fn <- function(x1, x2){
     # identify equal vectors
       equals_temp <- x1 %>%
-        sf::st_join(x2, join = st_equals, left = F) %>%
+        sf::st_join(x2, join = sf::st_equals, left = F) %>%
         sf::st_drop_geometry()
 
     # get spatial intersection and filter
