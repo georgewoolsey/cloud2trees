@@ -161,7 +161,7 @@ raster2trees <- function(
         x2_temp <- buffer_crowns_temp %>%
           dplyr::filter(fnm == fnm_list_temp[i])
         # remove overlaps
-        keep_buffer_crowns_temp <- remove_overlap_fn(keep_buffer_crowns_temp, x2_temp)
+        keep_buffer_crowns_temp <- remove_overlap_fn(keep_buffer_crowns_temp, x2_temp, min_crown_area = min_crown_area)
         # clean and increment
         remove(x2_temp)
         i <- i+1
@@ -385,7 +385,7 @@ raster2trees <- function(
 ### get rid of overlaps by selecting
 ### the largest crown for each overlap
 ###____________________________________###
-  remove_overlap_fn <- function(x1, x2){
+  remove_overlap_fn <- function(x1, x2, min_crown_area){
     # identify equal vectors
       equals_temp <- x1 %>%
         sf::st_join(x2, join = sf::st_equals, left = F) %>%
