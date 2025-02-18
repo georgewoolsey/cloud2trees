@@ -1,3 +1,5 @@
+# cloud2trees 0.5.5
+
 # cloud2trees 0.5.4
 
 The `trees_biomass()` (and `trees_biomass_*()`) function allowed for the application of unconstrained tree crown bulk density (CBD) values in kilograms per cubic meter to calculate crown biomass in kilograms. These CBD values are calculated using the sequence of equations detailed in the `trees_biomass_*()` function documentation. In scenarios where there were only a few small trees with small crown diameters and short crown lengths, for example, CBD values of >5 kilograms per cubic meter (sometimes even much larger) were estimated using this process. These high CBD values are improbable based on the literature. [Mell et al. (2009)](https://doi.org/10.1016/j.combustflame.2009.06.015) found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter using Douglas-fir trees grown on Christmas tree farms. This update allows for users to constrain tree CBD values.
