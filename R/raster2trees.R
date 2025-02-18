@@ -386,6 +386,26 @@ raster2trees <- function(
 ### the largest crown for each overlap
 ###____________________________________###
   remove_overlap_fn <- function(x1, x2, min_crown_area){
+    # make features valid
+    # ... without this: Error: TopologyException: Input geom 0 is invalid: Nested shells
+    # ... https://github.com/r-spatial/sf/issues/870
+      # primary data
+      x1 <- x1 %>%
+        sf::st_make_valid() %>%
+        dplyr::filter(
+          sf::st_is_valid(.)
+          & !sf::st_is_empty(.)
+        )
+      if(nrow(x1)==0){return(x2)} ## could issue error here instead
+      # data to check overlap
+      x2 <- x2 %>%
+        sf::st_make_valid() %>%
+        dplyr::filter(
+          sf::st_is_valid(.)
+          & !sf::st_is_empty(.)
+        )
+      if(nrow(x2)==0){return(x1)}
+
     # identify equal vectors
       equals_temp <- x1 %>%
         sf::st_join(x2, join = sf::st_equals, left = F) %>%
