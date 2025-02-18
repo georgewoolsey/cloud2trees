@@ -243,9 +243,11 @@ ggplot2::ggplot() +
 
 # Individual Tree Detection (ITD) Tuning
 
-The `cloud2trees` package performs individual tree detection using `lidR::locate_trees()` with the `lidR::lmf()` algorithm. The local maximum filter algorithm allows for a constant window size or a variable window size defined by a function. See the `lidR` [package book section](https://r-lidar.github.io/lidRbook/itd.html) by point cloud processing expert, [Jean-Romain Roussel](https://github.com/Jean-Romain), for excellent detail on ITD and defining window size.
+The `cloud2trees` package performs individual tree detection using `lidR::locate_trees()` with the `lidR::lmf()` algorithm. The local maximum filter algorithm allows for a constant window size or a variable window size defined by a function. See the `lidR` [package book section](https://r-lidar.github.io/lidRbook/itd.html) by point cloud processing expert [Jean-Romain Roussel](https://github.com/Jean-Romain) for excellent detail on ITD and defining window size.
 
 The `itd_tuning()` function is used to visually assess tree crown delineation results from different window size functions used for the detection of individual trees. `itd_tuning()` allows users to test different window size functions on a sample of data to determine which function is most suitable for the area being analyzed. The preferred function can then be used in the `ws` parameter in `raster2trees()` and `cloud2trees()`.
+
+It is generally recommended that a different window size function is defined for each region of your study area with significantly different forest structure. For example, one might want to define a different window size for each forest type or different silvicultural treatment. To accomplish this with the current version of `cloud2trees` will require the analyst to pre-process the aerial point cloud data to split up these distinct regions, perform ITD on each region, and compile the tree list in post-processing.
 
 ## Default ITD window size functions
 
