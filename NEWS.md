@@ -1,3 +1,5 @@
+# cloud2trees 0.5.6
+
 # cloud2trees 0.5.5
 
 - Fix: `raster2trees()` would potentially fail when processing large rasters that where not read by `terra` as "in-memory" due to invalid tree crown geometries generated during the raster tile processing. This update implements additional checks and fixes in the processing section when the raster is too big to fit in memory.
