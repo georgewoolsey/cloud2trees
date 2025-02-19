@@ -1,3 +1,8 @@
+# cloud2trees 0.5.6
+
+- Fix: `raster2trees()` would potentially fail when writing data if `tempdir = tempdir()` and the raster was too big to fit in memory. This update also forces the `treeID` column in the return data to character type. Lastly, output from the function is now written as "final_detected_\*.gpkg" instead of "chm_detected_\*.gpkg" to match the output from `cloud2trees()`.
+- Change: `cloud2trees()` now writes the return data from `raster2trees()` ("final_detected_\*.gpkg") prior to completing the following steps and the overwrites this file upon completion of the other steps.
+
 # cloud2trees 0.5.5
 
 - Fix: `raster2trees()` would potentially fail when processing large rasters that where not read by `terra` as "in-memory" due to invalid tree crown geometries generated during the raster tile processing. This update implements additional checks and fixes in the processing section when the raster is too big to fit in memory.

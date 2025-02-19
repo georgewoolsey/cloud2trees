@@ -73,7 +73,7 @@ raster2trees <- function(
         round(terra::nrow(chm_rast)/4)
         , round(terra::ncol(chm_rast)/4)
       )
-      , filename = paste0(normalizePath(tempdir),"/tile_.tif")
+      , filename = file.path(tempdir,"tile_.tif")
       , na.rm = T
       , buffer = round(10/terra::res(chm_rast))[1] # 10m buffer
       , overwrite = T
@@ -94,7 +94,7 @@ raster2trees <- function(
       )) %>%
       dplyr::bind_rows()
 
-    write.csv(trees_crowns_data, paste0(normalizePath(tempdir), "/trees_crowns_data.csv"), row.names = F)
+    write.csv(trees_crowns_data, file.path(tempdir, "trees_crowns_data.csv"), row.names = F)
     # trees_crowns_data = readr::read_csv(paste0(normalizePath(tempdir), "/trees_crowns_data.csv"))
 
     #################
@@ -172,7 +172,7 @@ raster2trees <- function(
     crowns_sf <- crowns_sf %>%
       dplyr::bind_rows(keep_buffer_crowns_temp) %>%
       # generate tree id
-      dplyr::mutate(treeID = dplyr::row_number()) %>%
+      dplyr::mutate(treeID = dplyr::row_number() %>% as.character()) %>%
       dplyr::relocate(treeID)
 
     # join tree tops
@@ -313,65 +313,11 @@ raster2trees <- function(
   ##############################################
   ### write the data to the disk
   ##############################################
-  if(nrow(crowns_sf)>250e3){
-      # split up the detected crowns
-      crowns_sf = crowns_sf %>%
-        dplyr::arrange(as.numeric(tree_x),as.numeric(tree_y)) %>%
-        # groups of 500k
-        dplyr::mutate(grp = ceiling(dplyr::row_number()/250e3))
-
-      write_fnl_temp = crowns_sf$grp %>%
-        unique() %>%
-        purrr::map(function(x){
-          ### write the data to the disk
-          # crown vector polygons
-          sf::st_write(
-            crowns_sf %>%
-              dplyr::filter(grp == x) %>%
-              dplyr::select(-c(grp))
-            , paste0(normalizePath(outfolder), "/chm_detected_crowns_",x,".gpkg")
-            , append = FALSE
-            , quiet = TRUE
-          )
-          # tree top vector points
-          sf::st_write(
-            # get tree points
-            crowns_sf %>%
-              dplyr::filter(grp == x) %>%
-              dplyr::select(-c(grp)) %>%
-              sf::st_drop_geometry() %>%
-              sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf))
-            , paste0(normalizePath(outfolder), "/chm_detected_tree_tops_",x,".gpkg")
-            , append = FALSE
-            , quiet = TRUE
-          )
-          return(
-            dplyr::tibble(
-              crowns_file = paste0(normalizePath(outfolder), "/chm_detected_crowns_",x,".gpkg")
-              , trees_file = paste0(normalizePath(outfolder), "/chm_detected_tree_tops_",x,".gpkg")
-            )
-          )
-        }) %>%
-        dplyr::bind_rows()
-    }else{
-        # crown vector polygons
-        sf::st_write(
-          crowns_sf
-          , paste0(normalizePath(outfolder), "/chm_detected_crowns.gpkg")
-          , append = FALSE
-          , quiet = TRUE
-        )
-        # tree top vector points
-        sf::st_write(
-          # get tree points
-          crowns_sf %>%
-            sf::st_drop_geometry() %>%
-            sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf))
-          , paste0(normalizePath(outfolder), "/chm_detected_tree_tops.gpkg")
-          , append = FALSE
-          , quiet = TRUE
-        )
-    }
+  ### write crown polygons and tree top points
+  write_fnl <- write_raster2trees_ans(
+    raster2trees_ans = crowns_sf
+    , dir = normalizePath(outfolder)
+  )
   # return
   return(crowns_sf)
 }
@@ -634,3 +580,82 @@ raster2trees <- function(
     )
     return(split)
   }
+
+####################################################################
+### 4/3 write it
+## intermediate fn to write raster2trees answer
+####################################################################
+write_raster2trees_ans <- function(raster2trees_ans, dir) {
+  ### write the data to the disk
+    if(nrow(raster2trees_ans)>250e3){
+      # split up the detected crowns
+      raster2trees_ans <- raster2trees_ans %>%
+        dplyr::arrange(as.numeric(tree_x),as.numeric(tree_y)) %>%
+        # groups of 250k
+        dplyr::mutate(grp = ceiling(dplyr::row_number()/250e3))
+
+      write_fnl_temp <- raster2trees_ans$grp %>%
+        unique() %>%
+        purrr::map(function(x){
+          # dsn's
+          cf <- file.path( dir, paste0("final_detected_crowns_",x,".gpkg") )
+          tf <- file.path( dir, paste0("final_detected_tree_tops_",x,".gpkg") )
+          ### write the data to the disk
+          # crown vector polygons
+          sf::st_write(
+            raster2trees_ans %>%
+              dplyr::filter(grp == x) %>%
+              dplyr::select(-c(grp))
+            , dsn = cf
+            , append = FALSE
+            , quiet = TRUE
+          )
+          # tree top vector points
+          sf::st_write(
+            # get tree points
+            raster2trees_ans %>%
+              dplyr::filter(grp == x) %>%
+              dplyr::select(-c(grp)) %>%
+              sf::st_drop_geometry() %>%
+              sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(raster2trees_ans))
+            , dsn = tf
+            , append = FALSE
+            , quiet = TRUE
+          )
+          return(
+            dplyr::tibble(
+              crowns_file = cf
+              , trees_file = tf
+            )
+          )
+        }) %>%
+        dplyr::bind_rows()
+    }else{
+        # dsn's
+        cf <- file.path( dir, "final_detected_crowns.gpkg" )
+        tf <- file.path( dir, "final_detected_tree_tops.gpkg" )
+        # crown vector polygons
+        sf::st_write(
+          raster2trees_ans
+          , dsn = cf
+          , append = FALSE
+          , quiet = TRUE
+        )
+        # tree top vector points
+        sf::st_write(
+          # get tree points
+          raster2trees_ans %>%
+            sf::st_drop_geometry() %>%
+            sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(raster2trees_ans))
+          , dsn = tf
+          , append = FALSE
+          , quiet = TRUE
+        )
+        # df
+        write_fnl_temp <- dplyr::tibble(
+          crowns_file = cf
+          , trees_file = tf
+        )
+    }
+  return(write_fnl_temp)
+}
