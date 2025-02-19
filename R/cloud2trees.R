@@ -278,7 +278,7 @@ cloud2trees <- function(
   # do it
   raster2trees_ans <- raster2trees(
     chm_rast = cloud2raster_ans$chm_rast
-    , outfolder = cloud2raster_ans$create_project_structure_ans$temp_dir
+    , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir # write crown polygons and tree top points
     , ws = ws
     , min_height = min_height
     , tempdir = cloud2raster_ans$create_project_structure_ans$temp_dir
@@ -867,66 +867,13 @@ cloud2trees <- function(
         , by = "treeID"
       )
 
-    ### write the data to the disk
-    if(nrow(crowns_sf_with_dbh)>250e3){
-      # split up the detected crowns
-      crowns_sf_with_dbh <- crowns_sf_with_dbh %>%
-        dplyr::arrange(as.numeric(tree_x),as.numeric(tree_y)) %>%
-        # groups of 250k
-        dplyr::mutate(grp = ceiling(dplyr::row_number()/250e3))
-
-      write_fnl_temp <- crowns_sf_with_dbh$grp %>%
-        unique() %>%
-        purrr::map(function(x){
-          ### write the data to the disk
-          # crown vector polygons
-          sf::st_write(
-            crowns_sf_with_dbh %>%
-              dplyr::filter(grp == x) %>%
-              dplyr::select(-c(grp))
-            , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_crowns_",x,".gpkg")
-            , append = FALSE
-            , quiet = TRUE
-          )
-          # tree top vector points
-          sf::st_write(
-            # get tree points
-            crowns_sf_with_dbh %>%
-              dplyr::filter(grp == x) %>%
-              dplyr::select(-c(grp)) %>%
-              sf::st_drop_geometry() %>%
-              sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf_with_dbh))
-            , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_tree_tops_",x,".gpkg")
-            , append = FALSE
-            , quiet = TRUE
-          )
-          return(
-            dplyr::tibble(
-              crowns_file = paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_crowns_",x,".gpkg")
-              , trees_file = paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_tree_tops_",x,".gpkg")
-            )
-          )
-        }) %>%
-        dplyr::bind_rows()
-    }else{
-        # crown vector polygons
-        sf::st_write(
-          crowns_sf_with_dbh
-          , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_crowns.gpkg")
-          , append = FALSE
-          , quiet = TRUE
-        )
-        # tree top vector points
-        sf::st_write(
-          # get tree points
-          crowns_sf_with_dbh %>%
-            sf::st_drop_geometry() %>%
-            sf::st_as_sf(coords = c("tree_x", "tree_y"), crs = sf::st_crs(crowns_sf_with_dbh))
-          , paste0(cloud2raster_ans$create_project_structure_ans$delivery_dir, "/final_detected_tree_tops.gpkg")
-          , append = FALSE
-          , quiet = TRUE
-        )
-    }
+    ### write crown polygons and tree top points
+    ### input data should be from raster2trees and can include extra columns
+    ### !!!! this will overwrite files already written above
+    write_fnl <- write_raster2trees_ans(
+      raster2trees_ans = crowns_sf_with_dbh
+      , dir = cloud2raster_ans$create_project_structure_ans$delivery_dir
+    )
 
     # tree top points for return
     treetops_sf_with_dbh <- crowns_sf_with_dbh %>%
@@ -1167,16 +1114,3 @@ cloud2trees <- function(
       , foresttype_rast = trees_type_rast
     ))
 }
-
-####################################################################
-## intermediate fn to get list difference...now in get_url_data()
-####################################################################
-# get_list_diff <- function(x, y) {
-#   if(inherits(x, "character") & inherits(y, "character")){
-#       d <- x[!(x %in% y)]
-#       d <- unique(d)
-#   }else{
-#     stop("must provide character list in x and y")
-#   }
-#   return(d)
-# }
