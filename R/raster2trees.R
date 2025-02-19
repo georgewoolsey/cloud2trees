@@ -73,7 +73,7 @@ raster2trees <- function(
         round(terra::nrow(chm_rast)/4)
         , round(terra::ncol(chm_rast)/4)
       )
-      , filename = paste0(normalizePath(tempdir),"/tile_.tif")
+      , filename = file.path(tempdir,"tile_.tif")
       , na.rm = T
       , buffer = round(10/terra::res(chm_rast))[1] # 10m buffer
       , overwrite = T
@@ -94,7 +94,7 @@ raster2trees <- function(
       )) %>%
       dplyr::bind_rows()
 
-    write.csv(trees_crowns_data, paste0(normalizePath(tempdir), "/trees_crowns_data.csv"), row.names = F)
+    write.csv(trees_crowns_data, file.path(tempdir, "trees_crowns_data.csv"), row.names = F)
     # trees_crowns_data = readr::read_csv(paste0(normalizePath(tempdir), "/trees_crowns_data.csv"))
 
     #################
@@ -172,7 +172,7 @@ raster2trees <- function(
     crowns_sf <- crowns_sf %>%
       dplyr::bind_rows(keep_buffer_crowns_temp) %>%
       # generate tree id
-      dplyr::mutate(treeID = dplyr::row_number()) %>%
+      dplyr::mutate(treeID = dplyr::row_number() %>% as.character()) %>%
       dplyr::relocate(treeID)
 
     # join tree tops
