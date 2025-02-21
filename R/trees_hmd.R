@@ -113,6 +113,17 @@ trees_hmd <- function(
     ){
       stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
     }
+    # check that treeID is numeric or character
+    id_class <- class(trees_poly$treeID)[1]
+    if(
+      !inherits(trees_poly$treeID, "character")
+      && !inherits(trees_poly$treeID, "numeric")
+    ){
+      stop(paste0(
+        "`trees_poly` data must contain `treeID` column of class numeric or character."
+        , "\nProvide the `treeID` as a unique identifier of individual trees."
+      ))
+    }
   }
   # check for tree_height_m
   if(
@@ -145,16 +156,43 @@ trees_hmd <- function(
     ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
       ### !!! The total size of the xx globals exported for future expression ...
       ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
+    # break up data
+    simp_trees_poly <-
+      simp_trees_poly %>%
+      # arrange by x,y
+      dplyr::left_join(
+        simp_trees_poly %>%
+          sf::st_centroid() %>%
+          dplyr::mutate(
+            x_xxx = sf::st_coordinates(.)[,1]
+            , y_xxx = sf::st_coordinates(.)[,2]
+          ) %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(treeID, x_xxx, y_xxx)
+        , by = "treeID"
+      ) %>%
+      dplyr::arrange(x_xxx,y_xxx) %>%
+      # groups of 250k
+      dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
+      dplyr::select(-c(x_xxx,y_xxx))
 
     # apply it
-    output_temp <- lidR::catalog_apply(
-      ctg = nlas_ctg
-      , FUN = ctg_calc_tree_hmd
-      , .options = list(automerge = TRUE)
-      # ctg_calc_tree_hmd options
-      , poly_df = simp_trees_poly
-      , force_crs = force_same_crs
-    )
+    output_temp <- simp_trees_poly$grp %>%
+      unique() %>%
+      purrr::map(function(x){
+        # rename output
+        lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
+        # run it
+        lidR::catalog_apply(
+          ctg = nlas_ctg
+          , FUN = ctg_calc_tree_hmd
+          , .options = list(automerge = TRUE)
+          # ctg_calc_tree_hmd options
+          , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
+          , force_crs = force_same_crs
+        )
+      }) %>%
+      unlist()
   }else{
     # apply it
     output_temp <- lidR::catalog_apply(
@@ -180,6 +218,7 @@ trees_hmd <- function(
       )) %>%
       dplyr::bind_rows() %>%
       # for trees on many tiles keep row with most points
+      dplyr::filter(!is.na(treeID)) %>%
       dplyr::group_by(treeID) %>%
       dplyr::filter(calc_tree_hmd_n_pts == max(calc_tree_hmd_n_pts)) %>%
       dplyr::summarise(
@@ -191,7 +230,6 @@ trees_hmd <- function(
       dplyr::ungroup()
 
     # cast treeID in original type
-    id_class <- class(trees_poly$treeID)[1]
     if(!inherits(hmd_df$treeID, id_class)){
       if(id_class=="character"){
         hmd_df <- hmd_df %>%
@@ -251,6 +289,7 @@ trees_hmd <- function(
   #######################################################
   # estimate_missing_hmd
   #######################################################
+  n_hmd <- dplyr::coalesce(n_hmd,0)
   if(
     estimate_missing_hmd==T
     && n_hmd > 10
@@ -352,8 +391,12 @@ trees_hmd <- function(
       ) %>%
       dplyr::select(-predicted_hmd)
 
-  }else if(estimate_missing_cbh==T){
-    if(max(grepl("tree_height_m", f))==0){
+  }else if(n_hmd==0){
+    message(paste0(
+      "No HMD values extracted"
+    ))
+  }else if(estimate_missing_hmd==T){
+    if(!(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any()) ){
       message(paste0(
         "`trees_poly` data must contain `tree_height_m` column to estimate HMD."
         , "\nSetting `estimate_missing_hmd=TRUE` requires this data."
@@ -368,8 +411,11 @@ trees_hmd <- function(
   }
 
   ## prevent the hmd from being > the tree height
-    if(force_hmd_lte_ht==T && max(grepl("tree_height_m", f))==1){
-      # find the 95th percentile of height-cbh ratio
+    if(
+      force_hmd_lte_ht==T &&
+      (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+    ){
+      # find the 95th percentile of height-hmd ratio
       max_ratio <- trees_poly %>%
         dplyr::filter(
           is_training_hmd==T
