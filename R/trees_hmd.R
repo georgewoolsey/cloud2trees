@@ -194,11 +194,11 @@ trees_hmd <- function(
     id_class <- class(trees_poly$treeID)[1]
     if(!inherits(hmd_df$treeID, id_class)){
       if(id_class=="character"){
-        lad_profile <- lad_profile %>%
+        hmd_df <- hmd_df %>%
           dplyr::mutate(treeID = as.character(treeID))
       }
       if(id_class=="numeric"){
-        lad_profile <- lad_profile %>%
+        hmd_df <- hmd_df %>%
           dplyr::mutate(treeID = as.numeric(treeID))
       }
     }
