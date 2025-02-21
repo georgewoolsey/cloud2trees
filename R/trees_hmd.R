@@ -138,15 +138,34 @@ trees_hmd <- function(
   ##################################
   # simplify the polygons so that lidR::merge_spatial can be used
   simp_trees_poly <- simplify_multipolygon_crowns(trees_poly)
-  # apply it
-  output_temp <- lidR::catalog_apply(
-    ctg = nlas_ctg
-    , FUN = ctg_calc_tree_hmd
-    , .options = list(automerge = TRUE)
-    # ctg_calc_tree_hmd options
-    , poly_df = simp_trees_poly
-    , force_crs = force_same_crs
-  )
+
+  # check if we need to split for massive tree crown data
+  if(nrow(simp_trees_poly)>500e3){
+    # for data with so many crowns I've encountered the error:
+    ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
+      ### !!! The total size of the xx globals exported for future expression ...
+      ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
+
+    # apply it
+    output_temp <- lidR::catalog_apply(
+      ctg = nlas_ctg
+      , FUN = ctg_calc_tree_hmd
+      , .options = list(automerge = TRUE)
+      # ctg_calc_tree_hmd options
+      , poly_df = simp_trees_poly
+      , force_crs = force_same_crs
+    )
+  }else{
+    # apply it
+    output_temp <- lidR::catalog_apply(
+      ctg = nlas_ctg
+      , FUN = ctg_calc_tree_hmd
+      , .options = list(automerge = TRUE)
+      # ctg_calc_tree_hmd options
+      , poly_df = simp_trees_poly
+      , force_crs = force_same_crs
+    )
+  }
 
   ##################################
   # read result from calc_tree_hmd
@@ -170,6 +189,20 @@ trees_hmd <- function(
         , max_crown_diam_height_m = min(max_crown_diam_height_m, na.rm = T)
       ) %>%
       dplyr::ungroup()
+
+    # cast treeID in original type
+    id_class <- class(trees_poly$treeID)[1]
+    if(!inherits(hmd_df$treeID, id_class)){
+      if(id_class=="character"){
+        lad_profile <- lad_profile %>%
+          dplyr::mutate(treeID = as.character(treeID))
+      }
+      if(id_class=="numeric"){
+        lad_profile <- lad_profile %>%
+          dplyr::mutate(treeID = as.numeric(treeID))
+      }
+    }
+
     # join to original data
     trees_poly <- trees_poly %>%
       dplyr::left_join(
