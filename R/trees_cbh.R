@@ -287,7 +287,7 @@ trees_cbh <- function(
         , by = "treeID"
       ) %>%
       dplyr::arrange(x_xxx,y_xxx) %>%
-      # groups of 250k
+      # groups of 250k....or larger
       dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
       dplyr::select(-c(x_xxx,y_xxx))
 

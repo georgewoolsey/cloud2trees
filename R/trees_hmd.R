@@ -172,7 +172,7 @@ trees_hmd <- function(
         , by = "treeID"
       ) %>%
       dplyr::arrange(x_xxx,y_xxx) %>%
-      # groups of 250k
+      # groups of 250k....or larger
       dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
       dplyr::select(-c(x_xxx,y_xxx))
 
@@ -395,6 +395,7 @@ trees_hmd <- function(
     message(paste0(
       "No HMD values extracted"
     ))
+    return(trees_poly)
   }else if(estimate_missing_hmd==T){
     if(!(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any()) ){
       message(paste0(
