@@ -269,6 +269,7 @@ trees_cbh <- function(
   ##################################
   cbh_df <- output_ctg_to_ladderfuelsr_cbh(
     output = output_temp
+    , id_class = class(trees_poly$treeID)[1]
     , min_vhp_n = min_vhp_n
     , voxel_grain_size_m = voxel_grain_size_m
     , dist_btwn_bins_m = dist_btwn_bins_m
@@ -350,6 +351,7 @@ trees_cbh <- function(
       ##################################
       cbh_df <- output_ctg_to_ladderfuelsr_cbh(
         output = output_temp
+        , id_class = class(trees_poly$treeID)[1]
         , min_vhp_n = new_min_vhp_n
         , voxel_grain_size_m = new_voxel_grain_size_m
         , dist_btwn_bins_m = new_dist_btwn_bins_m
@@ -377,6 +379,7 @@ trees_cbh <- function(
   #############################################
   # check for estimate missing
   #############################################
+  n_cbh <- dplyr::coalesce(n_cbh,0)
   # ensure that tree height data exists
   f <- trees_poly %>% names() %>% dplyr::coalesce("")
   if(
@@ -519,6 +522,10 @@ trees_cbh <- function(
           )
         )
 
+  }else if(n_cbh==0){
+    message(paste0(
+      "No CBH values extracted"
+    ))
   }else if(estimate_missing_cbh==T){
     if(
       !(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
@@ -534,6 +541,7 @@ trees_cbh <- function(
         , "\nReturning CBH values extracted from cloud only."
       ))
     }
+
     ## combine predicted data with training data for full data set
     trees_poly <- trees_poly %>%
       # join with training data estimates
@@ -620,6 +628,7 @@ ctg_leafr_for_ladderfuelsr <- function(
 ####################################
 output_ctg_to_ladderfuelsr_cbh <- function(
   output = NULL
+  , id_class = NULL
   , min_vhp_n = 3
   , voxel_grain_size_m = 1
   , dist_btwn_bins_m = 1
@@ -658,6 +667,18 @@ output_ctg_to_ladderfuelsr_cbh <- function(
     return(NULL)
   }
   if(nrow(lad_profile)<1){return(NULL)}
+
+  # cast treeID in original type
+  if(!inherits(lad_profile$treeID, id_class)){
+    if(id_class=="character"){
+      lad_profile <- lad_profile %>%
+        dplyr::mutate(treeID = as.character(treeID))
+    }
+    if(id_class=="numeric"){
+      lad_profile <- lad_profile %>%
+        dplyr::mutate(treeID = as.numeric(treeID))
+    }
+  }
 
   # force treeID to numeric
   if(!inherits(lad_profile$treeID, "numeric")){
