@@ -21,7 +21,7 @@ It is your responsibility to ensure that the point cloud is projected the same a
 
 \item{tree_sample_n, tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
 proportion of the trees to attempt to extract a HMD from the point cloud for.
-If neither are supplied, \code{tree_sample_n = 333} will be used. If both are supplied, \code{tree_sample_n} will be used.
+If neither are supplied, \code{tree_sample_n = 777} will be used. If both are supplied, \code{tree_sample_n} will be used.
 Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.}
 
 \item{estimate_missing_hmd}{logical. it is not likely that HMD will be extracted successfully from every tree (especially in low density clouds).

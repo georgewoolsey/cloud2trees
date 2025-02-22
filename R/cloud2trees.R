@@ -38,7 +38,7 @@
 #' @param estimate_tree_hmd logical. Should tree height of the maximum crown diameter (HMD) be estimated? See [trees_hmd()].
 #' @param hmd_tree_sample_n,hmd_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a HMD from the point cloud for.
-#'   If neither are supplied, `tree_sample_n = 333` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   If neither are supplied, `tree_sample_n = 777` will be used. If both are supplied, `tree_sample_n` will be used.
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #'   The maximum number of trees to extract tree HMD using `cloud2trees()` is 20,000.
 #'   Try `trees_hmd()` with outputs from `cloud2trees()` if you want to attempt to extract HMD for >20,000 trees.
