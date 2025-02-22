@@ -36,6 +36,12 @@
 #' @param type_max_search_dist_m number. Maximum search distance (m) to obtain forest type group data for trees that overlap with non-forest data in the original Wilson (2023) data.
 #' Larger search distances will increase processing time and possibly result in memory issues.
 #' @param estimate_tree_hmd logical. Should tree height of the maximum crown diameter (HMD) be estimated? See [trees_hmd()].
+#' @param hmd_tree_sample_n,hmd_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
+#'   proportion of the trees to attempt to extract a HMD from the point cloud for.
+#'   If neither are supplied, `tree_sample_n = 333` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
+#'   The maximum number of trees to extract tree HMD using `cloud2trees()` is 20,000.
+#'   Try `trees_hmd()` with outputs from `cloud2trees()` if you want to attempt to extract HMD for >20,000 trees.
 #' @param hmd_estimate_missing_hmd logical. It is not likely that HMD will be extracted successfully from every tree.
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param estimate_biomass_method character. To estimate tree biomass or tree (or crown biomass) enter one or a list of multiple biomass methods. See [trees_biomass()].
@@ -136,6 +142,8 @@ cloud2trees <- function(
   , estimate_tree_type = FALSE
   , type_max_search_dist_m = 1000
   , estimate_tree_hmd = FALSE
+  , hmd_tree_sample_n = NA
+  , hmd_tree_sample_prop = NA
   , hmd_estimate_missing_hmd = FALSE
   , estimate_biomass_method = NA
   , biomass_max_crown_kg_per_m3 = 2
@@ -606,6 +614,7 @@ cloud2trees <- function(
   # start time
   xx8_trees_hmd <- Sys.time()
   err_trees_hmd <- NULL
+  err_trees_hmd_sample <- F
   # empty data
     trees_hmd_ans_temp <- dplyr::tibble(
       treeID = character(0)
@@ -618,11 +627,29 @@ cloud2trees <- function(
       "starting trees_hmd() step at ..."
       , xx8_trees_hmd
     )
+    ### limit hmd sample to 20,000
+    ### if one wants more, they can run trees_hmd in standalone
+    if(
+      dplyr::coalesce(hmd_tree_sample_n,0)>20000
+      || dplyr::coalesce(hmd_tree_sample_prop,0)*nrow(raster2trees_ans)>20000
+    ){
+      hmd_tree_sample_n <- 20000
+      err_trees_hmd_sample <- T
+      message(paste0(
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        , "\n"
+        , "The maximum number of trees to extract tree HMD using cloud2trees() is 20,000"
+        , "\n..............try trees_hmd() if want to attempt to extract HMD for >20,000 trees"
+        , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
+      ))
+    }
     # trees_hmd
     safe_trees_hmd <- purrr::safely(trees_hmd)
     trees_hmd_ans <- safe_trees_hmd(
       trees_poly = raster2trees_ans
       , norm_las = cloud2raster_ans$create_project_structure_ans$las_normalize_dir
+      , tree_sample_n = hmd_tree_sample_n
+      , tree_sample_prop = hmd_tree_sample_prop
       , estimate_missing_hmd = hmd_estimate_missing_hmd
       , force_same_crs = T
     )
@@ -991,6 +1018,8 @@ cloud2trees <- function(
             , sttng_estimate_tree_type = estimate_tree_type
             , sttng_type_max_search_dist_m = type_max_search_dist_m
             , sttng_estimate_tree_hmd = estimate_tree_hmd
+            , sttng_hmd_tree_sample_n = hmd_tree_sample_n
+            , sttng_hmd_tree_sample_prop = hmd_tree_sample_prop
             , sttng_hmd_estimate_missing_hmd = hmd_estimate_missing_hmd
             , sttng_estimate_biomass_method = which_biomass_methods %>% paste(collapse = ",")
             , sttng_biomass_max_crown_kg_per_m3 = biomass_max_crown_kg_per_m3
@@ -1092,6 +1121,15 @@ cloud2trees <- function(
           , "\n"
           , err_trees_hmd
           , "\n..............try to run trees_hmd() with updated parameter settings"
+          , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
+        ))
+      }
+      if(err_trees_hmd_sample==T){
+        message(paste0(
+          "WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! in: trees_hmd()"
+          , "\n"
+          , "The maximum number of trees to extract tree HMD using cloud2trees() is 20,000"
+          , "\n..............try trees_hmd() if want to attempt to extract HMD for >20,000 trees"
           , "\nusing `final_detected_crowns.gpkg` and `norm_las` in the `point_cloud_processing_delivery` directory"
         ))
       }
