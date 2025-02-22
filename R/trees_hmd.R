@@ -17,6 +17,10 @@
 #' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAScatalog`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
+#' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
+#'   proportion of the trees to attempt to extract a HMD from the point cloud for.
+#'   If neither are supplied, `tree_sample_n = 333` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param estimate_missing_hmd logical. it is not likely that HMD will be extracted successfully from every tree (especially in low density clouds).
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param force_same_crs logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
@@ -59,11 +63,49 @@
 trees_hmd <- function(
   trees_poly
   , norm_las = NULL
+  , tree_sample_n = NA
+  , tree_sample_prop = NA
   , estimate_missing_hmd = F
   , force_same_crs = F
 ){
   # could move to parameters
   force_hmd_lte_ht = T
+  ##################################
+  # check sample proportion
+  ##################################
+  if(
+    is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- 333
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 333
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else if(
+    is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_prop <- dplyr::case_when(
+      as.numeric(tree_sample_prop)<=0 ~ 0.5
+      , as.numeric(tree_sample_prop)>1 ~ 1
+      , T ~ as.numeric(tree_sample_prop)
+    )
+    tree_sample_n <- NA
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 333
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else{
+    tree_sample_n <- 333
+    tree_sample_prop <- NA
+  }
   ##################################
   # ensure that norm las data exists
   ##################################
@@ -144,11 +186,34 @@ trees_hmd <- function(
         , "is_training_hmd"
       )))
 
+  ####################################################################
+  # catalog apply
+  ####################################################################
+  # sample
+    if(
+      !is.na(tree_sample_prop)
+      && tree_sample_prop<1
+    ){
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          prop = tree_sample_prop
+        )
+    }else if(
+      !is.na(tree_sample_n)
+      && tree_sample_n<nrow(trees_poly)
+    ){
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          n = tree_sample_n
+        )
+    }else{
+      samp_trees <- trees_poly
+    }
   ##################################
   # apply the ctg_calc_tree_hmd function
   ##################################
   # simplify the polygons so that lidR::merge_spatial can be used
-  simp_trees_poly <- simplify_multipolygon_crowns(trees_poly)
+  simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
 
   # check if we need to split for massive tree crown data
   if(nrow(simp_trees_poly)>500e3){
