@@ -1,5 +1,12 @@
 # cloud2trees 0.5.7
 
+- Fix: `trees_cbh()` and `trees_hmd()` would not be able to match based on `treeID` if the `treeID` column was a character that could also be cast as a numeric value (e.g. "1111111") due to the writing of results to disk storage rather than keeping everything in memory by `lidR::catalog_apply()` and then re-reading of results. This update re-casts the `treeID` in it's original data type.
+- Fix: `trees_cbh()` and `trees_hmd()` would fail when the `trees_poly` data contained so many trees (e.g. >1M) due to exceeding the maximum allowed size by the `future` package default options as set via `lidR::catalog_apply()`. This update chunks up XXL tree lists into groups of 500k for processing to limit the size constraint errors.
+- Change: `trees_hmd()` now includes the  `tree_sample_n` and `tree_sample_prop` parameters to give the option to limit the sample size. Prior to this change, HMD had to *attempt* to be extracted for all trees.
+- Change: `cloud2trees()` now includes the  `hmd_tree_sample_n` and `hmd_tree_sample_prop` parameters to give the option to limit the HMD sample size. Prior to this change, HMD had to *attempt* to be extracted for all trees. The limit for HMD samples via `cloud2trees()` is set to 20,000.
+- Change: `itd_tuning()` renames the default window size functions to more appropriately match the function shape. The defaults are: exponential (`exp_fn`; concave up) which was `nonlin_fn` in previous versions, linear (`lin_fn`) which did not change, and logarithmic (`log_fn`; concave down) which was `exp_fn` in previous versions.
+
+
 # cloud2trees 0.5.6
 
 - Fix: `raster2trees()` would potentially fail when writing data if `tempdir = tempdir()` and the raster was too big to fit in memory. This update also forces the `treeID` column in the return data to character type. Lastly, output from the function is now written as "final_detected_\*.gpkg" instead of "chm_detected_\*.gpkg" to match the output from `cloud2trees()`.
