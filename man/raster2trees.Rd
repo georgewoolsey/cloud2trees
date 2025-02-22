@@ -9,7 +9,7 @@ raster2trees(
   outfolder,
   ws = function(x) {
      y <- dplyr::case_when(is.na(x) ~ 0.001, x < 0 ~ 0.001, x < 3.6
-    ~ 1.25 + x * 0.15, x > 32.5 ~ 5, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
+    ~ 0.9 + (x * 0.24), x > 32.5 ~ 5, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
     
     return(y)
  },

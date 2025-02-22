@@ -17,6 +17,10 @@
 #' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAScatalog`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
+#' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
+#'   proportion of the trees to attempt to extract a HMD from the point cloud for.
+#'   If neither are supplied, `tree_sample_n = 777` will be used. If both are supplied, `tree_sample_n` will be used.
+#'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param estimate_missing_hmd logical. it is not likely that HMD will be extracted successfully from every tree (especially in low density clouds).
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param force_same_crs logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
@@ -59,11 +63,49 @@
 trees_hmd <- function(
   trees_poly
   , norm_las = NULL
+  , tree_sample_n = NA
+  , tree_sample_prop = NA
   , estimate_missing_hmd = F
   , force_same_crs = F
 ){
   # could move to parameters
   force_hmd_lte_ht = T
+  ##################################
+  # check sample proportion
+  ##################################
+  if(
+    is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- 777
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 777
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else if(
+    is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_prop <- dplyr::case_when(
+      as.numeric(tree_sample_prop)<=0 ~ 0.5
+      , as.numeric(tree_sample_prop)>1 ~ 1
+      , T ~ as.numeric(tree_sample_prop)
+    )
+    tree_sample_n <- NA
+  }else if(
+    !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
+  ){
+    tree_sample_n <- dplyr::case_when(
+      as.numeric(tree_sample_n)<=0 ~ 777
+      , T ~ as.numeric(tree_sample_n)
+    )
+    tree_sample_prop <- NA
+  }else{
+    tree_sample_n <- 777
+    tree_sample_prop <- NA
+  }
   ##################################
   # ensure that norm las data exists
   ##################################
@@ -113,6 +155,17 @@ trees_hmd <- function(
     ){
       stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
     }
+    # check that treeID is numeric or character
+    id_class <- class(trees_poly$treeID)[1]
+    if(
+      !inherits(trees_poly$treeID, "character")
+      && !inherits(trees_poly$treeID, "numeric")
+    ){
+      stop(paste0(
+        "`trees_poly` data must contain `treeID` column of class numeric or character."
+        , "\nProvide the `treeID` as a unique identifier of individual trees."
+      ))
+    }
   }
   # check for tree_height_m
   if(
@@ -133,20 +186,89 @@ trees_hmd <- function(
         , "is_training_hmd"
       )))
 
+  ####################################################################
+  # catalog apply
+  ####################################################################
+  # sample
+    if(
+      !is.na(tree_sample_prop)
+      && tree_sample_prop<1
+    ){
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          prop = tree_sample_prop
+        )
+    }else if(
+      !is.na(tree_sample_n)
+      && tree_sample_n<nrow(trees_poly)
+    ){
+      samp_trees <- trees_poly %>%
+        dplyr::slice_sample(
+          n = tree_sample_n
+        )
+    }else{
+      samp_trees <- trees_poly
+    }
   ##################################
   # apply the ctg_calc_tree_hmd function
   ##################################
   # simplify the polygons so that lidR::merge_spatial can be used
-  simp_trees_poly <- simplify_multipolygon_crowns(trees_poly)
-  # apply it
-  output_temp <- lidR::catalog_apply(
-    ctg = nlas_ctg
-    , FUN = ctg_calc_tree_hmd
-    , .options = list(automerge = TRUE)
-    # ctg_calc_tree_hmd options
-    , poly_df = simp_trees_poly
-    , force_crs = force_same_crs
-  )
+  simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
+
+  # check if we need to split for massive tree crown data
+  if(nrow(simp_trees_poly)>500e3){
+    # for data with so many crowns I've encountered the error:
+    ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
+      ### !!! The total size of the xx globals exported for future expression ...
+      ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
+    # break up data
+    simp_trees_poly <-
+      simp_trees_poly %>%
+      # arrange by x,y
+      dplyr::left_join(
+        simp_trees_poly %>%
+          sf::st_centroid() %>%
+          dplyr::mutate(
+            x_xxx = sf::st_coordinates(.)[,1]
+            , y_xxx = sf::st_coordinates(.)[,2]
+          ) %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(treeID, x_xxx, y_xxx)
+        , by = "treeID"
+      ) %>%
+      dplyr::arrange(x_xxx,y_xxx) %>%
+      # groups of 250k....or larger
+      dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
+      dplyr::select(-c(x_xxx,y_xxx))
+
+    # apply it
+    output_temp <- simp_trees_poly$grp %>%
+      unique() %>%
+      purrr::map(function(x){
+        # rename output
+        lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
+        # run it
+        lidR::catalog_apply(
+          ctg = nlas_ctg
+          , FUN = ctg_calc_tree_hmd
+          , .options = list(automerge = TRUE)
+          # ctg_calc_tree_hmd options
+          , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
+          , force_crs = force_same_crs
+        )
+      }) %>%
+      unlist()
+  }else{
+    # apply it
+    output_temp <- lidR::catalog_apply(
+      ctg = nlas_ctg
+      , FUN = ctg_calc_tree_hmd
+      , .options = list(automerge = TRUE)
+      # ctg_calc_tree_hmd options
+      , poly_df = simp_trees_poly
+      , force_crs = force_same_crs
+    )
+  }
 
   ##################################
   # read result from calc_tree_hmd
@@ -161,6 +283,7 @@ trees_hmd <- function(
       )) %>%
       dplyr::bind_rows() %>%
       # for trees on many tiles keep row with most points
+      dplyr::filter(!is.na(treeID)) %>%
       dplyr::group_by(treeID) %>%
       dplyr::filter(calc_tree_hmd_n_pts == max(calc_tree_hmd_n_pts)) %>%
       dplyr::summarise(
@@ -170,6 +293,19 @@ trees_hmd <- function(
         , max_crown_diam_height_m = min(max_crown_diam_height_m, na.rm = T)
       ) %>%
       dplyr::ungroup()
+
+    # cast treeID in original type
+    if(!inherits(hmd_df$treeID, id_class)){
+      if(id_class=="character"){
+        hmd_df <- hmd_df %>%
+          dplyr::mutate(treeID = as.character(treeID))
+      }
+      if(id_class=="numeric"){
+        hmd_df <- hmd_df %>%
+          dplyr::mutate(treeID = as.numeric(treeID))
+      }
+    }
+
     # join to original data
     trees_poly <- trees_poly %>%
       dplyr::left_join(
@@ -218,6 +354,7 @@ trees_hmd <- function(
   #######################################################
   # estimate_missing_hmd
   #######################################################
+  n_hmd <- dplyr::coalesce(n_hmd,0)
   if(
     estimate_missing_hmd==T
     && n_hmd > 10
@@ -319,8 +456,13 @@ trees_hmd <- function(
       ) %>%
       dplyr::select(-predicted_hmd)
 
-  }else if(estimate_missing_cbh==T){
-    if(max(grepl("tree_height_m", f))==0){
+  }else if(n_hmd==0){
+    message(paste0(
+      "No HMD values extracted"
+    ))
+    return(trees_poly)
+  }else if(estimate_missing_hmd==T){
+    if(!(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any()) ){
       message(paste0(
         "`trees_poly` data must contain `tree_height_m` column to estimate HMD."
         , "\nSetting `estimate_missing_hmd=TRUE` requires this data."
@@ -335,8 +477,11 @@ trees_hmd <- function(
   }
 
   ## prevent the hmd from being > the tree height
-    if(force_hmd_lte_ht==T && max(grepl("tree_height_m", f))==1){
-      # find the 95th percentile of height-cbh ratio
+    if(
+      force_hmd_lte_ht==T &&
+      (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+    ){
+      # find the 95th percentile of height-hmd ratio
       max_ratio <- trees_poly %>%
         dplyr::filter(
           is_training_hmd==T

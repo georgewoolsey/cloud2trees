@@ -251,7 +251,7 @@ It is generally recommended that a different window size function is defined for
 
 ## Default ITD window size functions
 
-We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package for our example. `itd_tuning()` enables users to sample from up to five 0.1 ha plots (`n_samples` parameter) that are randomly selected from within the bounding box of the point cloud data coverage. A function or a named list of functions can be tested using the `ws_fn_list` parameter which can also be left at the default value (`NULL`) to test default exponential, linear, and non-linear functions. We'll run `itd_tuning()` with all default options to start.
+We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package for our example. `itd_tuning()` enables users to sample from up to five 0.1 ha plots (`n_samples` parameter) that are randomly selected from within the bounding box of the point cloud data coverage. A function or a named list of functions can be tested using the `ws_fn_list` parameter which can also be left at the default value (`NULL`) to test default exponential (concave up), linear, and logarithmic (concave down) functions. We'll run `itd_tuning()` with all default options to start.
 
 ```{r, results=F}
 itd_tuning_ans <- itd_tuning(input_las_dir = i)
@@ -270,11 +270,11 @@ there is a plot of the different window size functions tested (plot columns) ove
 itd_tuning_ans$plot_samples
 ```
 
-if we think that the "exp_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
+if we think that the "log_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
 
 ```{r}
 # get the best function
-best_ws <- itd_tuning_ans$ws_fn_list$exp_fn
+best_ws <- itd_tuning_ans$ws_fn_list$log_fn
 ```
 
 we can plot what the function looks like

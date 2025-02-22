@@ -195,6 +195,17 @@ trees_cbh <- function(
     ){
       stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
     }
+    # check that treeID is numeric or character
+    id_class <- class(trees_poly$treeID)[1]
+    if(
+      !inherits(trees_poly$treeID, "character")
+      && !inherits(trees_poly$treeID, "numeric")
+    ){
+      stop(paste0(
+        "`trees_poly` data must contain `treeID` column of class numeric or character."
+        , "\nProvide the `treeID` as a unique identifier of individual trees."
+      ))
+    }
   }
   # check for tree_height_m
   if(
@@ -253,22 +264,69 @@ trees_cbh <- function(
   ##################################
   # simplify the polygons so that lidR::merge_spatial can be used
   simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
-  # apply it
-  output_temp <- lidR::catalog_apply(
-    ctg = nlas_ctg
-    , FUN = ctg_leafr_for_ladderfuelsr
-    , .options = list(automerge = TRUE)
-    # ctg_calc_tree_cbh options
-    , poly_df = simp_trees_poly
-    , force_crs = force_same_crs
-    , voxel_grain_size_m = voxel_grain_size_m
-  )
 
+  # check if we need to split for massive tree crown data
+  if(nrow(simp_trees_poly)>500e3){
+    # for data with so many crowns I've encountered the error:
+    ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
+      ### !!! The total size of the xx globals exported for future expression ...
+      ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
+    # break up data
+    simp_trees_poly <-
+      simp_trees_poly %>%
+      # arrange by x,y
+      dplyr::left_join(
+        simp_trees_poly %>%
+          sf::st_centroid() %>%
+          dplyr::mutate(
+            x_xxx = sf::st_coordinates(.)[,1]
+            , y_xxx = sf::st_coordinates(.)[,2]
+          ) %>%
+          sf::st_drop_geometry() %>%
+          dplyr::select(treeID, x_xxx, y_xxx)
+        , by = "treeID"
+      ) %>%
+      dplyr::arrange(x_xxx,y_xxx) %>%
+      # groups of 250k....or larger
+      dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
+      dplyr::select(-c(x_xxx,y_xxx))
+
+    # apply it
+    output_temp <- simp_trees_poly$grp %>%
+      unique() %>%
+      purrr::map(function(x){
+        # rename output
+        lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
+        # run it
+        lidR::catalog_apply(
+          ctg = nlas_ctg
+          , FUN = ctg_leafr_for_ladderfuelsr
+          , .options = list(automerge = TRUE)
+          # ctg_calc_tree_cbh options
+          , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
+          , force_crs = force_same_crs
+          , voxel_grain_size_m = voxel_grain_size_m
+        )
+      }) %>%
+      unlist()
+  }else{
+    # apply it
+    output_temp <- lidR::catalog_apply(
+      ctg = nlas_ctg
+      , FUN = ctg_leafr_for_ladderfuelsr
+      , .options = list(automerge = TRUE)
+      # ctg_calc_tree_cbh options
+      , poly_df = simp_trees_poly
+      , force_crs = force_same_crs
+      , voxel_grain_size_m = voxel_grain_size_m
+    )
+  }
   ##################################
   # ladderfuelsr_cbh() to get cbh data by tree
   ##################################
   cbh_df <- output_ctg_to_ladderfuelsr_cbh(
     output = output_temp
+    , id_class = id_class
     , min_vhp_n = min_vhp_n
     , voxel_grain_size_m = voxel_grain_size_m
     , dist_btwn_bins_m = dist_btwn_bins_m
@@ -333,50 +391,89 @@ trees_cbh <- function(
       # apply the ctg_leafr_for_ladderfuelsr function
       ##################################
       # apply it
-      if(new_voxel_grain_size_m!=voxel_grain_size_m){
-        output_temp <- lidR::catalog_apply(
-          ctg = nlas_ctg
-          , FUN = ctg_leafr_for_ladderfuelsr
-          , .options = list(automerge = TRUE)
-          # ctg_calc_tree_cbh options
-          , poly_df = simp_trees_poly
-          , force_crs = force_same_crs
-          , voxel_grain_size_m = new_voxel_grain_size_m
-        )
+      if(
+        new_voxel_grain_size_m!=voxel_grain_size_m
+      ){
+        # check if we need to split for massive tree crown data
+        if(nrow(simp_trees_poly)>500e3){
+          # for data with so many crowns I've encountered the error:
+          ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
+            ### !!! The total size of the xx globals exported for future expression ...
+            ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
+          # apply it
+          output_temp <- simp_trees_poly$grp %>%
+            unique() %>%
+            purrr::map(function(x){
+              # rename output
+              lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
+              # run it
+              output_temp <- lidR::catalog_apply(
+                ctg = nlas_ctg
+                , FUN = ctg_leafr_for_ladderfuelsr
+                , .options = list(automerge = TRUE)
+                # ctg_calc_tree_cbh options
+                , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
+                , force_crs = force_same_crs
+                , voxel_grain_size_m = new_voxel_grain_size_m
+              )
+            }) %>%
+            unlist()
+        }else{
+          # apply it
+          output_temp <- lidR::catalog_apply(
+            ctg = nlas_ctg
+            , FUN = ctg_leafr_for_ladderfuelsr
+            , .options = list(automerge = TRUE)
+            # ctg_calc_tree_cbh options
+            , poly_df = simp_trees_poly
+            , force_crs = force_same_crs
+            , voxel_grain_size_m = new_voxel_grain_size_m
+          )
+        }
       }
 
-      ##################################
-      # ladderfuelsr_cbh() to get cbh data by tree
-      ##################################
-      cbh_df <- output_ctg_to_ladderfuelsr_cbh(
-        output = output_temp
-        , min_vhp_n = new_min_vhp_n
-        , voxel_grain_size_m = new_voxel_grain_size_m
-        , dist_btwn_bins_m = new_dist_btwn_bins_m
-        , min_fuel_layer_ht_m = new_min_fuel_layer_ht_m
-        , lad_pct_gap = lad_pct_gap
-        , lad_pct_base = lad_pct_base
-        , num_jump_steps = num_jump_steps
-        , min_lad_pct = new_min_lad_pct
-        , frst_layer_min_ht_m = frst_layer_min_ht_m
-      )
-      ##################################
-      # check the cbh data we got and use the cbh selected
-      ##################################
-      cbh_df <- clean_cbh_df(
-        cbh_df = cbh_df
-        , trees_poly = trees_poly
-        , force_cbh_lte_ht = force_cbh_lte_ht
-        , which_cbh = which_cbh
-      )
-      # ensure that there are enough data to estimate
-      n_cbh <- nrow(cbh_df)
-
+      # did we change anything?
+      if(
+        min_fuel_layer_ht_m != new_min_fuel_layer_ht_m
+        || dist_btwn_bins_m != new_dist_btwn_bins_m
+        || min_vhp_n != new_min_vhp_n
+        || voxel_grain_size_m != new_voxel_grain_size_m
+        || min_lad_pct != new_min_lad_pct
+      ){
+        ##################################
+        # ladderfuelsr_cbh() to get cbh data by tree
+        ##################################
+        cbh_df <- output_ctg_to_ladderfuelsr_cbh(
+          output = output_temp
+          , id_class = id_class
+          , min_vhp_n = new_min_vhp_n
+          , voxel_grain_size_m = new_voxel_grain_size_m
+          , dist_btwn_bins_m = new_dist_btwn_bins_m
+          , min_fuel_layer_ht_m = new_min_fuel_layer_ht_m
+          , lad_pct_gap = lad_pct_gap
+          , lad_pct_base = lad_pct_base
+          , num_jump_steps = num_jump_steps
+          , min_lad_pct = new_min_lad_pct
+          , frst_layer_min_ht_m = frst_layer_min_ht_m
+        )
+        ##################################
+        # check the cbh data we got and use the cbh selected
+        ##################################
+        cbh_df <- clean_cbh_df(
+          cbh_df = cbh_df
+          , trees_poly = trees_poly
+          , force_cbh_lte_ht = force_cbh_lte_ht
+          , which_cbh = which_cbh
+        )
+        # ensure that there are enough data to estimate
+        n_cbh <- nrow(cbh_df)
+      }
     }
 
   #############################################
   # check for estimate missing
   #############################################
+  n_cbh <- dplyr::coalesce(n_cbh,0)
   # ensure that tree height data exists
   f <- trees_poly %>% names() %>% dplyr::coalesce("")
   if(
@@ -519,6 +616,10 @@ trees_cbh <- function(
           )
         )
 
+  }else if(n_cbh==0){
+    message(paste0(
+      "No CBH values extracted"
+    ))
   }else if(estimate_missing_cbh==T){
     if(
       !(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
@@ -534,6 +635,7 @@ trees_cbh <- function(
         , "\nReturning CBH values extracted from cloud only."
       ))
     }
+
     ## combine predicted data with training data for full data set
     trees_poly <- trees_poly %>%
       # join with training data estimates
@@ -620,6 +722,7 @@ ctg_leafr_for_ladderfuelsr <- function(
 ####################################
 output_ctg_to_ladderfuelsr_cbh <- function(
   output = NULL
+  , id_class = NULL
   , min_vhp_n = 3
   , voxel_grain_size_m = 1
   , dist_btwn_bins_m = 1
@@ -642,6 +745,7 @@ output_ctg_to_ladderfuelsr_cbh <- function(
       )) %>%
       dplyr::bind_rows() %>%
       # for trees on many tiles keep row with most points
+      dplyr::filter(!is.na(treeID)) %>%
       dplyr::group_by(treeID) %>%
       dplyr::filter(total_pulses == max(total_pulses)) %>%
       # if one tree has multiple cases with the same total pulses
@@ -658,6 +762,18 @@ output_ctg_to_ladderfuelsr_cbh <- function(
     return(NULL)
   }
   if(nrow(lad_profile)<1){return(NULL)}
+
+  # cast treeID in original type
+  if(!inherits(lad_profile$treeID, id_class)){
+    if(id_class=="character"){
+      lad_profile <- lad_profile %>%
+        dplyr::mutate(treeID = as.character(treeID))
+    }
+    if(id_class=="numeric"){
+      lad_profile <- lad_profile %>%
+        dplyr::mutate(treeID = as.numeric(treeID))
+    }
+  }
 
   # force treeID to numeric
   if(!inherits(lad_profile$treeID, "numeric")){

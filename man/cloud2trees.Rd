@@ -23,7 +23,7 @@ cloud2trees(
   max_height = 70,
   ws = function(x) {
      y <- dplyr::case_when(is.na(x) ~ 0.001, x < 0 ~ 0.001, x < 3.6
-    ~ 1.25 + x * 0.15, x > 32.5 ~ 5, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
+    ~ 0.9 + (x * 0.24), x > 32.5 ~ 5, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
     
     return(y)
  },
@@ -38,6 +38,8 @@ cloud2trees(
   estimate_tree_type = FALSE,
   type_max_search_dist_m = 1000,
   estimate_tree_hmd = FALSE,
+  hmd_tree_sample_n = NA,
+  hmd_tree_sample_prop = NA,
   hmd_estimate_missing_hmd = FALSE,
   estimate_biomass_method = NA,
   biomass_max_crown_kg_per_m3 = 2,
@@ -123,6 +125,13 @@ If no competition trees are found within this distance, the return column \code{
 Larger search distances will increase processing time and possibly result in memory issues.}
 
 \item{estimate_tree_hmd}{logical. Should tree height of the maximum crown diameter (HMD) be estimated? See \code{\link[=trees_hmd]{trees_hmd()}}.}
+
+\item{hmd_tree_sample_n, hmd_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
+proportion of the trees to attempt to extract a HMD from the point cloud for.
+If neither are supplied, \code{tree_sample_n = 777} will be used. If both are supplied, \code{tree_sample_n} will be used.
+Increasing \code{tree_sample_prop} toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the \code{trees_poly} data.
+The maximum number of trees to extract tree HMD using \code{cloud2trees()} is 20,000.
+Try \code{trees_hmd()} with outputs from \code{cloud2trees()} if you want to attempt to extract HMD for >20,000 trees.}
 
 \item{hmd_estimate_missing_hmd}{logical. It is not likely that HMD will be extracted successfully from every tree.
 Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?}

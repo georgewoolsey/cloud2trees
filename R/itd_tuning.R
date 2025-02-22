@@ -15,7 +15,7 @@
 #' @param input_las_dir character. directory where .las|.laz point cloud data exists...program will search all sub-directories for all .las|.laz files and process them as one
 #' @param n_samples numeric. The number of sample plots of 0.1 ha on which to test the window functions. The maximum is 5.
 #' The center of the point cloud data coverage will always be the first plot sampled so long as points exist in the central 0.1 ha.
-#' @param ws_fn_list list. A function or a named list of functions. Leave as NULL to test default exponential, linear, and non-linear functions.
+#' @param ws_fn_list list. A function or a named list of functions. Leave as NULL to test default exponential (concave up), linear, and logarithmic (concave down) functions.
 #' If providing a custom function, it must always return a numeric value >0 (see examples).
 #' @param min_height numeric. Set the minimum height (m) for individual tree detection
 #' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
@@ -42,8 +42,8 @@
 #'    names(itd_tuning_ans)
 #'    # look at the tuning plot
 #'    itd_tuning_ans$plot_samples
-#'    # the "nonlin_fn" looks pretty good, let's store it
-#'    best_default <- itd_tuning_ans$ws_fn_list$nonlin_fn
+#'    # the "exp_fn" looks pretty good, let's store it
+#'    best_default <- itd_tuning_ans$ws_fn_list$exp_fn
 #'    # we can see what this function looks like for window size
 #'    ggplot2::ggplot() +
 #'      ggplot2::geom_function(fun = best_default) +
@@ -282,21 +282,17 @@ sample_las_point_extract_trees <- function(
         )
         return(y)
       }
-      , nonlin_fn = function(x) {
+      , exp_fn = function(x) {
         y <- dplyr::case_when(
           is.na(x) ~ 1e-3 # requires non-null
           , x < 0 ~ 1e-3 # requires positive
-          # , x < 2.5 ~ 1 # set lower bound
-          # , x > 40 ~ 6.7  # set upper bound
-          # , TRUE ~ exp( (0.0446*x) + (x^-0.555) ) # used gamma regression so exp the result
-          #### NEW
-          , x < 3.6 ~ 1.25 + x*0.15 # set lower bound
+          , x < 3.6 ~ 0.9 + (x * 0.24) # set lower bound
           , x > 32.5 ~ 5  # set upper bound
           , TRUE ~ exp( (0.0446*x) + (x^-0.555) ) # used gamma regression so exp the result
         )
         return(y)
       }
-      , exp_fn = function(x) {
+      , log_fn = function(x) {
         y <- dplyr::case_when(
           is.na(x) ~ 0.001
           , x < 0 ~ 0.001
@@ -328,8 +324,8 @@ sample_las_point_extract_trees <- function(
 
     # ggplot() +
     #   geom_function(fun = ws_fn_list$lin_fn, aes(color="lin_fn")) +
-    #   geom_function(fun = ws_fn_list$nonlin_fn, aes(color="nonlin_fn")) +
     #   geom_function(fun = ws_fn_list$exp_fn, aes(color="exp_fn")) +
+    #   geom_function(fun = ws_fn_list$log_fn, aes(color="log_fn")) +
     #   xlim(-5,60) +
     #   labs(x = "Z", y = "ws", color = "")
   #####################################################
