@@ -125,7 +125,7 @@ cloud2trees <- function(
     y <- dplyr::case_when(
       is.na(x) ~ 1e-3
       , x < 0 ~ 1e-3
-      , x < 3.6 ~ 1.25 + x*0.15
+      , x < 3.6 ~ 0.9 + (x * 0.24)
       , x > 32.5 ~ 5
       , TRUE ~ exp( (0.0446*x) + (x^-0.555) )
     )

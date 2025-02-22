@@ -270,11 +270,11 @@ there is a plot of the different window size functions tested (plot columns) ove
 itd_tuning_ans$plot_samples
 ```
 
-if we think that the "exp_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
+if we think that the "log_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
 
 ```{r}
 # get the best function
-best_ws <- itd_tuning_ans$ws_fn_list$exp_fn
+best_ws <- itd_tuning_ans$ws_fn_list$log_fn
 ```
 
 we can plot what the function looks like

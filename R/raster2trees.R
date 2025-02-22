@@ -44,11 +44,11 @@ raster2trees <- function(
   , outfolder
   , ws = function(x) {
     y <- dplyr::case_when(
-      is.na(x) ~ 1e-3 # requires non-null
-      , x < 0 ~ 1e-3 # requires positive
-      , x < 3.6 ~ 1.25 + x*0.15 # set lower bound
-      , x > 32.5 ~ 5  # set upper bound
-      , TRUE ~ exp( (0.0446*x) + (x^-0.555) ) # used gamma regression so exp the result
+      is.na(x) ~ 1e-3
+      , x < 0 ~ 1e-3
+      , x < 3.6 ~ 0.9 + (x * 0.24)
+      , x > 32.5 ~ 5
+      , TRUE ~ exp( (0.0446*x) + (x^-0.555) )
     )
     return(y)
   }

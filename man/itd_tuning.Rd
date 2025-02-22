@@ -18,7 +18,7 @@ itd_tuning(
 \item{n_samples}{numeric. The number of sample plots of 0.1 ha on which to test the window functions. The maximum is 5.
 The center of the point cloud data coverage will always be the first plot sampled so long as points exist in the central 0.1 ha.}
 
-\item{ws_fn_list}{list. A function or a named list of functions. Leave as NULL to test default exponential, linear, and non-linear functions.
+\item{ws_fn_list}{list. A function or a named list of functions. Leave as NULL to test default exponential (concave up), linear, and logarithmic (concave down) functions.
 If providing a custom function, it must always return a numeric value >0 (see examples).}
 
 \item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
@@ -56,8 +56,8 @@ parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=clo
    names(itd_tuning_ans)
    # look at the tuning plot
    itd_tuning_ans$plot_samples
-   # the "nonlin_fn" looks pretty good, let's store it
-   best_default <- itd_tuning_ans$ws_fn_list$nonlin_fn
+   # the "exp_fn" looks pretty good, let's store it
+   best_default <- itd_tuning_ans$ws_fn_list$exp_fn
    # we can see what this function looks like for window size
    ggplot2::ggplot() +
      ggplot2::geom_function(fun = best_default) +
