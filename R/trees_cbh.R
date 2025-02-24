@@ -504,39 +504,17 @@ trees_cbh <- function(
     predict_df <- mod_df %>% dplyr::filter(is_training_cbh==F) %>% dplyr::select(-is_training_cbh)
 
     ### tuning RF model
-      # If we are interested with just starting out and tuning the mtry parameter
-      # we can use randomForest::tuneRF for a quick and easy tuning assessment.
-      # tuneRf will start at a value of mtry that you supply and increase by a
-      # certain step factor until the OOB error stops improving be a specified amount.
-      # quiet this
-      quiet_tuneRF <- purrr::quietly(randomForest::tuneRF)
-      # run it
-      rf_tune_temp <- quiet_tuneRF(
-        # randomForest::tuneRF(
-        y = training_df$tree_cbh_m
-        , x = training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
-        , stepFactor = 0.5
-        , ntreeTry = 200
-        , mtryStart = 0.5
-        , improve = 0.01
-        , plot = F
-        , trace = F
-      )
-      # just get the result
-      rf_tune_temp <- rf_tune_temp$result
+      # predictors and response to pass to randomForest functions
+      predictors <- training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
+      response <- training_df$tree_cbh_m
 
-      # Extract the optimal mtry value
-      optimal_mtry <- rf_tune_temp %>%
-        dplyr::as_tibble() %>%
-        dplyr::filter(OOBError==min(OOBError)) %>%
-        dplyr::filter(dplyr::row_number() == 1) %>%
-        dplyr::pull(mtry)
-      # ensure that the mtry value is not greater than the number of predictors
-      optimal_mtry <- min(
-        optimal_mtry
-        , ncol(
-          training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
-        )
+      # implements steps to mitigate very long run-times when tuning random forests models
+      optimal_mtry <- rf_tune_subsample(
+        predictors = predictors
+        , response = response
+        , threshold = 14444
+        , n_subsamples = 4
+        , ntree_try = 44
       )
 
       ### Run a randomForest model to predict CBH using various crown predictors
@@ -544,11 +522,12 @@ trees_cbh <- function(
       quiet_rf <- purrr::quietly(randomForest::randomForest)
       # run it
       cbh_mod <- quiet_rf(
-        y = training_df$tree_cbh_m
-        , x = training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
+        y = response
+        , x = predictors
         , mtry = optimal_mtry
         , na.action = na.omit
       )
+
       # just get the result
       cbh_mod <- cbh_mod$result
 
