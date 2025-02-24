@@ -26,11 +26,11 @@
 rf_tune_subsample <- function(
   predictors
   , response
-  , threshold = 15555
-  , n_subsamples = 5
-  , ntree_try = 50
+  , threshold = 14444
+  , n_subsamples = 4
+  , ntree_try = 44
   , step_factor = 1
-  , improve = 0.05
+  , improve = 0.03
 ) {
   # set upper limit for ntreeTry
   max_ntreeTry <- 122

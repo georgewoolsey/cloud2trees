@@ -491,9 +491,6 @@ trees_dbh <- function(
               optimal_mtry <- rf_tune_subsample(
                 predictors = predictors
                 , response = response
-                , threshold = 14444
-                , n_subsamples = 4
-                , ntree_try = 44
               )
 
               ### Run a randomForest model to predict HMD using various crown predictors
@@ -506,6 +503,9 @@ trees_dbh <- function(
                 , mtry = optimal_mtry
                 , na.action = na.omit
               )
+
+              # just get the result
+              stem_prediction_model <- stem_prediction_model$result
 
             # stem_prediction_model
             # str(stem_prediction_model)

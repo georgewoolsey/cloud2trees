@@ -512,9 +512,6 @@ trees_cbh <- function(
       optimal_mtry <- rf_tune_subsample(
         predictors = predictors
         , response = response
-        , threshold = 14444
-        , n_subsamples = 4
-        , ntree_try = 44
       )
 
       ### Run a randomForest model to predict CBH using various crown predictors
