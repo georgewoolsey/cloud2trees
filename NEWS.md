@@ -1,3 +1,5 @@
+# cloud2trees 0.5.8
+
 # cloud2trees 0.5.7
 
 - Fix: `trees_cbh()` and `trees_hmd()` would not be able to match based on `treeID` if the `treeID` column was a character that could also be cast as a numeric value (e.g. "1111111") due to the writing of results to disk storage rather than keeping everything in memory by `lidR::catalog_apply()` and then re-reading of results. This update re-casts the `treeID` in it's original data type.
