@@ -1,3 +1,15 @@
+# cloud2trees 0.5.8
+
+Several methods for attaching tree component metrics involve modelling missing values using a random forest model. In `cloud2trees` these random forest models are tuned for each unique run using `randomForest::tuneRF()` which enables model tuning by searching for the optimal `mtry` parameter (the number of variables randomly sampled as candidates at each split) using a cross-validation approach. However, computational cost increases significantly with the number of observations as `randomForest::tuneRF()` performs cross-validation internally for each `mtry` value it tries. With large model training data (e.g. 100k+ observations), each of these cross-validation runs involves building and evaluating many random forest trees, making the process very time-consuming. This update adds the internal function `rf_tune_subsample()` to implement steps to mitigate very long run-times when tuning random forests models. `rf_tune_subsample()` mitigates very long run-times by: 
+
+1) Reducing the `ntreeTry` parameter to a smaller value. Tuning will be less precise, but it will finish in a reasonable time. The `ntree` parameter is then increased for the final model. 
+2) Subsampling uses a smaller, representative subsample of the data (e.g., 10-20% of the data) to find a good `mtry` value on the subsample.
+
+
+- Change: `trees_hmd()` implements `rf_tune_subsample()` to mitigate very long run-times
+- Change: `trees_cbh()` implements `rf_tune_subsample()` to mitigate very long run-times
+- Change: `trees_dbh()` implements `rf_tune_subsample()` to mitigate very long run-times
+
 # cloud2trees 0.5.7
 
 - Fix: `trees_cbh()` and `trees_hmd()` would not be able to match based on `treeID` if the `treeID` column was a character that could also be cast as a numeric value (e.g. "1111111") due to the writing of results to disk storage rather than keeping everything in memory by `lidR::catalog_apply()` and then re-reading of results. This update re-casts the `treeID` in it's original data type.

@@ -483,32 +483,30 @@ trees_dbh <- function(
             set.seed(21)
 
             ### tuning RF model
-            # If we are interested with just starting out and tuning the mtry parameter
-            # we can use randomForest::tuneRF for a quick and easy tuning assessment.
-            # tuneRf will start at a value of mtry that you supply and increase by a
-            # certain step factor until the OOB error stops improving be a specified amount.
-            rf_tune_temp <- randomForest::tuneRF(
-              y = dbh_training_data_temp$stem_dbh_cm
-              , x = dbh_training_data_temp %>% dplyr::select(-c(treeID,stem_dbh_cm))
-              , stepFactor = 0.5
-              , ntreeTry = 500
-              , mtryStart = 0.5
-              , improve = 0.01
-              , plot = F
-              , trace = F
-            )
-            # rf_tune_temp
+              # predictors and response to pass to randomForest functions
+              predictors <- dbh_training_data_temp %>% dplyr::select(-c(treeID,stem_dbh_cm))
+              response <- dbh_training_data_temp$stem_dbh_cm
 
-            ### Run a randomForest model to predict DBH using various crown predictors
-            stem_prediction_model <- randomForest::randomForest(
-              y = dbh_training_data_temp$stem_dbh_cm
-              , x = dbh_training_data_temp %>% dplyr::select(-c(treeID,stem_dbh_cm))
-              , mtry = rf_tune_temp %>%
-                dplyr::as_tibble() %>%
-                dplyr::filter(OOBError==min(OOBError)) %>%
-                dplyr::pull(mtry)
-              , na.action = na.omit
-            )
+              # implements steps to mitigate very long run-times when tuning random forests models
+              optimal_mtry <- rf_tune_subsample(
+                predictors = predictors
+                , response = response
+              )
+
+              ### Run a randomForest model to predict HMD using various crown predictors
+              # quiet this
+              quiet_rf <- purrr::quietly(randomForest::randomForest)
+              # run it
+              stem_prediction_model <- quiet_rf(
+                y = response
+                , x = predictors
+                , mtry = optimal_mtry
+                , na.action = na.omit
+              )
+
+              # just get the result
+              stem_prediction_model <- stem_prediction_model$result
+
             # stem_prediction_model
             # str(stem_prediction_model)
 
