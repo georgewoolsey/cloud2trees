@@ -42,16 +42,7 @@
 raster2trees <- function(
   chm_rast
   , outfolder
-  , ws = function(x) {
-    y <- dplyr::case_when(
-      is.na(x) ~ 1e-3
-      , x < 0 ~ 1e-3
-      , x < 3.6 ~ 0.9 + (x * 0.24)
-      , x > 32.5 ~ 5
-      , TRUE ~ exp( (0.0446*x) + (x^-0.555) )
-    )
-    return(y)
-  }
+  , ws = itd_ws_functions()[["exp_fn"]]
   , min_height = 2
   , min_crown_area = 0.1
   , tempdir = tempdir()

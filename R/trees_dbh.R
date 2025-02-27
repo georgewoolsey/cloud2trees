@@ -100,7 +100,12 @@ trees_dbh <- function(
   # convert to spatial points data
   ##################################
   tree_tops <- check_spatial_points(tree_list, crs)
-
+  if(sf::st_crs(tree_tops) %>% is.na()){
+    stop(paste0(
+      "Cannot make regional DBH-Height model with blank CRS."
+      , "\n  ensure that the `tree_list` data has a CRS"
+    ))
+  }
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
       # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
@@ -124,7 +129,7 @@ trees_dbh <- function(
   ##################################
   if(dplyr::coalesce(nrow(treels_dbh_locations),0)>0){
     # check crown polygon data
-    if( min(sf::st_is(tree_list, type = c("POLYGON", "MULTIPOLYGON"))) == 0 ){
+    if( !(sf::st_is(tree_list, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){
       stop(paste0(
         "`tree_list` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]) to estimate DBH from `treels_dbh_locations`"
         , "\nSee data returned from [raster2trees()] which is the intended data to pass to `tree_list`"
@@ -138,14 +143,14 @@ trees_dbh <- function(
       ))
     }
     # check treels_dbh_locations
-    if( min(sf::st_is(treels_dbh_locations, type = c("POINT", "MULTIPOINT"))) == 0 ){
+    if( !(sf::st_is(treels_dbh_locations, type = c("POINT", "MULTIPOINT")) %>% all()) ){
       stop(paste0(
         "`treels_dbh_locations` data must be an `sf` class object with POINT geometry (see [sf::st_geometry_type()]) to estimate DBH from `treels_dbh_locations`"
         , "\nSee data returned from [treels_stem_dbh()] which is the intended data to pass to `treels_dbh_locations`"
       ))
     }
     # check treels_dbh_locations
-    if(max(grepl("dbh_cm", names(treels_dbh_locations)))==0){
+    if( !(names(treels_dbh_locations) %>% stringr::str_equal("dbh_cm") %>% any()) ){
       stop(paste0(
         "`treels_dbh_locations` data must have a column titled `dbh_cm` with numeric DBH values in cm."
         , "\nSee data returned from [treels_stem_dbh()] which is the intended data to pass to `treels_dbh_locations`"

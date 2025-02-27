@@ -96,6 +96,12 @@ trees_landfire_cbd <- function(
   # convert to spatial points data
   ##################################
   tree_tops <- check_spatial_points(tree_list, crs)
+  if(sf::st_crs(tree_tops) %>% is.na()){
+    stop(paste0(
+      "Cannot get LANDFIRE data with blank CRS."
+      , "\n  ensure that the `tree_list` data has a CRS"
+    ))
+  }
 
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
