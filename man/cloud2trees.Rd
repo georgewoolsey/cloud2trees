@@ -21,12 +21,7 @@ cloud2trees(
   chm_res_m = 0.25,
   min_height = 2,
   max_height = 70,
-  ws = function(x) {
-     y <- dplyr::case_when(is.na(x) ~ 0.001, x < 0 ~ 0.001, x < 3.6
-    ~ 0.9 + (x * 0.24), x > 32.5 ~ 5, TRUE ~ exp((0.0446 * x) + (x^-0.555)))
-    
-    return(y)
- },
+  ws = itd_ws_functions()[["exp_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
   dbh_model = "lin",

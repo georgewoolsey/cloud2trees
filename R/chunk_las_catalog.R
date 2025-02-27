@@ -103,13 +103,14 @@ chunk_las_catalog <- function(
         las_ctg <- las_ctg %>% sf::st_set_crs(n_crs)
         crs_list_temp <- sf::st_crs(las_ctg)$epsg
       }else{
-        stop("No CRS defined...try setting the parameter `new_crs` if known")
+        # stop("No CRS defined...try setting the parameter `new_crs` if known")
+        proj_crs <- NA
       }
     }
     # set crs for use in project
     if(length(unique(crs_list_temp))>1){
       stop("The raw las files have multiple CRS settings. Confine las files in `folder` to files with same CRS or re-generate las files with same projection.")
-    }else{
+    }else if(!is.na(crs_list_temp)){
       proj_crs <- paste0("EPSG:",unique(crs_list_temp))
     }
 
@@ -389,7 +390,10 @@ chunk_las_catalog <- function(
 ###___________________________________________###
 get_horizontal_crs <- function(x) {
   xcrs <- sf::st_crs(x)
-  if (is.na(xcrs)) stop("No CRS defined...try setting the parameter `new_crs` if known")
+  if (is.na(xcrs)){
+    # stop("No CRS defined...try setting the parameter `new_crs` if known")
+    return(NA)
+  }
 
   wkt <- sf::st_as_text(xcrs)
 

@@ -271,38 +271,7 @@ sample_las_point_extract_trees <- function(
   #####################################################
   # default function list
     # ws_fn_list = NULL ### !!! testing only !!! better take it out and don't forget
-    def_fn_list <- list(
-      lin_fn = function(x){
-        y <- dplyr::case_when(
-         is.na(x) ~ 0.001
-         , x < 0 ~ 0.001
-         , x < 2 ~ 1
-         , x > 30 ~ 5
-         , TRUE ~ 0.75 + (x * 0.14)
-        )
-        return(y)
-      }
-      , exp_fn = function(x) {
-        y <- dplyr::case_when(
-          is.na(x) ~ 1e-3 # requires non-null
-          , x < 0 ~ 1e-3 # requires positive
-          , x < 3.6 ~ 0.9 + (x * 0.24) # set lower bound
-          , x > 32.5 ~ 5  # set upper bound
-          , TRUE ~ exp( (0.0446*x) + (x^-0.555) ) # used gamma regression so exp the result
-        )
-        return(y)
-      }
-      , log_fn = function(x) {
-        y <- dplyr::case_when(
-          is.na(x) ~ 0.001
-          , x < 0 ~ 0.001
-          , x < 2 ~ 0.6
-          , x > 26.5 ~ 5
-          , TRUE ~ exp(-(3.5 * (1/x)) + (x^0.17)))
-          # , TRUE ~ 2.6 * (-(exp(-0.08*(x-2)) - 1)) + 3 ## fn from lidR book
-        return(y)
-      }
-    )
+    def_fn_list <- itd_ws_functions()
   # check ws_fn_list
     if(is.function(ws_fn_list)){
       ws_fn_list <- list(custom_fn = ws_fn_list)
