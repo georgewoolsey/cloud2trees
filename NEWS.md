@@ -1,5 +1,9 @@
 # cloud2trees 0.5.9
 
+- New: `itd_ws_functions()` makes a list of default functions that can be used for determining a variable window size for the detection of individual trees accessible.
+- Change: `chunk_las_catalog()` would not allow for the processing of point clouds with "NA" CRS projection using `cloud2raster()`. Enabling the processing of point cloud data with "NA" projection.
+- Fix: `trees_cbh()` had a potential memory leak that would cause memory full issues when processing XXL tree lists (e.g. 100k+) that would cause "Error: cannot allocate vector of size..." errors or just completely overwhelm the machine. Taking steps to remedy but might not ever be fully resolved.
+
 # cloud2trees 0.5.8
 
 Several methods for attaching tree component metrics involve modelling missing values using a random forest model. In `cloud2trees` these random forest models are tuned for each unique run using `randomForest::tuneRF()` which enables model tuning by searching for the optimal `mtry` parameter (the number of variables randomly sampled as candidates at each split) using a cross-validation approach. However, computational cost increases significantly with the number of observations as `randomForest::tuneRF()` performs cross-validation internally for each `mtry` value it tries. With large model training data (e.g. 100k+ observations), each of these cross-validation runs involves building and evaluating many random forest trees, making the process very time-consuming. This update adds the internal function `rf_tune_subsample()` to implement steps to mitigate very long run-times when tuning random forests models. `rf_tune_subsample()` mitigates very long run-times by: 
