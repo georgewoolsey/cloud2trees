@@ -119,47 +119,13 @@ trees_cbh_sf <- function(
       # check
       if(nrow(trees_poly)==0){return(msg)}
     }
-    if(!inherits(trees_poly, "sf")){stop(sf_msg)}
-    if( !(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){stop(sf_msg)}
   ##################################
   # ensure that treeID data exists
   ##################################
   f <- trees_poly %>% names() %>% dplyr::coalesce("")
-  if(
-    !(stringr::str_equal(f, "treeID") %>% any())
-  ){
-    stop(paste0(
-      "`trees_poly` data must contain `treeID` column to estimate missing CBH values."
-      , "\nProvide the `treeID` as a unique identifier of individual trees."
-    ))
-  }else{
-    # check for duplicate treeID
-    if(
-      nrow(trees_poly) != length(unique(trees_poly$treeID))
-    ){
-      stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
-    }
-    # check that treeID is numeric or character
-    id_class <- class(trees_poly$treeID)[1]
-    if(
-      !inherits(trees_poly$treeID, "character")
-      && !inherits(trees_poly$treeID, "numeric")
-    ){
-      stop(paste0(
-        "`trees_poly` data must contain `treeID` column of class numeric or character."
-        , "\nProvide the `treeID` as a unique identifier of individual trees."
-      ))
-    }
-  }
-  # check for tree_height_m
-  if(
-    !(stringr::str_equal(f, "tree_height_m") %>% any())
-  ){
-    stop(paste0(
-      "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
-      , "\nRename the height column if it exists and ensure it is in meters."
-    ))
-  }
+  # check_trees_poly will throw error if fails any checks
+  check_trees_poly_ans <- check_trees_poly(trees_poly)
+  id_class <- class(trees_poly$treeID)[1]
 
   # get rid of columns we'll create
     trees_poly <- trees_poly %>%
@@ -583,6 +549,11 @@ trees_cbh_flist <- function(
       ttops_flist <- NULL
     }
   ##################################
+  # check_trees_poly
+  ##################################
+    # check_trees_poly will throw error if fails any checks
+    check_trees_poly_ans <- crowns_flist %>% purrr::map(check_trees_poly)
+  ##################################
   # sample
   ##################################
     if(
@@ -661,6 +632,8 @@ sample_trees_flist <- function(
     )
     if(!inherits(flist,"character")){
       stop(msg)
+    }else{
+      flist <- flist %>% normalizePath() %>% unique()
     }
     # check if is dir and look for cloud2trees files in the dir
     if(
@@ -733,6 +706,118 @@ sample_trees_flist <- function(
     return(samp_trees)
 }
 
+################################################################################################################################################
+# function to check a sf object or path of a spatial file as a character object
+# for the right stuff needed to run the CBH things
+################################################################################################################################################
+check_trees_poly <- function(fnm) {
+  if(length(fnm) > 1){"check_trees_poly() can only do one thing at a time"}
+  # geometry types from sf::st_geometry_type()
+  bad_sf_types <- c(
+    # "GEOMETRY","POLYGON", "MULTIPOLYGON", "GEOMETRYCOLLECTION" # we'll let these slide
+    "POINT", "LINESTRING", "MULTIPOINT", "MULTILINESTRING"
+    , "CIRCULARSTRING", "COMPOUNDCURVE", "CURVEPOLYGON", "MULTICURVE"
+    , "MULTISURFACE", "CURVE", "SURFACE", "POLYHEDRALSURFACE"
+    , "TIN", "TRIANGLE"
+  )
+  if(inherits(fnm,"character")){
+    # is it a dir?
+    if(dir.exists(fnm)){
+      stop("check_trees_poly() can only test `sf` class objects or character objects with the path to a spatial file")
+    }
+    # does it even exist
+    if(!file.exists(fnm)){
+      stop(paste0(
+        "file named \n   "
+        , fnm
+        , " \n   not found. does it even exist?"
+      ))
+    }
+    # get layer name
+    lyr_df <- sf::st_layers(fnm)
+    # any badd types?
+    has_bad <- any(toupper(lyr_df$geomtype) %in% bad_sf_types)
+    if(has_bad==T){
+      stop(paste0(
+        "geometry type of "
+        , toupper(lyr_df$geomtype[1])
+        , " found in \n   "
+        , fnm
+        , " \n   only POLYGON type allowed for `trees_poly`"
+      ))
+    }
+    # what if type is not read using sf::st_layers?
+    test_sf <- sf::st_read(
+        dsn = fnm
+        , query = paste("select * from", lyr_df$name, "limit 3")
+        , quiet = T
+      )
+  }else if(inherits(fnm,"sf")){
+    test_sf <- fnm
+    fnm <- fnm %>% substitute() %>% deparse()
+  }else{
+    stop("check_trees_poly() can only test `sf` class objects or character objects with the path to a spatial file")
+  }
+  # is it even sf?
+  if(!inherits(test_sf,"sf")){
+    stop(paste0(
+      "this file is not even a spatial file \n   "
+      , fnm
+    ))
+  }
+  # check types
+  if( !(sf::st_is(test_sf, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){
+    stop(paste0(
+      "non-POLYGON found in \n   "
+      , fnm
+      , " \n   only POLYGON type allowed for `trees_poly`"
+    ))
+  }
+  # check column names
+  f <- test_sf %>% names() %>% dplyr::coalesce("")
+  if(
+    !(stringr::str_equal(f, "treeID") %>% any())
+  ){
+    stop(paste0(
+      "`trees_poly` data must contain `treeID` column to estimate missing CBH values."
+      , "\nProvide the `treeID` as a unique identifier of individual trees."
+      , "\n  ", fnm
+    ))
+  }else{
+    # check for duplicate treeID
+    if(
+      nrow(test_sf) != length(unique(test_sf$treeID))
+    ){
+      stop(paste0(
+        "Duplicates found in the treeID column. Please remove duplicates and try again."
+        , "\n  ", fnm
+      ))
+    }
+    # check that treeID is numeric or character
+    if(
+      !inherits(test_sf$treeID, "character")
+      && !inherits(test_sf$treeID, "numeric")
+    ){
+      stop(paste0(
+        "`trees_poly` data must contain `treeID` column of class numeric or character."
+        , "\nProvide the `treeID` as a unique identifier of individual trees."
+        , "\n  ", fnm
+      ))
+    }
+  }
+  # check for tree_height_m
+  if(
+    !(stringr::str_equal(f, "tree_height_m") %>% any())
+  ){
+    stop(paste0(
+      "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
+      , "\nRename the height column if it exists and ensure it is in meters."
+      , "\n  ", fnm
+    ))
+  }
+  # success if you've made it this far
+  return(TRUE)
+}
 ################################################################################################################################################
 # function to search a directory for final_detected_tree_tops* and final_detected_crowns* files
 ################################################################################################################################################
