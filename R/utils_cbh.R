@@ -181,6 +181,7 @@ trees_cbh_sf <- function(
       samp_trees <- trees_poly %>%
         # this keeps our sample only
         dplyr::inner_join(trees_sample, by = "treeID")
+      if(nrow(samp_trees)==0){return(NULL)}
     }else if(
       !is.na(tree_sample_prop)
       && tree_sample_prop<1
@@ -533,10 +534,100 @@ trees_cbh_sf <- function(
 }
 
 ################################################################################################################################################
-# function to apply trees_cbh_sf to a crown file and write the answer to the disk
-# based on a sample as obtained from sample_trees_flist
+# function to apply trees_cbh_sf to a directory where cloud2trees::cloud2trees() output was written
+# or to a list of crown files
 # this function pipeline was developed to avoid memory issues with xxl tree lists
 ################################################################################################################################################
+trees_cbh_flist <- function(
+  # flist == a list of crown files or the directory where final_detected_tree_tops* and final_detected_crowns* files
+  # from cloud2trees::cloud2trees() or cloud2trees::raster2trees() were written
+  flist
+  , norm_las = NULL
+  , tree_sample_n = NA
+  , tree_sample_prop = NA
+  , which_cbh = "lowest"
+  , min_vhp_n = 3
+  , voxel_grain_size_m = 1
+  , dist_btwn_bins_m = 1
+  , min_fuel_layer_ht_m = 1
+  , lad_pct_gap = 25
+  , lad_pct_base = 25
+  , num_jump_steps = 1
+  , min_lad_pct = 10
+  , frst_layer_min_ht_m = 1
+  , force_same_crs = F
+){
+  ##################################
+  # check flist
+  ##################################
+    msg <- paste0(
+      "If attempting to pass a list of files, the file list must:"
+      , "\n   * be a vector of class character -AND-"
+      , "\n   * be a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- be a vector of class character that includes spatial files that can be read by sf::st_read()"
+    )
+    if(!inherits(flist,"character")){
+      stop(msg)
+    }
+    # check if is dir and look for cloud2trees files in the dir
+    if(
+      length(flist) == 1
+      && dir.exists(flist)
+    ){
+      search_dir_final_detected_ans <- search_dir_final_detected(flist)
+      crowns_flist <- search_dir_final_detected_ans$crowns_flist
+      ttops_flist <- search_dir_final_detected_ans$ttops_flist
+      if(is.null(crowns_flist)){stop(msg)}
+    }else{
+      crowns_flist <- flist
+      ttops_flist <- NULL
+    }
+  ##################################
+  # sample
+  ##################################
+    if(
+      length(ttops_flist)==length(crowns_flist)
+    ){
+      trees_sample <- sample_trees_flist(
+        flist = ttops_flist
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+      )
+    }else{
+      trees_sample <- sample_trees_flist(
+        flist = crowns_flist
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+      )
+    }
+  ##################################
+  # map over trees_cbh_sf
+  ##################################
+  cbh_flist <-
+    crowns_flist %>%
+    purrr::map(\(x)
+      trees_cbh_sf(
+        trees_poly = x
+        , norm_las = norm_las
+        , which_cbh = which_cbh
+        , min_vhp_n = min_vhp_n
+        , voxel_grain_size_m = voxel_grain_size_m
+        , dist_btwn_bins_m = dist_btwn_bins_m
+        , min_fuel_layer_ht_m = min_fuel_layer_ht_m
+        , lad_pct_gap = lad_pct_gap
+        , lad_pct_base = lad_pct_base
+        , num_jump_steps = num_jump_steps
+        , min_lad_pct = min_lad_pct
+        , frst_layer_min_ht_m = frst_layer_min_ht_m
+        , force_same_crs = force_same_crs
+        , trees_sample = trees_sample
+        , ofile = T
+      )
+    )
+  cbh_flist <- unlist(cbh_flist)
+  # return
+  return(cbh_flist)
+}
 
 ################################################################################################################################################
 # function to sample from a list of files
@@ -576,26 +667,11 @@ sample_trees_flist <- function(
       length(flist) == 1
       && dir.exists(flist)
     ){
-      # check for treetops
-      new_flist <- list.files(
-        normalizePath(flist)
-        , pattern = "final_detected_tree_tops.*\\.gpkg$"
-        , full.names = T
-      )
-      # prefers ttops bc easier to read than polys and will have same trees
-      if(identical(new_flist, character(0))){
-        # check for crowns
-        new_flist <- list.files(
-          normalizePath(flist)
-          , pattern = "final_detected_crowns.*\\.gpkg$"
-          , full.names = T
-        )
-      }
-      # stop it if nothing
-      if(identical(new_flist, character(0))){
-        stop(msg)
-      }
-      flist <- new_flist
+      search_dir_final_detected_ans <- search_dir_final_detected(flist)
+      crowns_flist <- search_dir_final_detected_ans$crowns_flist
+      ttops_flist <- search_dir_final_detected_ans$ttops_flist
+      if(is.null(crowns_flist) && is.null(ttops_flist)){stop(msg)}
+      flist <- ifelse(is.null(ttops_flist), crowns_flist, ttops_flist)
     }
   ##################################
   # read file list
@@ -657,6 +733,33 @@ sample_trees_flist <- function(
     return(samp_trees)
 }
 
+################################################################################################################################################
+# function to search a directory for final_detected_tree_tops* and final_detected_crowns* files
+################################################################################################################################################
+search_dir_final_detected <- function(dir) {
+  # check for crowns
+  crowns_flist <- list.files(
+    normalizePath(flist)
+    , pattern = "final_detected_crowns.*\\.gpkg$"
+    , full.names = T
+  )
+  if(identical(crowns_flist, character(0))){
+    crowns_flist <- NULL
+  }
+  # check for treetops
+  ttops_flist <- list.files(
+    normalizePath(flist)
+    , pattern = "final_detected_tree_tops.*\\.gpkg$"
+    , full.names = T
+  )
+  if(identical(ttops_flist, character(0))){
+    ttops_flist <- NULL
+  }
+  return(list(
+    crowns_flist = crowns_flist
+    , ttops_flist = ttops_flist
+  ))
+}
 ################################################################################################################################################
 # function to check the which_cbh
 ################################################################################################################################################
