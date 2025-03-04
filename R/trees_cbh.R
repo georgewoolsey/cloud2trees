@@ -145,7 +145,7 @@ trees_cbh <- function(
       #############################################
       # if trees_poly is a directory
       #############################################
-      search_dir_final_detected_ans <- search_dir_final_detected(flist)
+      search_dir_final_detected_ans <- search_dir_final_detected(dir = trees_poly)
       crowns_flist <- search_dir_final_detected_ans$crowns_flist
       ttops_flist <- search_dir_final_detected_ans$ttops_flist
       if(is.null(crowns_flist)){
@@ -306,174 +306,172 @@ trees_cbh <- function(
   }else{
     stop("could not find tree crown polygon data")
   }
-return(trees_poly %>% dplyr::left_join(cbh_df %>% dplyr::select(treeID, tree_cbh_m, is_training_cbh), by = "treeID"))
+
+  #############################################
+  # check for estimate missing
+  #############################################
+  n_cbh <- dplyr::coalesce(n_cbh,0)
+  # ensure that tree height data exists
+  f <- trees_poly %>% names() %>% dplyr::coalesce("")
+  if(
+    estimate_missing_cbh==T
+    && n_cbh > 10
+    && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+  ){
+    # add x,y to data
+    mod_df <- trees_poly %>%
+      dplyr::left_join(
+        cbh_df %>%
+          dplyr::select(treeID, tree_cbh_m, is_training_cbh)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F)) %>%
+      dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>%
+      dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
+      sf::st_centroid() %>%
+      dplyr::mutate(
+        tree_xxx = sf::st_coordinates(.)[,1]
+        , tree_yyy = sf::st_coordinates(.)[,2]
+        , tree_height_m = as.numeric(tree_height_m)
+        , tree_cbh_m = as.numeric(tree_cbh_m)
+      ) %>%
+      sf::st_drop_geometry()
+    # training versus predict data
+    training_df <- mod_df %>% dplyr::filter(is_training_cbh==T) %>% dplyr::select(-is_training_cbh)
+    predict_df <- mod_df %>% dplyr::filter(is_training_cbh==F) %>% dplyr::select(-is_training_cbh)
+
+    ### tuning RF model
+      # predictors and response to pass to randomForest functions
+      predictors <- training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
+      response <- training_df$tree_cbh_m
+
+      # implements steps to mitigate very long run-times when tuning random forests models
+      optimal_mtry <- rf_tune_subsample(
+        predictors = predictors
+        , response = response
+      )
+
+      ### Run a randomForest model to predict CBH using various crown predictors
+      # quiet this
+      quiet_rf <- purrr::quietly(randomForest::randomForest)
+      # run it
+      cbh_mod <- quiet_rf(
+        y = response
+        , x = predictors
+        , mtry = optimal_mtry
+        , na.action = na.omit
+      )
+
+      # just get the result
+      cbh_mod <- cbh_mod$result
+
+    # # model
+    # cbh_mod <- stats::lm(
+    #   formula = tree_cbh_m ~ tree_xxx + tree_yyy + tree_xxx:tree_yyy + tree_height_m + crown_area_zzz
+    #   , data = training_df
+    # )
+
+    # predict missing
+    predicted_cbh_temp <- predict(
+        cbh_mod
+        , predict_df %>% dplyr::select(-c(treeID,tree_cbh_m))
+      ) %>%
+      dplyr::as_tibble() %>%
+      dplyr::pull(1)
+
+    ## combine predicted data with training data for full data set
+    trees_poly <- trees_poly %>%
+      # join with training data estimates
+      dplyr::left_join(
+        cbh_df %>%
+          dplyr::filter(is_training_cbh==T) %>%
+          dplyr::select(treeID, tree_cbh_m, is_training_cbh)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F)) %>%
+      # join with predicted data estimates
+      dplyr::left_join(
+        predict_df %>%
+          dplyr::mutate(
+            predicted_cbh = predicted_cbh_temp
+          ) %>%
+          dplyr::select(treeID, predicted_cbh)
+        , by = dplyr::join_by("treeID")
+      ) %>%
+      # clean up data
+      dplyr::mutate(
+        tree_cbh_m = dplyr::coalesce(tree_cbh_m, predicted_cbh)
+      ) %>%
+      dplyr::select(-predicted_cbh)
+
+    ## prevent the CBH from being > the tree height
+      # find the 95th percentile of height-cbh ratio
+      max_ratio <- cbh_df %>%
+        dplyr::filter(
+          is_training_cbh==T
+          & tree_cbh_m < tree_height_m
+        ) %>%
+        dplyr::mutate(ratio = tree_cbh_m/tree_height_m) %>%
+        dplyr::pull(ratio) %>%
+        stats::quantile(probs = 0.95)
+      # update values
+      trees_poly <- trees_poly %>%
+        dplyr::mutate(
+          # update training data where tree_cbh_m > tree_height_m
+          is_training_cbh = dplyr::case_when(
+            is_training_cbh==T & tree_cbh_m >= tree_height_m ~ FALSE
+            , T ~ is_training_cbh
+          )
+          # update tree_cbh_m
+          , tree_cbh_m = dplyr::case_when(
+            is_training_cbh==F & tree_cbh_m/tree_height_m > max_ratio ~ max_ratio*tree_height_m
+            , T ~ tree_cbh_m
+          )
+        )
+
+  }else if(n_cbh==0){
+    message(paste0(
+      "No CBH values extracted"
+    ))
+  }else if(estimate_missing_cbh==T){
+    if(
+      !(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+    ){
+      message(paste0(
+        "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
+        , "\nSetting `estimate_missing_cbh=TRUE` requires this data."
+        , "\nReturning CBH values extracted from cloud only."
+      ))
+    }else{
+      message(paste0(
+        "Insufficient data available to estimate missing CBH values."
+        , "\nReturning CBH values extracted from cloud only."
+      ))
+    }
+
+    ## combine predicted data with training data for full data set
+    trees_poly <- trees_poly %>%
+      # join with training data estimates
+      dplyr::left_join(
+        cbh_df %>%
+          dplyr::filter(is_training_cbh==T) %>%
+          dplyr::select(treeID, tree_cbh_m, is_training_cbh)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F))
+  }else{
+    ## combine predicted data with training data for full data set
+    trees_poly <- trees_poly %>%
+      # join with training data estimates
+      dplyr::left_join(
+        cbh_df %>%
+          dplyr::filter(is_training_cbh==T) %>%
+          dplyr::select(treeID, tree_cbh_m, is_training_cbh)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F))
+  }
+  # return
+  return(trees_poly)
+
 }
-#
-#   #############################################
-#   # check for estimate missing
-#   #############################################
-#   n_cbh <- dplyr::coalesce(n_cbh,0)
-#   # ensure that tree height data exists
-#   f <- trees_poly %>% names() %>% dplyr::coalesce("")
-#   if(
-#     estimate_missing_cbh==T
-#     && n_cbh > 10
-#     && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
-#   ){
-#     # add x,y to data
-#     mod_df <- trees_poly %>%
-#       dplyr::left_join(
-#         cbh_df %>%
-#           dplyr::select(treeID, tree_cbh_m, is_training_cbh)
-#         , by = "treeID"
-#       ) %>%
-#       dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F)) %>%
-#       dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>%
-#       dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
-#       sf::st_centroid() %>%
-#       dplyr::mutate(
-#         tree_xxx = sf::st_coordinates(.)[,1]
-#         , tree_yyy = sf::st_coordinates(.)[,2]
-#         , tree_height_m = as.numeric(tree_height_m)
-#         , tree_cbh_m = as.numeric(tree_cbh_m)
-#       ) %>%
-#       sf::st_drop_geometry()
-#     # training versus predict data
-#     training_df <- mod_df %>% dplyr::filter(is_training_cbh==T) %>% dplyr::select(-is_training_cbh)
-#     predict_df <- mod_df %>% dplyr::filter(is_training_cbh==F) %>% dplyr::select(-is_training_cbh)
-#
-#     ### tuning RF model
-#       # predictors and response to pass to randomForest functions
-#       predictors <- training_df %>% dplyr::select(-c(treeID,tree_cbh_m))
-#       response <- training_df$tree_cbh_m
-#
-#       # implements steps to mitigate very long run-times when tuning random forests models
-#       optimal_mtry <- rf_tune_subsample(
-#         predictors = predictors
-#         , response = response
-#       )
-#
-#       ### Run a randomForest model to predict CBH using various crown predictors
-#       # quiet this
-#       quiet_rf <- purrr::quietly(randomForest::randomForest)
-#       # run it
-#       cbh_mod <- quiet_rf(
-#         y = response
-#         , x = predictors
-#         , mtry = optimal_mtry
-#         , na.action = na.omit
-#       )
-#
-#       # just get the result
-#       cbh_mod <- cbh_mod$result
-#
-#     # # model
-#     # cbh_mod <- stats::lm(
-#     #   formula = tree_cbh_m ~ tree_xxx + tree_yyy + tree_xxx:tree_yyy + tree_height_m + crown_area_zzz
-#     #   , data = training_df
-#     # )
-#
-#     # predict missing
-#     predicted_cbh_temp <- predict(
-#         cbh_mod
-#         , predict_df %>% dplyr::select(-c(treeID,tree_cbh_m))
-#       ) %>%
-#       dplyr::as_tibble() %>%
-#       dplyr::pull(1)
-#
-#     ## combine predicted data with training data for full data set
-#     trees_poly <- trees_poly %>%
-#       # join with training data estimates
-#       dplyr::left_join(
-#         cbh_df %>%
-#           dplyr::filter(is_training_cbh==T) %>%
-#           dplyr::select(treeID, tree_cbh_m, is_training_cbh)
-#         , by = "treeID"
-#       ) %>%
-#       dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F)) %>%
-#       # join with predicted data estimates
-#       dplyr::left_join(
-#         predict_df %>%
-#           dplyr::mutate(
-#             predicted_cbh = predicted_cbh_temp
-#           ) %>%
-#           dplyr::select(treeID, predicted_cbh)
-#         , by = dplyr::join_by("treeID")
-#       ) %>%
-#       # clean up data
-#       dplyr::mutate(
-#         tree_cbh_m = dplyr::coalesce(tree_cbh_m, predicted_cbh)
-#       ) %>%
-#       dplyr::select(-predicted_cbh)
-#
-#     ## prevent the CBH from being > the tree height
-#       # find the 95th percentile of height-cbh ratio
-#       max_ratio <- cbh_df %>%
-#         dplyr::filter(
-#           is_training_cbh==T
-#           & tree_cbh_m < tree_height_m
-#         ) %>%
-#         dplyr::mutate(ratio = tree_cbh_m/tree_height_m) %>%
-#         dplyr::pull(ratio) %>%
-#         stats::quantile(probs = 0.95)
-#       # update values
-#       trees_poly <- trees_poly %>%
-#         dplyr::mutate(
-#           # update training data where tree_cbh_m > tree_height_m
-#           is_training_cbh = dplyr::case_when(
-#             is_training_cbh==T & tree_cbh_m >= tree_height_m ~ FALSE
-#             , T ~ is_training_cbh
-#           )
-#           # update tree_cbh_m
-#           , tree_cbh_m = dplyr::case_when(
-#             is_training_cbh==F & tree_cbh_m/tree_height_m > max_ratio ~ max_ratio*tree_height_m
-#             , T ~ tree_cbh_m
-#           )
-#         )
-#
-#   }else if(n_cbh==0){
-#     message(paste0(
-#       "No CBH values extracted"
-#     ))
-#   }else if(estimate_missing_cbh==T){
-#     if(
-#       !(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
-#     ){
-#       message(paste0(
-#         "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
-#         , "\nSetting `estimate_missing_cbh=TRUE` requires this data."
-#         , "\nReturning CBH values extracted from cloud only."
-#       ))
-#     }else{
-#       message(paste0(
-#         "Insufficient data available to estimate missing CBH values."
-#         , "\nReturning CBH values extracted from cloud only."
-#       ))
-#     }
-#
-#     ## combine predicted data with training data for full data set
-#     trees_poly <- trees_poly %>%
-#       # join with training data estimates
-#       dplyr::left_join(
-#         cbh_df %>%
-#           dplyr::filter(is_training_cbh==T) %>%
-#           dplyr::select(treeID, tree_cbh_m, is_training_cbh)
-#         , by = "treeID"
-#       ) %>%
-#       dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F))
-#   }else{
-#     ## combine predicted data with training data for full data set
-#     trees_poly <- trees_poly %>%
-#       # join with training data estimates
-#       dplyr::left_join(
-#         cbh_df %>%
-#           dplyr::filter(is_training_cbh==T) %>%
-#           dplyr::select(treeID, tree_cbh_m, is_training_cbh)
-#         , by = "treeID"
-#       ) %>%
-#       dplyr::mutate(is_training_cbh = dplyr::coalesce(is_training_cbh, F))
-#   }
-#   # return
-#   return(trees_poly)
-#
-# }
