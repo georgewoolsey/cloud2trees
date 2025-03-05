@@ -98,15 +98,14 @@ trees_cbh_sf <- function(
     #   lidR::filter_duplicates()
   }
   ##################################
-  # ensure spatial polygon data
+  # check if passed a file name or sf
   ##################################
-  sf_msg <- paste0(
+    # message
+    sf_msg <- paste0(
       "`trees_poly` data must be an object of class `sf` with only POLYGON type."
       , "\nProvide an `sf` object and see `sf::st_geometry_type()`."
     )
-  ##################################
-  # check if passed a file name or sf
-  ##################################
+    # blank parameter to save backup of trees_poly if it's a character
     fn_for_ofile <- NULL
     if(
       !inherits(trees_poly, "sf")
@@ -119,7 +118,7 @@ trees_cbh_sf <- function(
       # read crown
       trees_poly <- sf::st_read(dsn = fn_for_ofile, quiet = T)
       # check
-      if(nrow(trees_poly)==0){return(msg)}
+      if(nrow(trees_poly)==0){return(sf_msg)}
     }else if(inherits(trees_poly, "character")){
       stop(paste0(
         "the character value provided in `trees_poly` is not a spatial file at \n    "
@@ -787,7 +786,7 @@ check_trees_poly <- function(fnm) {
     !(stringr::str_equal(f, "treeID") %>% any())
   ){
     stop(paste0(
-      "`trees_poly` data must contain `treeID` column to estimate missing CBH values."
+      "`trees_poly` data must contain `treeID` column to estimate missing values."
       , "\nProvide the `treeID` as a unique identifier of individual trees."
       , "\n  ", fnm
     ))
@@ -818,7 +817,7 @@ check_trees_poly <- function(fnm) {
     !(stringr::str_equal(f, "tree_height_m") %>% any())
   ){
     stop(paste0(
-      "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
+      "`trees_poly` data must contain `tree_height_m` column to estimate missing values."
       , "\nRename the height column if it exists and ensure it is in meters."
       , "\n  ", fnm
     ))
