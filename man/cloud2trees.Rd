@@ -21,7 +21,7 @@ cloud2trees(
   chm_res_m = 0.25,
   min_height = 2,
   max_height = 70,
-  ws = itd_ws_functions()[["exp_fn"]],
+  ws = itd_ws_functions()[["log_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
   dbh_model = "lin",

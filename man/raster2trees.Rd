@@ -7,7 +7,7 @@
 raster2trees(
   chm_rast,
   outfolder,
-  ws = itd_ws_functions()[["exp_fn"]],
+  ws = itd_ws_functions()[["log_fn"]],
   min_height = 2,
   min_crown_area = 0.1,
   tempdir = tempdir()
