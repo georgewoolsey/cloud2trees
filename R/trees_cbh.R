@@ -303,6 +303,7 @@ trees_cbh <- function(
   }else{
     stop("error extracting CBH")
   }
+  # ensure that there are enough data to estimate
   n_cbh <- nrow(cbh_df)
 
   #############################################

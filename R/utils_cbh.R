@@ -131,7 +131,7 @@ trees_cbh_sf <- function(
   ##################################
   f <- trees_poly %>% names() %>% dplyr::coalesce("")
   # check_trees_poly will throw error if fails any checks
-  check_trees_poly_ans <- check_trees_poly(trees_poly)
+  check_trees_poly_ans <- check_trees_poly(trees_poly, orig_fnm = fn_for_ofile)
   id_class <- class(trees_poly$treeID)[1]
 
   # get rid of columns we'll create
@@ -583,8 +583,14 @@ trees_cbh_flist <- function(
   ##################################
   cbh_flist <-
     crowns_flist %>%
-    purrr::map(\(x)
-      trees_cbh_sf(
+    purrr::map(function(x){
+      message(paste0(
+        "Attempting to extract CBH on\n   "
+        , x
+        , "\n   started at..."
+        , Sys.time()
+      ))
+      ans <- trees_cbh_sf(
         trees_poly = x
         , norm_las = norm_las
         , which_cbh = which_cbh
@@ -601,7 +607,8 @@ trees_cbh_flist <- function(
         , trees_sample = trees_sample
         , ofile = T
       )
-    )
+      return(ans)
+    })
   cbh_flist <- unlist(cbh_flist)
   # return
   return(cbh_flist)
@@ -717,7 +724,7 @@ sample_trees_flist <- function(
 # function to check a sf object or path of a spatial file as a character object
 # for the right stuff needed to run the CBH things
 ################################################################################################################################################
-check_trees_poly <- function(fnm) {
+check_trees_poly <- function(fnm, orig_fnm = "the sf object") {
   if(length(fnm) > 1){"check_trees_poly() can only do one thing at a time"}
   # geometry types from sf::st_geometry_type()
   bad_sf_types <- c(
@@ -761,7 +768,12 @@ check_trees_poly <- function(fnm) {
       )
   }else if(inherits(fnm,"sf")){
     test_sf <- fnm
-    fnm <- fnm %>% substitute() %>% deparse()
+    if(is.null(orig_fnm) || is.na(orig_fnm)){
+      fnm <- "the sf object"
+    }else{
+      fnm <- orig_fnm
+    }
+
   }else{
     stop("check_trees_poly() can only test `sf` class objects or character objects with the path to a spatial file")
   }

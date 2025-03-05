@@ -36,7 +36,6 @@ trees_hmd_sf <- function(
   , norm_las = NULL
   , tree_sample_n = NA
   , tree_sample_prop = NA
-  , estimate_missing_hmd = F
   , force_same_crs = F
   , trees_sample = NA # answer from sample_trees_flist()
   , ofile = NA
@@ -108,7 +107,7 @@ trees_hmd_sf <- function(
   ##################################
   f <- trees_poly %>% names() %>% dplyr::coalesce("")
   # check_trees_poly will throw error if fails any checks
-  check_trees_poly_ans <- check_trees_poly(trees_poly)
+  check_trees_poly_ans <- check_trees_poly(trees_poly, orig_fnm = fn_for_ofile)
   id_class <- class(trees_poly$treeID)[1]
 
   # get rid of columns we'll create
@@ -362,16 +361,99 @@ trees_hmd_sf <- function(
   }
 }
 
-#####################################################
-#####################################################
-# intermediate functions
-#####################################################
-#####################################################
-################
+################################################################################################################################################
+# function to apply trees_hmd_sf to a directory where cloud2trees::cloud2trees() output was written
+# or to a list of crown files
+# this function pipeline was developed to avoid memory issues with xxl tree lists
+################################################################################################################################################
+trees_hmd_flist <- function(
+  # flist == a list of crown files or the directory where final_detected_tree_tops* and final_detected_crowns* files
+  # from cloud2trees::cloud2trees() or cloud2trees::raster2trees() were written
+  flist
+  , norm_las = NULL
+  , tree_sample_n = NA
+  , tree_sample_prop = NA
+  , force_same_crs = F
+){
+  ##################################
+  # check flist
+  ##################################
+    msg <- paste0(
+      "If attempting to pass a list of files, the file list must:"
+      , "\n   * be a vector of class character -AND-"
+      , "\n   * be a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- be a vector of class character that includes spatial files that can be read by sf::st_read()"
+    )
+    if(!inherits(flist,"character")){
+      stop(msg)
+    }
+    # check if is dir and look for cloud2trees files in the dir
+    if(
+      length(flist) == 1
+      && dir.exists(flist)
+    ){
+      search_dir_final_detected_ans <- search_dir_final_detected(flist)
+      crowns_flist <- search_dir_final_detected_ans$crowns_flist
+      ttops_flist <- search_dir_final_detected_ans$ttops_flist
+      if(is.null(crowns_flist)){stop(msg)}
+    }else{
+      crowns_flist <- flist
+      ttops_flist <- NULL
+    }
+  ##################################
+  # check_trees_poly
+  ##################################
+    # check_trees_poly will throw error if fails any checks
+    check_trees_poly_ans <- crowns_flist %>% purrr::map(check_trees_poly)
+  ##################################
+  # sample
+  ##################################
+    if(
+      length(ttops_flist)==length(crowns_flist)
+    ){
+      trees_sample <- sample_trees_flist(
+        flist = ttops_flist
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+      )
+    }else{
+      trees_sample <- sample_trees_flist(
+        flist = crowns_flist
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+      )
+    }
+  ##################################
+  # map over trees_hmd_sf
+  ##################################
+  hmd_flist <-
+    crowns_flist %>%
+    purrr::map(function(x){
+      message(paste0(
+        "Attempting to extract HMD on\n   "
+        , x
+        , "\n   started at..."
+        , Sys.time()
+      ))
+      ans <- trees_hmd_sf(
+        trees_poly = x
+        , norm_las = norm_las
+        , force_same_crs = force_same_crs
+        , trees_sample = trees_sample
+        , ofile = T
+      )
+      return(ans)
+    })
+  hmd_flist <- unlist(hmd_flist)
+  # return
+  return(hmd_flist)
+}
+
+################################################################################################################################################
 # let's make a function to ingest LAS class data or a data frame
   # with `x`, `y`, `z` and `treeID` columns and return the data aggregated
   # to the tree level with the HMD value
-################
+################################################################################################################################################
 calc_tree_hmd <- function(las, id=NULL) {
   #######################
   # check data type
@@ -473,9 +555,9 @@ calc_tree_hmd <- function(las, id=NULL) {
   # return
   return(df_r)
 }
-################
-## apply the function to the lascatalog
-################
+################################################################################################################################################
+## apply the calc_tree_hmd function to the lascatalog
+################################################################################################################################################
 ctg_calc_tree_hmd <- function(chunk, poly_df, force_crs = F){
   las <- lidR::readLAS(chunk)
   if (lidR::is.empty(las)) return(NULL)
