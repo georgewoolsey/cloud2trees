@@ -1,3 +1,13 @@
+# cloud2trees 0.6.0
+
+- Change: `trees_cbh()` now allows for processing a list of files with crown polygon data such as the split crown polygon files "final_detected_crowns\*" written automatically for tree lists >250k by `raster2trees()` and `cloud2trees()`. This enables extracting CBH for XXL tree lists (e.g. 100k+) and effectively mitigates memory issues associated with these lists. The sampling is still done considering the full tree list.
+
+The `trees_poly` parameter in `trees_cbh()` now accepts:
+
+* `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
+* character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have with POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+* character with the path to a directory that has "final_detected_crowns\*" files from `cloud2trees()` or `raster2trees()`. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+
 # cloud2trees 0.5.9
 
 - New: `itd_ws_functions()` makes a list of default functions that can be used for determining a variable window size for the detection of individual trees accessible.

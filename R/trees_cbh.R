@@ -12,7 +12,11 @@
 #' * Successfully extracted CBH trees become training data used to estimate the height-CBH allometry relationship that is spatially informed using the relative tree location compared to the training data
 #' * The height and location predicting CBH model built from the point cloud training data is used to predict CBH for the non-training (i.e. missing CBH) data
 #'
-#' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' @param trees_poly must be one of the following that has required attributes `treeID` and `tree_height_m`:
+#'   * `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
+#'   * character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have with POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   * character with the path to a directory that has "final_detected_crowns\*" files from [cloud2trees()] or [raster2trees()]. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAS`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -51,6 +55,7 @@
 #' @examples
 #'  \dontrun{
 #'  library(tidyverse)
+#'  library(sf)
 #'  # example tree crown polygons
 #'  f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
 #'  crowns <- sf::st_read(f, quiet = T)
@@ -60,6 +65,7 @@
 #'  trees_cbh_ans <- trees_cbh(
 #'     trees_poly = crowns
 #'     , norm_las = norm_d
+#'     , tree_sample_n = 44
 #'     , estimate_missing_cbh = T
 #'     , force_same_crs = T
 #'    )
@@ -77,6 +83,37 @@
 #'     ggplot2::geom_point()
 #'  # tabulate training data
 #'  trees_cbh_ans %>%
+#'    sf::st_drop_geometry() %>%
+#'    dplyr::count(is_training_cbh)
+#'  #### try a file list
+#'  #### Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'  # we'll split the crowns
+#'  # as is done automatically for tree lists >250k by raster2trees() and cloud2trees()
+#'  crowns <- crowns %>%
+#'    dplyr::mutate(
+#'      # makes 2 groups of data
+#'      grp = ceiling(dplyr::row_number()/(dplyr::n()/2))
+#'    )
+#'  # make file names
+#'  my_dir <- tempdir()
+#'  fnm_1 <- file.path(my_dir, "crowns1.gpkg")
+#'  fnm_2 <- file.path(my_dir, "crowns2.gpkg")
+#'  fnm_1
+#'  # write the data
+#'  sf::st_write(crowns %>% dplyr::filter(grp==1), dsn = fnm_1, append = F) # grp 1
+#'  sf::st_write(crowns %>% dplyr::filter(grp==2), dsn = fnm_2, append = F) # grp 2
+#'  # try trees_cbh with our file list
+#'  flist <- c(fnm_1,fnm_2)
+#'  # now run the trees_cbh()
+#'  trees_cbh_ans2 <- trees_cbh(
+#'   trees_poly = flist
+#'   , norm_las = norm_d
+#'   , tree_sample_n = 44
+#'   , estimate_missing_cbh = T
+#'   , force_same_crs = T
+#'  )
+#'  # tabulate training data
+#'  trees_cbh_ans2 %>%
 #'    sf::st_drop_geometry() %>%
 #'    dplyr::count(is_training_cbh)
 #'  }
@@ -101,249 +138,62 @@ trees_cbh <- function(
   , force_same_crs = F
 ){
   force_cbh_lte_ht <- T
-  ##################################
-  # check sample proportion
-  ##################################
-  if(
-    is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- 333
-  }else if(
-    !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 333
-      , T ~ as.numeric(tree_sample_n)
-    )
-    tree_sample_prop <- NA
-  }else if(
-    is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_prop <- dplyr::case_when(
-      as.numeric(tree_sample_prop)<=0 ~ 0.5
-      , as.numeric(tree_sample_prop)>1 ~ 1
-      , T ~ as.numeric(tree_sample_prop)
-    )
-    tree_sample_n <- NA
-  }else if(
-    !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 333
-      , T ~ as.numeric(tree_sample_n)
-    )
-    tree_sample_prop <- NA
-  }else{
-    tree_sample_n <- 333
-    tree_sample_prop <- NA
-  }
-  ##################################
-  # check which cbh
-  ##################################
-    # clean it
-    which_cbh <- dplyr::coalesce(which_cbh, "lowest")
-    which_cbh <- ifelse(
-      stringr::str_remove_all(which_cbh,"\\s") == ""
-      , "lowest"
-      , which_cbh
-    )
-    which_cbh <- tolower(which_cbh[1])
-    # check it
-    cbh_l <- c("max_lad", "highest", "lowest")
-    if(!which_cbh %in% cbh_l){
-      stop(paste0(
-        "`which_cbh` must be one of:"
-        , "\n"
-        , paste(cbh_l, collapse = ", ")
-      ))
-    }
-  ##################################
-  # ensure that norm las data exists
-  ##################################
-  nlas_ctg <- check_las_data(norm_las)
-  # set the lascatalog options
-  if(inherits(nlas_ctg, "LAScatalog")){
-    lidR::opt_progress(nlas_ctg) <- F
-    lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
-    lidR::opt_select(nlas_ctg) <- "xyz0" # 0 enables all extra bytes to be loaded...possibly treeID
-    lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
-  }else if(inherits(nlas_ctg, "LAS")){
-    stop(paste0(
-      "`norm_las` should contain: a directory with nomalized las files,"
-      ,"\n   the path of a single .laz|.las file,"
-      , "\n   -or- an object of class `LAScatalog`"
-    ))
-    # nlas_ctg <- nlas_ctg %>%
-    #   lidR::filter_poi(!Classification %in% c(2,9,18)) %>%
-    #   lidR::filter_duplicates()
-  }
-  ##################################
-  # ensure that treeID data exists
-  ##################################
-  f <- trees_poly %>% names() %>% dplyr::coalesce("")
-  if(
-    !(stringr::str_equal(f, "treeID") %>% any())
-  ){
-    stop(paste0(
-      "`trees_poly` data must contain `treeID` column to estimate missing CBH values."
-      , "\nProvide the `treeID` as a unique identifier of individual trees."
-    ))
-  }else{
-    # check for duplicate treeID
-    if(
-      nrow(trees_poly) != length(unique(trees_poly$treeID))
-    ){
-      stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
-    }
-    # check that treeID is numeric or character
-    id_class <- class(trees_poly$treeID)[1]
-    if(
-      !inherits(trees_poly$treeID, "character")
-      && !inherits(trees_poly$treeID, "numeric")
-    ){
-      stop(paste0(
-        "`trees_poly` data must contain `treeID` column of class numeric or character."
-        , "\nProvide the `treeID` as a unique identifier of individual trees."
-      ))
-    }
-  }
-  # check for tree_height_m
-  if(
-    !(stringr::str_equal(f, "tree_height_m") %>% any())
-  ){
-    stop(paste0(
-      "`trees_poly` data must contain `tree_height_m` column to estimate CBH."
-      , "\nRename the height column if it exists and ensure it is in meters."
-    ))
-  }
-
-  ##################################
-  # ensure spatial polygon data
-  ##################################
-  sf_msg <- paste0(
-      "`trees_poly` data must be an object of class `sf` with only POLYGON type."
-      , "\nProvide an `sf` object and see `sf::st_geometry_type()`."
-    )
-  if(!inherits(trees_poly, "sf")){stop(sf_msg)}
-  if( !(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){stop(sf_msg)}
-
-  # get rid of columns we'll create
-    trees_poly <- trees_poly %>%
-      # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
-      dplyr::select( -dplyr::any_of(c(
-        "hey_xxxxxxxxxx"
-        , "tree_cbh_m"
-        , "is_training_cbh"
-      )))
-
-  ####################################################################
-  # catalog apply
-  ####################################################################
-  # sample
-    if(
-      !is.na(tree_sample_prop)
-      && tree_sample_prop<1
-    ){
-      samp_trees <- trees_poly %>%
-        dplyr::slice_sample(
-          prop = tree_sample_prop
-        )
-    }else if(
-      !is.na(tree_sample_n)
-      && tree_sample_n<nrow(trees_poly)
-    ){
-      samp_trees <- trees_poly %>%
-        dplyr::slice_sample(
-          n = tree_sample_n
-        )
-    }else{
-      samp_trees <- trees_poly
-    }
-  ##################################
-  # apply the ctg_leafr_for_ladderfuelsr function
-  ##################################
-  # simplify the polygons so that lidR::merge_spatial can be used
-  simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
-
-  # check if we need to split for massive tree crown data
-  if(nrow(simp_trees_poly)>500e3){
-    # for data with so many crowns I've encountered the error:
-    ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
-      ### !!! The total size of the xx globals exported for future expression ...
-      ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
-    # break up data
-    simp_trees_poly <-
-      simp_trees_poly %>%
-      # arrange by x,y
-      dplyr::left_join(
-        simp_trees_poly %>%
-          sf::st_centroid() %>%
-          dplyr::mutate(
-            x_xxx = sf::st_coordinates(.)[,1]
-            , y_xxx = sf::st_coordinates(.)[,2]
-          ) %>%
-          sf::st_drop_geometry() %>%
-          dplyr::select(treeID, x_xxx, y_xxx)
-        , by = "treeID"
-      ) %>%
-      dplyr::arrange(x_xxx,y_xxx) %>%
-      # groups of 250k....or larger
-      dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
-      dplyr::select(-c(x_xxx,y_xxx))
-
-    # apply it
-    output_temp <- simp_trees_poly$grp %>%
-      unique() %>%
-      purrr::map(function(x){
-        # rename output
-        lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
-        # run it
-        lidR::catalog_apply(
-          ctg = nlas_ctg
-          , FUN = ctg_leafr_for_ladderfuelsr
-          , .options = list(automerge = TRUE)
-          # ctg_calc_tree_cbh options
-          , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
-          , force_crs = force_same_crs
-          , voxel_grain_size_m = voxel_grain_size_m
-        )
-      }) %>%
-      unlist()
-  }else{
-    # apply it
-    output_temp <- lidR::catalog_apply(
-      ctg = nlas_ctg
-      , FUN = ctg_leafr_for_ladderfuelsr
-      , .options = list(automerge = TRUE)
-      # ctg_calc_tree_cbh options
-      , poly_df = simp_trees_poly
-      , force_crs = force_same_crs
+  #############################################
+  # estimate cbh based on what's in trees_poly
+  #############################################
+  crowns_flist <- NULL # setting up for filling
+  if(inherits(trees_poly, "sf")){
+    #############################################
+    # if trees_poly is sf
+    #############################################
+    cbh_df <- trees_cbh_sf(
+      trees_poly = trees_poly
+      , norm_las = norm_las
+      , tree_sample_n = tree_sample_n
+      , tree_sample_prop = tree_sample_prop
+      , which_cbh = which_cbh
+      , min_vhp_n = min_vhp_n
       , voxel_grain_size_m = voxel_grain_size_m
+      , dist_btwn_bins_m = dist_btwn_bins_m
+      , min_fuel_layer_ht_m = min_fuel_layer_ht_m
+      , lad_pct_gap = lad_pct_gap
+      , lad_pct_base = lad_pct_base
+      , num_jump_steps = num_jump_steps
+      , min_lad_pct = min_lad_pct
+      , frst_layer_min_ht_m = frst_layer_min_ht_m
+      , force_same_crs = force_same_crs
     )
-  }
-  ##################################
-  # read and clean output files for ladderfuelsr_cbh
-  ##################################
-  lad_profile <- output_ctg_for_ladderfuelsr_cbh(
-    output = output_temp
-    , id_class = id_class
-  )
-  ##################################
-  # do ladderfuelsr_cbh
-  ##################################
-  # dplyr::glimpse(lad_profile)
-  # extract the CBH using ladderfuelsr_cbh()
-  # we can map over multiple trees
-  # quiet this function ... which should not issue an error
-  # since all LadderFuelsR were handled with purrr::safely
-  quiet_ladderfuelsr_cbh <- purrr::quietly(ladderfuelsr_cbh)
-  cbh_df <- lad_profile$treeID %>%
-    unique() %>%
-    purrr::map(\(x)
-        quiet_ladderfuelsr_cbh(
-        # ladderfuelsr_cbh(
-          lad_profile_df = lad_profile
-          , treeID = x
+  }else if(inherits(trees_poly, "character")){
+    msg <- paste0(
+      "If attempting to pass a list of files, the file list must:"
+      , "\n   * be a vector of class character -AND-"
+      , "\n   * be a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- be a vector of class character that includes spatial files that can be read by sf::st_read()"
+    )
+    trees_poly <- trees_poly %>% normalizePath() %>% unique()
+    #############################################
+    # if trees_poly is character
+    #############################################
+    # check if is dir and look for cloud2trees files in the dir
+    if(
+      length(trees_poly) == 1
+      && dir.exists(trees_poly)
+    ){
+      #############################################
+      # if trees_poly is a directory
+      #############################################
+      search_dir_final_detected_ans <- search_dir_final_detected(dir = trees_poly)
+      crowns_flist <- search_dir_final_detected_ans$crowns_flist
+      ttops_flist <- search_dir_final_detected_ans$ttops_flist
+      if(is.null(crowns_flist)){
+        stop(msg)
+      }else if(length(crowns_flist)==1){ # if only one file then trees_cbh_sf() so that only read file once
+        cbh_df <- trees_cbh_sf(
+          trees_poly = crowns_flist
+          , norm_las = norm_las
+          , tree_sample_n = tree_sample_n
+          , tree_sample_prop = tree_sample_prop
+          , which_cbh = which_cbh
           , min_vhp_n = min_vhp_n
           , voxel_grain_size_m = voxel_grain_size_m
           , dist_btwn_bins_m = dist_btwn_bins_m
@@ -353,169 +203,162 @@ trees_cbh <- function(
           , num_jump_steps = num_jump_steps
           , min_lad_pct = min_lad_pct
           , frst_layer_min_ht_m = frst_layer_min_ht_m
-        ) %>%
-        purrr::pluck("result") %>% ## b/c purrr::quietly
-        purrr::pluck("cbh_metrics")
-      , .progress = "extracting CBH"
-    ) %>%
-    dplyr::bind_rows()
-  # dplyr::glimpse(cbh_df)
-  ##################################
-  # check the cbh data we got and use the cbh selected
-  ##################################
-  cbh_df <- clean_cbh_df(
-    cbh_df = cbh_df
-    , trees_poly = trees_poly
-    , lad_profile = lad_profile
-    , force_cbh_lte_ht = force_cbh_lte_ht
-    , which_cbh = which_cbh
-  )
-  # ensure that there are enough data to estimate
+          , force_same_crs = force_same_crs
+        )
+      }else{
+        cbh_df <- trees_cbh_flist(
+          flist = trees_poly # just searches the directory again so that tree points are used for sample
+          , norm_las = norm_las
+          , tree_sample_n = tree_sample_n
+          , tree_sample_prop = tree_sample_prop
+          , which_cbh = which_cbh
+          , min_vhp_n = min_vhp_n
+          , voxel_grain_size_m = voxel_grain_size_m
+          , dist_btwn_bins_m = dist_btwn_bins_m
+          , min_fuel_layer_ht_m = min_fuel_layer_ht_m
+          , lad_pct_gap = lad_pct_gap
+          , lad_pct_base = lad_pct_base
+          , num_jump_steps = num_jump_steps
+          , min_lad_pct = min_lad_pct
+          , frst_layer_min_ht_m = frst_layer_min_ht_m
+          , force_same_crs = force_same_crs
+        )
+      }
+    }else if(length(trees_poly)==1 && !file.exists(trees_poly)){
+      #############################################
+      # if trees_poly is a filename that doesn't exist
+      #############################################
+      stop(paste0(
+        "could not find the file:"
+        , "\n    "
+        , trees_poly
+      ))
+    }else if(length(trees_poly)==1){
+      #############################################
+      # if trees_poly is a filename that does exist
+      #############################################
+      crowns_flist <- trees_poly
+      cbh_df <- trees_cbh_sf(
+        trees_poly = trees_poly
+        , norm_las = norm_las
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+        , which_cbh = which_cbh
+        , min_vhp_n = min_vhp_n
+        , voxel_grain_size_m = voxel_grain_size_m
+        , dist_btwn_bins_m = dist_btwn_bins_m
+        , min_fuel_layer_ht_m = min_fuel_layer_ht_m
+        , lad_pct_gap = lad_pct_gap
+        , lad_pct_base = lad_pct_base
+        , num_jump_steps = num_jump_steps
+        , min_lad_pct = min_lad_pct
+        , frst_layer_min_ht_m = frst_layer_min_ht_m
+        , force_same_crs = force_same_crs
+      )
+    }else{
+      #############################################
+      # if trees_poly is a list of filenames
+      #############################################
+      crowns_flist <- trees_poly %>% normalizePath() %>% unique()
+      cbh_df <- trees_cbh_flist(
+        flist = crowns_flist
+        , norm_las = norm_las
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+        , which_cbh = which_cbh
+        , min_vhp_n = min_vhp_n
+        , voxel_grain_size_m = voxel_grain_size_m
+        , dist_btwn_bins_m = dist_btwn_bins_m
+        , min_fuel_layer_ht_m = min_fuel_layer_ht_m
+        , lad_pct_gap = lad_pct_gap
+        , lad_pct_base = lad_pct_base
+        , num_jump_steps = num_jump_steps
+        , min_lad_pct = min_lad_pct
+        , frst_layer_min_ht_m = frst_layer_min_ht_m
+        , force_same_crs = force_same_crs
+      )
+    }
+  }else{
+    stop(paste0(
+      "`trees_poly` data must be: "
+      , "\n   * an object of class `sf` with only POLYGON type"
+      , "\n   * -OR- a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- a vector of class character that includes spatial files that can be read by sf::st_read()"
+    ))
+  }
+
+  #############################################
+  # read cbh_df if it was a file list to get
+  # trees where cbh extraction was successful
+  #############################################
+  if(
+    inherits(cbh_df, "character")
+    && (stringr::str_ends(cbh_df, ".*\\.csv$") %>% any())
+  ){
+    # read the output file(s)
+    cbh_df <- stringr::str_subset(cbh_df, pattern = ".*\\.csv$") %>%
+      readr::read_csv(progress = F, show_col_types = F)
+  }else if(inherits(cbh_df, "data.frame")){
+    cbh_df <- cbh_df
+  }else{
+    stop("error extracting CBH")
+  }
   n_cbh <- nrow(cbh_df)
 
-  ####################################################################
-  # if zero CBH records were extracted
-  ####################################################################
-    # it is likely that the parameters entered caused an error in the `LadderFuelsR` workflow
-    # the LadderFuelsR package commonly results in errors if the parameters don't align
-    # i haven't been able to find a pattern other than:
-    # * ERROR if : min_fuel_layer_ht_m == dist_btwn_bins_m (except 0.5,1.5,2.5)??
-    # * ERROR if : dist_btwn_bins_m - min_fuel_layer_ht_m >= 1.5
-    # ............. try to run it with settings that are close and maybe work better
-    if(dplyr::coalesce(n_cbh,0)==0){
-      ########################
-      # new_min_fuel_layer_ht_m
-      new_min_fuel_layer_ht_m <- dplyr::case_when(
-        dist_btwn_bins_m - min_fuel_layer_ht_m >= 1.5 ~ min_fuel_layer_ht_m
-        , min_fuel_layer_ht_m == dist_btwn_bins_m ~ min_fuel_layer_ht_m
-        , T ~ 1 # default that has worked with every try
-      )
-      # new_dist_btwn_bins_m
-      new_dist_btwn_bins_m <- dplyr::case_when(
-        dist_btwn_bins_m - min_fuel_layer_ht_m >= 1.5 ~ min_fuel_layer_ht_m + 1
-        , (min_fuel_layer_ht_m == dist_btwn_bins_m) & min_fuel_layer_ht_m >= 1 ~ min_fuel_layer_ht_m - 0.5
-        , min_fuel_layer_ht_m == dist_btwn_bins_m ~ min_fuel_layer_ht_m + 0.5
-        , T ~ 0.5 # default that has worked with every try
-      )
-      # default some others
-      new_min_vhp_n <- 3 # default
-      new_voxel_grain_size_m <- 2 # default
-      new_min_lad_pct <- 10 # default
-      # message
-      message(paste0(
-        "No CBH values extracted from point cloud with supplied parameters."
-        , "\nAttempting to update parameters..."
-        , "\nmin_fuel_layer_ht_m from: ", min_fuel_layer_ht_m, " --> to: ", new_min_fuel_layer_ht_m
-        , "\ndist_btwn_bins_m from: ", dist_btwn_bins_m, " --> to: ", new_dist_btwn_bins_m
-        , "\nmin_vhp_n from: ", min_vhp_n, " --> to: ", new_min_vhp_n
-        , "\nvoxel_grain_size_m from: ", voxel_grain_size_m, " --> to: ", new_voxel_grain_size_m
-        , "\nmin_lad_pct from: ", min_lad_pct, " --> to: ", new_min_lad_pct
-      ))
-      ##################################
-      # apply the ctg_leafr_for_ladderfuelsr function
-      ##################################
-      # apply it
-      if(
-        new_voxel_grain_size_m!=voxel_grain_size_m
-      ){
-        # check if we need to split for massive tree crown data
-        if(nrow(simp_trees_poly)>500e3){
-          # for data with so many crowns I've encountered the error:
-          ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
-            ### !!! The total size of the xx globals exported for future expression ...
-            ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
-          # apply it
-          output_temp <- simp_trees_poly$grp %>%
-            unique() %>%
-            purrr::map(function(x){
-              # rename output
-              lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
-              # run it
-              output_temp <- lidR::catalog_apply(
-                ctg = nlas_ctg
-                , FUN = ctg_leafr_for_ladderfuelsr
-                , .options = list(automerge = TRUE)
-                # ctg_calc_tree_cbh options
-                , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
-                , force_crs = force_same_crs
-                , voxel_grain_size_m = new_voxel_grain_size_m
-              )
-            }) %>%
-            unlist()
-        }else{
-          # apply it
-          output_temp <- lidR::catalog_apply(
-            ctg = nlas_ctg
-            , FUN = ctg_leafr_for_ladderfuelsr
-            , .options = list(automerge = TRUE)
-            # ctg_calc_tree_cbh options
-            , poly_df = simp_trees_poly
-            , force_crs = force_same_crs
-            , voxel_grain_size_m = new_voxel_grain_size_m
-          )
-        }
-      }
+  #############################################
+  # read trees_poly data to get full tree list
+  #############################################
+  if(inherits(trees_poly, "sf")){
+    # get rid of columns we'll create
+    trees_poly <- trees_poly %>%
+      # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+      dplyr::select( -dplyr::any_of(c(
+        "hey_xxxxxxxxxx"
+        , "tree_cbh_m"
+        , "is_training_cbh"
+      )))
+  }else if(
+    !is.null(crowns_flist)
+    && inherits(crowns_flist, "character")
+  ){
+    # if we've made it this far, the polygon data has already gone through the checks in trees_cbh_sf()
+    # but we'll check again as it is quick
+    # check_trees_poly will throw error if fails any checks
+    check_trees_poly_ans <- crowns_flist %>% purrr::map(check_trees_poly)
+    # read it to get the full list of tree polygons
+    trees_poly <- crowns_flist %>%
+      purrr::map(function(x){
+        sf::st_read(
+          dsn = x
+          , quiet = T
+        ) %>%
+        # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "tree_cbh_m"
+          , "is_training_cbh"
+        )))
+      }) %>%
+      dplyr::bind_rows()
+  }else{
+    stop("could not find tree crown polygon data")
+  }
 
-      # did we change anything?
-      if(
-        min_fuel_layer_ht_m != new_min_fuel_layer_ht_m
-        || dist_btwn_bins_m != new_dist_btwn_bins_m
-        || min_vhp_n != new_min_vhp_n
-        || voxel_grain_size_m != new_voxel_grain_size_m
-        || min_lad_pct != new_min_lad_pct
-      ){
-        ##################################
-        # read and clean output files for ladderfuelsr_cbh
-        ##################################
-        lad_profile <- output_ctg_for_ladderfuelsr_cbh(
-          output = output_temp
-          , id_class = id_class
-        )
-        ##################################
-        # do ladderfuelsr_cbh
-        ##################################
-        # dplyr::glimpse(lad_profile)
-        # extract the CBH using ladderfuelsr_cbh()
-        # we can map over multiple trees
-
-        cbh_df <- lad_profile$treeID %>%
-          unique() %>%
-          purrr::map(\(x)
-              quiet_ladderfuelsr_cbh(
-              # ladderfuelsr_cbh(
-                lad_profile_df = lad_profile
-                , treeID = x
-                , min_vhp_n = new_min_vhp_n
-                , voxel_grain_size_m = new_voxel_grain_size_m
-                , dist_btwn_bins_m = new_dist_btwn_bins_m
-                , min_fuel_layer_ht_m = new_min_fuel_layer_ht_m
-                , lad_pct_gap = lad_pct_gap
-                , lad_pct_base = lad_pct_base
-                , num_jump_steps = num_jump_steps
-                , min_lad_pct = new_min_lad_pct
-                , frst_layer_min_ht_m = frst_layer_min_ht_m
-              ) %>%
-              purrr::pluck("result") %>% ## b/c purrr::quietly
-              purrr::pluck("cbh_metrics")
-            , .progress = "extracting CBH"
-          ) %>%
-          dplyr::bind_rows()
-        # dplyr::glimpse(cbh_df)
-        ##################################
-        # check the cbh data we got and use the cbh selected
-        ##################################
-        cbh_df <- clean_cbh_df(
-          cbh_df = cbh_df
-          , trees_poly = trees_poly
-          , lad_profile = lad_profile
-          , force_cbh_lte_ht = force_cbh_lte_ht
-          , which_cbh = which_cbh
-        )
-
-        # ensure that there are enough data to estimate
-        n_cbh <- nrow(cbh_df)
-      }
+  #############################################
+  # check for same class of treeID
+  #############################################
+  id_class <- class(trees_poly$treeID)[1]
+  # cast treeID in original type
+  if(!inherits(cbh_df$treeID, id_class)){
+    if(id_class=="character"){
+      cbh_df <- cbh_df %>%
+        dplyr::mutate(treeID = as.character(treeID))
     }
+    if(id_class=="numeric"){
+      cbh_df <- cbh_df %>%
+        dplyr::mutate(treeID = as.numeric(treeID))
+    }
+  }
 
   #############################################
   # check for estimate missing
@@ -684,251 +527,4 @@ trees_cbh <- function(
   # return
   return(trees_poly)
 
-}
-
-#####################################################
-#####################################################
-# intermediate functions
-#####################################################
-#####################################################
-####################################
-## function to clip the point cloud to a polygon
-## and run it through:
-## leafr_for_ladderfuelsr() which is the only
-## step in the process that uses the las
-## and returns a data.frame
-## to pass to ladderfuelsr_cbh()
-####################################
-ctg_leafr_for_ladderfuelsr <- function(
-  chunk
-  , poly_df
-  , force_crs = F
-  , voxel_grain_size_m = 1
-){
-  las <- lidR::readLAS(chunk)
-  if(lidR::is.empty(las)){return(NULL)}
-  # check for treeID in las already
-  #### !!! this causes issues for if treeID in the las is not the same as in poly:
-    #### !!! 1) trees don't match for checking cbh vs height
-    #### !!! 2) trees don't match for estimating missing cbh values
-    #### !!! how to make this work if treeID is alread in las?
-  #### if(names(las@data) %>% stringr::str_equal("treeID") %>% any()){
-  ####   nlas_tree <- las
-  #### }else{
-    # attach treeID
-    nlas_tree <- polygon_attribute_to_las(
-      las
-      , simplify_multipolygon_crowns(poly_df) # if already simplified, does nothing
-      , attribute = "treeID"
-      , force_crs = force_crs
-    )
-  #### }
-  # get the lad profile for each treeID
-  safe_leafr_for_ladderfuelsr <- purrr::safely(leafr_for_ladderfuelsr)
-  lad_profile <- safe_leafr_for_ladderfuelsr(
-      nlas_tree
-      , voxel_grain_size_m = voxel_grain_size_m
-      , k = 1
-      , attribute = "treeID"
-      , min_pulses = 6
-      , relative = F
-    )
-  # just get the result
-  lad_profile <- lad_profile$result
-  # return
-  return(lad_profile)
-}
-####################################
-## function to handle the lidR::catalog_apply
-## output and run it through:
-## ladderfuelsr_cbh() and pull out cbh values
-####################################
-output_ctg_for_ladderfuelsr_cbh <- function(
-  output = NULL
-  , id_class = NULL
-) {
-  # make sure output is a readable file
-  if(
-    inherits(output, "character")
-    && (stringr::str_ends(output, ".*\\.(txt|csv)$") %>% any())
-  ){
-    # read the output file(s)
-    lad_profile <- stringr::str_subset(output, pattern = ".*\\.(txt|csv)$") %>%
-      purrr::map(\(x) readr::read_delim(
-        file = x, progress = F, show_col_types = F
-      )) %>%
-      dplyr::bind_rows() %>%
-      # for trees on many tiles keep row with most points
-      dplyr::filter(!is.na(treeID)) %>%
-      dplyr::group_by(treeID) %>%
-      dplyr::filter(total_pulses == max(total_pulses)) %>%
-      # if one tree has multiple cases with the same total pulses
-      # need to get row unique by treeID, height
-      # just take the first record
-      # which is the first tile processed with the tree
-      dplyr::group_by(treeID, height) %>%
-      dplyr::summarise(dplyr::across(
-         .cols = dplyr::everything()
-         , .fns = dplyr::first
-      )) %>%
-      dplyr::ungroup()
-  }else{
-    return(NULL)
-  }
-  if(nrow(lad_profile)<1){return(NULL)}
-
-  # cast treeID in original type
-  if(!inherits(lad_profile$treeID, id_class)){
-    if(id_class=="character"){
-      lad_profile <- lad_profile %>%
-        dplyr::mutate(treeID = as.character(treeID))
-    }
-    if(id_class=="numeric"){
-      lad_profile <- lad_profile %>%
-        dplyr::mutate(treeID = as.numeric(treeID))
-    }
-  }
-
-  # force treeID to numeric
-  if(!inherits(lad_profile$treeID, "numeric")){
-    # get numeric
-    lad_profile <- lad_profile %>%
-      # make numeric
-      dplyr::inner_join(
-        lad_profile %>%
-          dplyr::distinct(treeID) %>%
-          dplyr::mutate(id = dplyr::row_number())
-        , by = "treeID"
-      ) %>%
-      dplyr::mutate(
-        treeID_bu=treeID
-        , treeID = id
-      ) %>%
-      dplyr::select(-c(id)) %>%
-      dplyr::relocate(treeID)
-  }
-
-  # dplyr::glimpse(lad_profile)
-  # return
-  return(lad_profile)
-}
-
-####################################
-## function to check the
-## return data from
-## ladderfuelsr_cbh
-####################################
-clean_cbh_df <- function(cbh_df = NULL, trees_poly, lad_profile, force_cbh_lte_ht, which_cbh) {
-  if(
-    inherits(cbh_df, "data.frame")
-    && dplyr::coalesce(nrow(cbh_df),0)>0
-  ){
-    if(nrow(cbh_df)<1){return(NULL)}
-    # clean cbh data
-    cbh_df <- cbh_df %>%
-      dplyr::mutate(
-        cbh_maxlad_height_m = maxlad_Hcbh
-        , cbh_max_height_m = max_Hcbh
-        , cbh_last_height_m = last_Hcbh
-      ) %>%
-      dplyr::select(treeID, tidyselect::starts_with("cbh_")) %>%
-      # just make sure that we didn't get multiple cbh by tree back
-      dplyr::group_by(treeID) %>%
-      dplyr::summarise(dplyr::across(
-        tidyselect::starts_with("cbh_")
-        , ~ mean(., na.rm = T)
-      )) %>%
-      dplyr::ungroup()
-
-    # add the number of points (pulses) in the point cloud
-    # and update treeID if made backup
-    if(names(lad_profile) %>% stringr::str_equal("treeID_bu") %>% any()){
-      cbh_df <- cbh_df %>%
-        dplyr::mutate(treeID=as.character(treeID)) %>%
-        dplyr::inner_join(
-          lad_profile %>% dplyr::distinct(treeID_bu, treeID, total_pulses) %>%
-            dplyr::mutate(treeID=as.character(treeID))
-          , by = "treeID"
-        ) %>%
-        dplyr::mutate(
-          treeID = treeID_bu
-        ) %>%
-        dplyr::select(-treeID_bu) %>%
-        dplyr::relocate(treeID)
-    }else{ # treeID was already numeric
-      cbh_df <- cbh_df %>%
-        dplyr::mutate(treeID=as.numeric(treeID)) %>% # LadderfuelsR turns treeID to factor
-        dplyr::inner_join(
-          lad_profile %>%
-            dplyr::distinct(treeID, total_pulses) %>%
-            dplyr::mutate(treeID=as.numeric(treeID))
-          , by = "treeID"
-        ) %>%
-        dplyr::relocate(treeID)
-    }
-
-    # rid dups
-    cbh_df <- cbh_df %>%
-      # for trees on many tiles keep row with most points
-      dplyr::group_by(treeID) %>%
-      dplyr::filter(total_pulses == max(total_pulses)) %>%
-      dplyr::summarise(
-        # if still duplicates
-        cbh_maxlad_height_m = max(cbh_maxlad_height_m, na.rm = T)
-        , cbh_max_height_m = max(cbh_max_height_m, na.rm = T)
-        , cbh_last_height_m = min(cbh_last_height_m, na.rm = T)
-      ) %>%
-      dplyr::ungroup()
-    # pick a cbh
-    if(which_cbh == "max_lad"){
-      cbh_df <- cbh_df %>%
-        dplyr::mutate(
-          tree_cbh_m = cbh_maxlad_height_m
-        )
-    }else if(which_cbh == "highest"){
-      cbh_df <- cbh_df %>%
-        dplyr::mutate(
-          tree_cbh_m = cbh_max_height_m
-        )
-    }else{
-      cbh_df <- cbh_df %>%
-        dplyr::mutate(
-          tree_cbh_m = cbh_last_height_m
-        )
-    }
-  }else{
-    # blank
-    cbh_df <- dplyr::tibble(NULL)
-  }
-
-  # check force_cbh_lte_ht
-  if(
-    force_cbh_lte_ht==T &&
-    (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any()) &&
-    nrow(cbh_df)>0
-  ){
-    # filter based on cbh vs ht
-    cbh_df <- cbh_df %>%
-      dplyr::inner_join(
-        trees_poly %>%
-          sf::st_drop_geometry() %>%
-          dplyr::select(treeID,tree_height_m)
-        , by = "treeID"
-      ) %>%
-      dplyr::filter(
-        !is.na(tree_cbh_m)
-        & tree_cbh_m < tree_height_m
-      ) %>%
-      dplyr::mutate(is_training_cbh=T)
-  }else if(nrow(cbh_df)>0){
-    # filter cbh
-    cbh_df <- cbh_df %>%
-      dplyr::filter(
-        !is.na(tree_cbh_m)
-      ) %>%
-      dplyr::mutate(is_training_cbh=T)
-  }
-
-  # return
-  return(cbh_df)
 }
