@@ -1,3 +1,5 @@
+# cloud2trees 0.6.0
+
 # cloud2trees 0.5.9
 
 - New: `itd_ws_functions()` makes a list of default functions that can be used for determining a variable window size for the detection of individual trees accessible.
