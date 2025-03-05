@@ -1,7 +1,7 @@
 #' @title Estimate CBH using tree crown polygons and normalized point cloud data
 #'
 #' @description
-#' `trees_cbh()` uses the input tree crown polygons (e.g. as exported by [raster2trees()]) with the columns
+#' `trees_cbh_sf()` uses the input tree crown polygons (e.g. as exported by [raster2trees()]) with the columns
 #' `treeID` and `tree_height_m` to estimate tree CBH using height normalized point cloud data (e.g. as exported by [cloud2raster()]).
 #'
 #' CBH is extracted directly from the height normalized point cloud using the process outlined in Viedma et al. (2024) and implemented via [ladderfuelsr_cbh()].
@@ -13,6 +13,7 @@
 #' * The height and location predicting CBH model built from the point cloud training data is used to predict CBH for the non-training (i.e. missing CBH) data
 #'
 #' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' Or the path to a single spatial polygon file.
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAS`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -110,7 +111,8 @@ trees_cbh_sf <- function(
     if(
       !inherits(trees_poly, "sf")
       && inherits(trees_poly, "character")
-      && file.exists(trees_poly[1])
+      && file.exists(trees_poly[1]) # its a findable file
+      && !dir.exists(trees_poly[1]) # its not a directory
     ){
       # save the file name
       fn_for_ofile <- normalizePath(trees_poly[1])
@@ -118,6 +120,12 @@ trees_cbh_sf <- function(
       trees_poly <- sf::st_read(dsn = fn_for_ofile, quiet = T)
       # check
       if(nrow(trees_poly)==0){return(msg)}
+    }else if(inherits(trees_poly, "character")){
+      stop(paste0(
+        "the character value provided in `trees_poly` is not a spatial file at \n    "
+        , trees_poly
+        , "\n   use trees_cbh_flist() instead?"
+      ))
     }
   ##################################
   # ensure that treeID data exists

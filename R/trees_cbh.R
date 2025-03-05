@@ -12,7 +12,11 @@
 #' * Successfully extracted CBH trees become training data used to estimate the height-CBH allometry relationship that is spatially informed using the relative tree location compared to the training data
 #' * The height and location predicting CBH model built from the point cloud training data is used to predict CBH for the non-training (i.e. missing CBH) data
 #'
-#' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' @param trees_poly must be one of the following that has required attributes `treeID` and `tree_height_m`:
+#'   * `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
+#'   * character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have with POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   * character with the path to a directory that has "final_detected_crowns\*" files from [cloud2trees()] or [raster2trees()]. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAS`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -51,6 +55,7 @@
 #' @examples
 #'  \dontrun{
 #'  library(tidyverse)
+#'  library(sf)
 #'  # example tree crown polygons
 #'  f <- system.file(package = "cloud2trees","extdata","crowns_poly.gpkg")
 #'  crowns <- sf::st_read(f, quiet = T)
@@ -60,6 +65,7 @@
 #'  trees_cbh_ans <- trees_cbh(
 #'     trees_poly = crowns
 #'     , norm_las = norm_d
+#'     , tree_sample_n = 44
 #'     , estimate_missing_cbh = T
 #'     , force_same_crs = T
 #'    )
@@ -77,6 +83,37 @@
 #'     ggplot2::geom_point()
 #'  # tabulate training data
 #'  trees_cbh_ans %>%
+#'    sf::st_drop_geometry() %>%
+#'    dplyr::count(is_training_cbh)
+#'  #### try a file list
+#'  #### Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'  # we'll split the crowns
+#'  # as is done automatically for tree lists >250k by raster2trees() and cloud2trees()
+#'  crowns <- crowns %>%
+#'    dplyr::mutate(
+#'      # makes 2 groups of data
+#'      grp = ceiling(dplyr::row_number()/(dplyr::n()/2))
+#'    )
+#'  # make file names
+#'  my_dir <- tempdir()
+#'  fnm_1 <- file.path(my_dir, "crowns1.gpkg")
+#'  fnm_2 <- file.path(my_dir, "crowns2.gpkg")
+#'  fnm_1
+#'  # write the data
+#'  sf::st_write(crowns %>% dplyr::filter(grp==1), dsn = fnm_1, append = F) # grp 1
+#'  sf::st_write(crowns %>% dplyr::filter(grp==2), dsn = fnm_2, append = F) # grp 2
+#'  # try trees_cbh with our file list
+#'  flist <- c(fnm_1,fnm_2)
+#'  # now run the trees_cbh()
+#'  trees_cbh_ans2 <- trees_cbh(
+#'   trees_poly = flist
+#'   , norm_las = norm_d
+#'   , tree_sample_n = 44
+#'   , estimate_missing_cbh = T
+#'   , force_same_crs = T
+#'  )
+#'  # tabulate training data
+#'  trees_cbh_ans2 %>%
 #'    sf::st_drop_geometry() %>%
 #'    dplyr::count(is_training_cbh)
 #'  }
@@ -305,6 +342,22 @@ trees_cbh <- function(
       dplyr::bind_rows()
   }else{
     stop("could not find tree crown polygon data")
+  }
+
+  #############################################
+  # check for same class of treeID
+  #############################################
+  id_class <- class(trees_poly$treeID)[1]
+  # cast treeID in original type
+  if(!inherits(cbh_df$treeID, id_class)){
+    if(id_class=="character"){
+      cbh_df <- cbh_df %>%
+        dplyr::mutate(treeID = as.character(treeID))
+    }
+    if(id_class=="numeric"){
+      cbh_df <- cbh_df %>%
+        dplyr::mutate(treeID = as.numeric(treeID))
+    }
   }
 
   #############################################
