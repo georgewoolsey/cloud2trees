@@ -1,7 +1,7 @@
 #' @title Estimate HMD using tree crown polygons and normalized point cloud data
 #'
 #' @description
-#' `trees_hmd()` uses the input tree crown polygons (e.g. as exported by [raster2trees()]) with the columns
+#' `trees_hmd_sf()` uses the input tree crown polygons (e.g. as exported by [raster2trees()]) with the columns
 #' `treeID` and `tree_height_m` to extracting the height of the maximum crown diameter (HMD) using height normalized point cloud data (e.g. as exported by [cloud2raster()]).
 #'
 #' HMD is extracted directly from the height normalized point cloud by finding the height of the non-ground point farthest from the tree center (i.e. tree top).
@@ -15,6 +15,7 @@
 #' * The height and location predicting HMD model built from the point cloud training data is used to predict HMD for the non-training (i.e. missing HMD) data
 #'
 #' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' Or the path to a single spatial polygon file.
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAScatalog`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the

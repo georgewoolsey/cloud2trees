@@ -14,7 +14,12 @@ trees_hmd(
 )
 }
 \arguments{
-\item{trees_poly}{sf. A \code{sf} class object with POLYGON geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}), the program will use the data "as-is" and only require the \code{treeID} and \code{tree_height_m} columns.}
+\item{trees_poly}{must be one of the following that has required attributes \code{treeID} and \code{tree_height_m}:
+\itemize{
+\item \code{sf} class object with POLYGON geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
+\item character vector with the path to a single or multiple spatial files that can be read by \code{\link[sf:st_read]{sf::st_read()}} and have POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+\item character with the path to a directory that has "final_detected_crowns*" files from \code{\link[=cloud2trees]{cloud2trees()}} or \code{\link[=raster2trees]{raster2trees()}}. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+}}
 
 \item{norm_las}{character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class \code{LAScatalog}.
 It is your responsibility to ensure that the point cloud is projected the same as the \code{trees_poly} data}
@@ -50,30 +55,61 @@ There are likely to be trees for which there is insufficient data in the point c
 }
 \examples{
  \dontrun{
- # example tree crown polygons
- f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
- crowns <- sf::st_read(f, quiet = T)
- # example normalized las files are in this directory
- norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
- # now run the trees_hmd()
- trees_hmd_ans <- trees_hmd(
-    trees_poly = crowns
-    , norm_las = norm_d
-    , force_same_crs = T
-    , estimate_missing_hmd = T)
- # what?
- trees_hmd_ans \%>\% dplyr::glimpse()
- # spatial polygons
- trees_hmd_ans \%>\% ggplot2::ggplot() +
-    ggplot2::geom_sf(ggplot2::aes(fill=max_crown_diam_height_m))
- # relationship between height and hmd
- trees_hmd_ans \%>\%
-    ggplot2::ggplot(
-      ggplot2::aes(
-        x = tree_height_m, y = max_crown_diam_height_m, color=is_training_hmd
-      )
-    ) +
-    ggplot2::geom_point()
+  library(tidyverse)
+  library(sf)
+  # example tree crown polygons
+  f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+  crowns <- sf::st_read(f, quiet = T)
+  # example normalized las files are in this directory
+  norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+  # now run the trees_hmd()
+  trees_hmd_ans <- trees_hmd(
+     trees_poly = crowns
+     , norm_las = norm_d
+     , force_same_crs = T
+     , estimate_missing_hmd = T)
+  # what?
+  trees_hmd_ans \%>\% dplyr::glimpse()
+  # spatial polygons
+  trees_hmd_ans \%>\% ggplot2::ggplot() +
+     ggplot2::geom_sf(ggplot2::aes(fill=max_crown_diam_height_m))
+  # relationship between height and hmd
+  trees_hmd_ans \%>\%
+     ggplot2::ggplot(
+       ggplot2::aes(
+         x = tree_height_m, y = max_crown_diam_height_m, color=is_training_hmd
+       )
+     ) +
+     ggplot2::geom_point()
+  #### try a file list
+  #### Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+  # we'll split the crowns
+  # as is done automatically for tree lists >250k by raster2trees() and cloud2trees()
+  crowns <- crowns \%>\%
+    dplyr::mutate(
+      # makes 2 groups of data
+      grp = ceiling(dplyr::row_number()/(dplyr::n()/2))
+    )
+  # make file names
+  my_dir <- tempdir()
+  fnm_1 <- file.path(my_dir, "crowns1.gpkg")
+  fnm_2 <- file.path(my_dir, "crowns2.gpkg")
+  fnm_1
+  # write the data
+  sf::st_write(crowns \%>\% dplyr::filter(grp==1), dsn = fnm_1, append = F) # grp 1
+  sf::st_write(crowns \%>\% dplyr::filter(grp==2), dsn = fnm_2, append = F) # grp 2
+  # try trees_cbh with our file list
+  flist <- c(fnm_1,fnm_2)
+  # now run the trees_hmd()
+  trees_hmd_ans2 <- trees_hmd(
+     trees_poly = flist
+     , norm_las = norm_d
+     , force_same_crs = T
+     , estimate_missing_hmd = T)
+  # tabulate training data
+  trees_hmd_ans \%>\%
+    sf::st_drop_geometry() \%>\%
+    dplyr::count(is_training_hmd)
  }
 }
 \references{
