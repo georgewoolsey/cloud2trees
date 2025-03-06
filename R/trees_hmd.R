@@ -27,6 +27,7 @@
 #'   Increasing `tree_sample_prop` toward one (1) will increase the processing time, perhaps significantly depending on the number of trees in the `trees_poly` data.
 #' @param estimate_missing_hmd logical. it is not likely that HMD will be extracted successfully from every tree (especially in low density clouds).
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
+#' @param estimate_missing_hmd_max_n_training numeric. xxxx
 #' @param force_same_crs logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
 #' data created by a `cloud2trees` pipeline (e.g. [cloud2raster()]) will always have the same projection even if not recognized by `lidR` functions
 #'
@@ -101,6 +102,7 @@ trees_hmd <- function(
   , tree_sample_n = NA
   , tree_sample_prop = NA
   , estimate_missing_hmd = F
+  , estimate_missing_hmd_max_n_training = 20000
   , force_same_crs = F
 ){
   # could move to parameters
@@ -245,26 +247,12 @@ trees_hmd <- function(
     && n_hmd > 10
     && (names(hmd_df) %>% stringr::str_equal("tree_height_m") %>% any())
   ){
-    ### tuning RF model
-      # implements steps to mitigate very long run-times when tuning random forests models
-      optimal_mtry <- rf_tune_subsample(
-        predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
-        , response = hmd_df$max_crown_diam_height_m
-      )
-
-      ### Run a randomForest model to predict HMD using various crown predictors
-      # quiet this
-      quiet_rf <- purrr::quietly(randomForest::randomForest)
-      # run it
-      hmd_mod <- quiet_rf(
-        y = hmd_df$max_crown_diam_height_m
-        , x = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
-        , mtry = optimal_mtry
-        , na.action = na.omit
-      )
-
-      # just get the result
-      hmd_mod <- hmd_mod$result
+    hmd_mod <- rf_subsample_and_model_n_times(
+      predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
+      , response = hmd_df$max_crown_diam_height_m
+      , mod_n_subsample = dplyr::coalesce(as.numeric(estimate_missing_hmd_max_n_training), 11111)
+      , mod_n_times = 3
+    )
   }else{
     hmd_mod <- NULL
   }

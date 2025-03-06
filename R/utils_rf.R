@@ -238,3 +238,36 @@ rf_subsample_and_model_n_times <- function(
   }
   return(mod_list)
 }
+################################################################################################################################################
+# function to model average predictions using model list
+# Model averaging can improve the robustness and accuracy of random forest models, especially when dealing with large datasets
+# predict_df must have predictor (x) columns used to develop model
+################################################################################################################################################
+rf_model_avg_predictions <- function(mod_list, predict_df){
+  # get model predictions for each model
+  predicted_temp <-
+    1:length(mod_list) %>%
+      purrr::map(function(x){
+        predict(
+          mod_list[[x]]
+          , predict_df
+        ) %>%
+        dplyr::as_tibble() %>%
+        dplyr::pull(1) %>%
+        dplyr::as_tibble() %>%
+        dplyr::rename(value=1) %>%
+        dplyr::mutate(id=dplyr::row_number())
+      }) %>%
+      dplyr::bind_rows()
+  # model average
+  predicted_temp <- predicted_temp %>%
+    dplyr::group_by(id) %>%
+    dplyr::summarise(
+      predicted = mean(value, na.rm = T)
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(id) %>%
+    dplyr::select(predicted)
+  # return
+  return(predicted_temp)
+}
