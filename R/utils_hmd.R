@@ -284,14 +284,7 @@ trees_hmd_sf <- function(
     ) %>%
     dplyr::filter(is_training_hmd==T) %>%
     dplyr::select(treeID, is_training_hmd, tree_height_m, max_crown_diam_height_m) %>%
-    # prep data for missing data model by creating predictor vars suffixed "_zzz"
-    dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
-    sf::st_centroid() %>%
-    dplyr::mutate(
-      tree_x_zzz = sf::st_coordinates(.)[,1]
-      , tree_y_zzz = sf::st_coordinates(.)[,2]
-    ) %>%
-    sf::st_drop_geometry()
+    make_spatial_predictors()
 
   ##################################
   # check if write it and return

@@ -1176,3 +1176,20 @@ clean_cbh_df <- function(cbh_df = NULL, trees_poly, lad_profile, force_cbh_lte_h
   # return
   return(cbh_df)
 }
+
+################################################################################################################################################
+## function to make spatial predictor variables from POLYGON sf data with treeID and tree_height_m
+# prep data for missing data model by creating predictor vars suffixed "_zzz"
+################################################################################################################################################
+make_spatial_predictors <- function(poly_sf) {
+  df <- poly_sf %>%
+    # prep data for missing data model by creating predictor vars suffixed "_zzz"
+    dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
+    sf::st_centroid() %>%
+    dplyr::mutate(
+      tree_x_zzz = sf::st_coordinates(.)[,1]
+      , tree_y_zzz = sf::st_coordinates(.)[,2]
+    ) %>%
+    sf::st_drop_geometry()
+  return(df)
+}
