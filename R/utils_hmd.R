@@ -253,7 +253,7 @@ trees_hmd_sf <- function(
       dplyr::inner_join(
         hmd_df %>%
           dplyr::mutate(
-            max_crown_diam_height_m = ifelse(calc_tree_hmd_n_pts<3, as.numeric(NA), max_crown_diam_height_m)
+            max_crown_diam_height_m = ifelse(calc_tree_hmd_n_pts<5, as.numeric(NA), max_crown_diam_height_m)
           ) %>%
           dplyr::select(-tidyselect::starts_with("calc_tree_hmd"))
         , by = "treeID"
@@ -279,12 +279,19 @@ trees_hmd_sf <- function(
 
   # flag is_training_hmd
   trees_poly <- trees_poly %>%
-    sf::st_drop_geometry() %>%
     dplyr::mutate(
       is_training_hmd = !is.na(max_crown_diam_height_m)
     ) %>%
     dplyr::filter(is_training_hmd==T) %>%
-    dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd, tree_height_m)
+    dplyr::select(treeID, is_training_hmd, tree_height_m, max_crown_diam_height_m) %>%
+    # prep data for missing data model by creating predictor vars suffixed "_zzz"
+    dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
+    sf::st_centroid() %>%
+    dplyr::mutate(
+      tree_x_zzz = sf::st_coordinates(.)[,1]
+      , tree_y_zzz = sf::st_coordinates(.)[,2]
+    ) %>%
+    sf::st_drop_geometry()
 
   ##################################
   # check if write it and return

@@ -214,9 +214,17 @@ trees_hmd <- function(
   ){
     # read the output file(s)
     hmd_df <- stringr::str_subset(hmd_df, pattern = ".*\\.csv$") %>%
-      readr::read_csv(progress = F, show_col_types = F)
+      readr::read_csv(progress = F, show_col_types = F) %>%
+      dplyr::mutate(dplyr::across(
+        .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
+        , .fns = as.numeric
+      ))
   }else if(inherits(hmd_df, "data.frame")){
-    hmd_df <- hmd_df
+    hmd_df <- hmd_df %>%
+      dplyr::mutate(dplyr::across(
+        .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
+        , .fns = as.numeric
+      ))
   }else{
     stop("error extracting HMD")
   }
@@ -225,6 +233,41 @@ trees_hmd <- function(
     sf::st_drop_geometry() %>%
     dplyr::filter(is_training_hmd==T) %>%
     nrow()
+
+  #######################################################
+  # build hmd model using training data
+  # happens before we load trees_poly if inherits(crowns_flist, "character")
+  # so that memory isn't already stuffed
+  #######################################################
+  n_hmd <- dplyr::coalesce(n_hmd,0)
+  if(
+    estimate_missing_hmd==T
+    && n_hmd > 10
+    && (names(hmd_df) %>% stringr::str_equal("tree_height_m") %>% any())
+  ){
+    ### tuning RF model
+      # implements steps to mitigate very long run-times when tuning random forests models
+      optimal_mtry <- rf_tune_subsample(
+        predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
+        , response = hmd_df$max_crown_diam_height_m
+      )
+
+      ### Run a randomForest model to predict HMD using various crown predictors
+      # quiet this
+      quiet_rf <- purrr::quietly(randomForest::randomForest)
+      # run it
+      hmd_mod <- quiet_rf(
+        y = hmd_df$max_crown_diam_height_m
+        , x = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
+        , mtry = optimal_mtry
+        , na.action = na.omit
+      )
+
+      # just get the result
+      hmd_mod <- hmd_mod$result
+  }else{
+    hmd_mod <- NULL
+  }
 
   #############################################
   # read trees_poly data to get full tree list
@@ -282,13 +325,11 @@ trees_hmd <- function(
   }
 
   #######################################################
-  # estimate_missing_hmd
+  # fill missing hmd values
   #######################################################
-  n_hmd <- dplyr::coalesce(n_hmd,0)
   if(
     estimate_missing_hmd==T
-    && n_hmd > 10
-    && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
+    && !is.null(hmd_mod)
   ){
     # add x,y to data
     mod_df <- trees_poly %>%

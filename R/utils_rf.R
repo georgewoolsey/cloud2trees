@@ -106,3 +106,135 @@ rf_tune_subsample <- function(
   # return
   return(optimal_mtry)
 }
+
+################################################################################################################################################
+# function to combine tuning and modelling
+################################################################################################################################################
+rf_tune_model <- function(
+  predictors
+  , response
+  , tune_threshold = 14444
+  , tune_n_subsamples = 4
+  , tune_ntree_try = 44
+  , tune_step_factor = 1
+  , tune_improve = 0.03
+  , ntree = 500
+) {
+  ### tuning RF model
+  # implements steps to mitigate very long run-times when tuning random forests models
+  optimal_mtry <- rf_tune_subsample(
+    predictors = predictors
+    , response = response
+    , threshold = tune_threshold
+    , n_subsamples = tune_n_subsamples
+    , ntree_try = tune_ntree_try
+    , step_factor = tune_step_factor
+    , improve = tune_improve
+  )
+
+  ### Run a randomForest model
+  # quiet this
+  quiet_rf <- purrr::quietly(randomForest::randomForest)
+  # run it
+  mod <- quiet_rf(
+    y = response
+    , x = predictors
+    , mtry = optimal_mtry
+    , na.action = na.omit
+    , ntree = ntree
+  )
+
+  # just get the result
+  mod <- mod$result
+  return(mod)
+}
+################################################################################################################################################
+# function to subsample, tune, and model
+################################################################################################################################################
+rf_subsample_and_model <- function(
+  predictors
+  , response
+  , tune_threshold = 14444
+  , tune_n_subsamples = 4
+  , tune_ntree_try = 44
+  , tune_step_factor = 1
+  , tune_improve = 0.03
+  , mod_n_subsample = 20000
+  , ntree = 500
+) {
+  if(length(response)<=mod_n_subsample){
+    mod <- rf_tune_model(
+        predictors = predictors
+        , response = response
+        , tune_threshold = tune_threshold
+        , tune_n_subsamples = tune_n_subsamples
+        , tune_ntree_try = tune_ntree_try
+        , tune_step_factor = tune_step_factor
+        , tune_improve = tune_improve
+        , ntree = ntree
+      )
+  }else{
+    subsample_indices <- sample(x = 1:length(response), size = mod_n_subsample, replace = F)
+    subsample_y <- response[subsample_indices]
+    subsample_x <- predictors[subsample_indices,]
+    mod <- rf_tune_model(
+        predictors = subsample_x
+        , response = subsample_y
+        , tune_threshold = tune_threshold
+        , tune_n_subsamples = tune_n_subsamples
+        , tune_ntree_try = tune_ntree_try
+        , tune_step_factor = tune_step_factor
+        , tune_improve = tune_improve
+        , ntree = ntree
+      )
+  }
+  return(mod)
+}
+################################################################################################################################################
+# function to subsample, tune, and model N TIMES
+# iterates the subsampling and model fitting process n_iterations times
+# stores the predictions from each model in a list
+################################################################################################################################################
+rf_subsample_and_model_n_times <- function(
+  predictors
+  , response
+  , tune_threshold = 14444
+  , tune_n_subsamples = 4
+  , tune_ntree_try = 44
+  , tune_step_factor = 1
+  , tune_improve = 0.03
+  , mod_n_subsample = 20000
+  , mod_n_times = 3
+  , ntree = 500
+) {
+  # set up blank list
+  mod_list <- list()
+  if(length(response)<=mod_n_subsample){
+    mod_list[[1]] <- rf_subsample_and_model(
+        predictors = predictors
+        , response = response
+        , tune_threshold = tune_threshold
+        , tune_n_subsamples = tune_n_subsamples
+        , tune_ntree_try = tune_ntree_try
+        , tune_step_factor = tune_step_factor
+        , tune_improve = tune_improve
+        , mod_n_subsample = mod_n_subsample
+        , ntree = ntree
+      )
+  }else{
+    for (i in 1:mod_n_times) {
+      mod_list[[i]] <- rf_subsample_and_model(
+          predictors = predictors
+          , response = response
+          , tune_threshold = tune_threshold
+          , tune_n_subsamples = tune_n_subsamples
+          , tune_ntree_try = tune_ntree_try
+          , tune_step_factor = tune_step_factor
+          , tune_improve = tune_improve
+          , mod_n_subsample = mod_n_subsample
+          , ntree = ntree
+        )
+    }
+  }
+  return(mod_list)
+}
