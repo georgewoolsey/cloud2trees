@@ -14,8 +14,8 @@
 #'
 #' @param trees_poly must be one of the following that has required attributes `treeID` and `tree_height_m`:
 #'   * `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
-#'   * character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have with POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
-#'   * character with the path to a directory that has "final_detected_crowns\*" files from [cloud2trees()] or [raster2trees()]. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   * character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   * character with the path to a directory that has "final_detected_crowns*" files from [cloud2trees()] or [raster2trees()]. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
 #'
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAS`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
@@ -303,6 +303,7 @@ trees_cbh <- function(
   }else{
     stop("error extracting CBH")
   }
+  # ensure that there are enough data to estimate
   n_cbh <- nrow(cbh_df)
 
   #############################################

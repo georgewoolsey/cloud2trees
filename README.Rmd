@@ -270,11 +270,11 @@ there is a plot of the different window size functions tested (plot columns) ove
 itd_tuning_ans$plot_samples
 ```
 
-if we think that the "log_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
+if we think that the "lin_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
 
 ```{r}
 # get the best function
-best_ws <- itd_tuning_ans$ws_fn_list$log_fn
+best_ws <- itd_tuning_ans$ws_fn_list$lin_fn
 ```
 
 we can plot what the function looks like
@@ -385,7 +385,7 @@ Check that our spatial data frame with tree crown polygons has data in the `dbh`
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 ```
 
-Remember, we also changed the `ws` parameter used to detect the local maxima for identifying tree tops so we got a few less trees compared to the default settings.
+Remember, we also changed the `ws` parameter used to detect the local maxima for identifying tree tops so we got a few more trees compared to the default settings.
 
 ```{r}
 paste(

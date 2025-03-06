@@ -14,7 +14,11 @@
 #' * Successfully extracted HMD trees become training data used to estimate the height-HMD allometry relationship that is spatially informed using the relative tree location compared to the training data
 #' * The height and location predicting HMD model built from the point cloud training data is used to predict HMD for the non-training (i.e. missing HMD) data
 #'
-#' @param trees_poly sf. A `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` and `tree_height_m` columns.
+#' @param trees_poly must be one of the following that has required attributes `treeID` and `tree_height_m`:
+#'   * `sf` class object with POLYGON geometry (see [sf::st_geometry_type()]). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
+#'   * character vector with the path to a single or multiple spatial files that can be read by [sf::st_read()] and have POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   * character with the path to a directory that has "final_detected_crowns*" files from [cloud2trees()] or [raster2trees()]. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'
 #' @param norm_las character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class `LAScatalog`.
 #'   It is your responsibility to ensure that the point cloud is projected the same as the `trees_poly` data
 #' @param tree_sample_n,tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
@@ -33,30 +37,61 @@
 #'
 #' @examples
 #'  \dontrun{
-#'  # example tree crown polygons
-#'  f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
-#'  crowns <- sf::st_read(f, quiet = T)
-#'  # example normalized las files are in this directory
-#'  norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
-#'  # now run the trees_hmd()
-#'  trees_hmd_ans <- trees_hmd(
-#'     trees_poly = crowns
-#'     , norm_las = norm_d
-#'     , force_same_crs = T
-#'     , estimate_missing_hmd = T)
-#'  # what?
-#'  trees_hmd_ans %>% dplyr::glimpse()
-#'  # spatial polygons
-#'  trees_hmd_ans %>% ggplot2::ggplot() +
-#'     ggplot2::geom_sf(ggplot2::aes(fill=max_crown_diam_height_m))
-#'  # relationship between height and hmd
-#'  trees_hmd_ans %>%
-#'     ggplot2::ggplot(
-#'       ggplot2::aes(
-#'         x = tree_height_m, y = max_crown_diam_height_m, color=is_training_hmd
-#'       )
-#'     ) +
-#'     ggplot2::geom_point()
+#'   library(tidyverse)
+#'   library(sf)
+#'   # example tree crown polygons
+#'   f <- paste0(system.file(package = "cloud2trees"),"/extdata/crowns_poly.gpkg")
+#'   crowns <- sf::st_read(f, quiet = T)
+#'   # example normalized las files are in this directory
+#'   norm_d <- paste0(system.file(package = "cloud2trees"),"/extdata/norm_las")
+#'   # now run the trees_hmd()
+#'   trees_hmd_ans <- trees_hmd(
+#'      trees_poly = crowns
+#'      , norm_las = norm_d
+#'      , force_same_crs = T
+#'      , estimate_missing_hmd = T)
+#'   # what?
+#'   trees_hmd_ans %>% dplyr::glimpse()
+#'   # spatial polygons
+#'   trees_hmd_ans %>% ggplot2::ggplot() +
+#'      ggplot2::geom_sf(ggplot2::aes(fill=max_crown_diam_height_m))
+#'   # relationship between height and hmd
+#'   trees_hmd_ans %>%
+#'      ggplot2::ggplot(
+#'        ggplot2::aes(
+#'          x = tree_height_m, y = max_crown_diam_height_m, color=is_training_hmd
+#'        )
+#'      ) +
+#'      ggplot2::geom_point()
+#'   #### try a file list
+#'   #### Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+#'   # we'll split the crowns
+#'   # as is done automatically for tree lists >250k by raster2trees() and cloud2trees()
+#'   crowns <- crowns %>%
+#'     dplyr::mutate(
+#'       # makes 2 groups of data
+#'       grp = ceiling(dplyr::row_number()/(dplyr::n()/2))
+#'     )
+#'   # make file names
+#'   my_dir <- tempdir()
+#'   fnm_1 <- file.path(my_dir, "crowns1.gpkg")
+#'   fnm_2 <- file.path(my_dir, "crowns2.gpkg")
+#'   fnm_1
+#'   # write the data
+#'   sf::st_write(crowns %>% dplyr::filter(grp==1), dsn = fnm_1, append = F) # grp 1
+#'   sf::st_write(crowns %>% dplyr::filter(grp==2), dsn = fnm_2, append = F) # grp 2
+#'   # try trees_cbh with our file list
+#'   flist <- c(fnm_1,fnm_2)
+#'   # now run the trees_hmd()
+#'   trees_hmd_ans2 <- trees_hmd(
+#'      trees_poly = flist
+#'      , norm_las = norm_d
+#'      , force_same_crs = T
+#'      , estimate_missing_hmd = T)
+#'   # tabulate training data
+#'   trees_hmd_ans %>%
+#'     sf::st_drop_geometry() %>%
+#'     dplyr::count(is_training_hmd)
 #'  }
 #' @export
 #'
@@ -70,114 +105,132 @@ trees_hmd <- function(
 ){
   # could move to parameters
   force_hmd_lte_ht = T
-  ##################################
-  # check sample proportion
-  ##################################
-  if(
-    is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- 777
-  }else if(
-    !is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 777
-      , T ~ as.numeric(tree_sample_n)
+  #############################################
+  # estimate hmd based on what's in trees_poly
+  #############################################
+  crowns_flist <- NULL # setting up for filling
+  if(inherits(trees_poly, "sf")){
+    #############################################
+    # if trees_poly is sf
+    #############################################
+    hmd_df <- trees_hmd_sf(
+      trees_poly = trees_poly
+      , norm_las = norm_las
+      , tree_sample_n = tree_sample_n
+      , tree_sample_prop = tree_sample_prop
+      , force_same_crs = force_same_crs
     )
-    tree_sample_prop <- NA
-  }else if(
-    is.na(as.numeric(tree_sample_n)) && !is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_prop <- dplyr::case_when(
-      as.numeric(tree_sample_prop)<=0 ~ 0.5
-      , as.numeric(tree_sample_prop)>1 ~ 1
-      , T ~ as.numeric(tree_sample_prop)
+  }else if(inherits(trees_poly, "character")){
+    msg <- paste0(
+      "If attempting to pass a list of files, the file list must:"
+      , "\n   * be a vector of class character -AND-"
+      , "\n   * be a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- be a vector of class character that includes spatial files that can be read by sf::st_read()"
     )
-    tree_sample_n <- NA
-  }else if(
-    !is.na(as.numeric(tree_sample_n)) && is.na(as.numeric(tree_sample_prop))
-  ){
-    tree_sample_n <- dplyr::case_when(
-      as.numeric(tree_sample_n)<=0 ~ 777
-      , T ~ as.numeric(tree_sample_n)
-    )
-    tree_sample_prop <- NA
-  }else{
-    tree_sample_n <- 777
-    tree_sample_prop <- NA
-  }
-  ##################################
-  # ensure that norm las data exists
-  ##################################
-  nlas_ctg <- check_las_data(norm_las)
-  # set the lascatalog options
-  if(inherits(nlas_ctg, "LAScatalog")){
-    lidR::opt_progress(nlas_ctg) <- F
-    lidR::opt_filter(nlas_ctg) <- "-drop_duplicates -drop_class 2 9 18" ## class 2 = ground; 9 = water; 18 = noise
-    lidR::opt_select(nlas_ctg) <- "xyz"
-    lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed")
-  }else if(inherits(nlas_ctg, "LAS")){
-    stop(paste0(
-      "`norm_las` should contain: a directory with nomalized las files,"
-      ,"\n   the path of a single .laz|.las file,"
-      , "\n   -or- an object of class `LAScatalog`"
-    ))
-    # nlas_ctg <- nlas_ctg %>%
-    #   lidR::filter_poi(!Classification %in% c(2,9,18)) %>%
-    #   lidR::filter_duplicates()
-  }
-
-  ##################################
-  # ensure spatial polygon data
-  ##################################
-  sf_msg <- paste0(
-      "`trees_poly` data must be an object of class `sf` with only POLYGON type."
-      , "\nProvide an `sf` object and see `sf::st_geometry_type()`."
-    )
-  if(!inherits(trees_poly, "sf")){stop(sf_msg)}
-  if( !(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON")) %>% all()) ){stop(sf_msg)}
-
-  ##################################
-  # ensure that treeID data exists
-  ##################################
-  f <- trees_poly %>% names() %>% dplyr::coalesce("")
-  if(
-    !(stringr::str_equal(f, "treeID") %>% any())
-  ){
-    stop(paste0(
-      "`trees_poly` data must contain `treeID` column to estimate HMD."
-      , "\nProvide the `treeID` as a unique identifier of individual trees."
-    ))
-  }else{
-    # check for duplicate treeID
+    trees_poly <- trees_poly %>% normalizePath() %>% unique()
+    #############################################
+    # if trees_poly is character
+    #############################################
+    # check if is dir and look for cloud2trees files in the dir
     if(
-      nrow(trees_poly) != length(unique(trees_poly$treeID))
+      length(trees_poly) == 1
+      && dir.exists(trees_poly)
     ){
-      stop("Duplicates found in the treeID column. Please remove duplicates and try again.")
-    }
-    # check that treeID is numeric or character
-    id_class <- class(trees_poly$treeID)[1]
-    if(
-      !inherits(trees_poly$treeID, "character")
-      && !inherits(trees_poly$treeID, "numeric")
-    ){
+      #############################################
+      # if trees_poly is a directory
+      #############################################
+      search_dir_final_detected_ans <- search_dir_final_detected(dir = trees_poly)
+      crowns_flist <- search_dir_final_detected_ans$crowns_flist
+      ttops_flist <- search_dir_final_detected_ans$ttops_flist
+      if(is.null(crowns_flist)){
+        stop(msg)
+      }else if(length(crowns_flist)==1){ # if only one file then trees_hmd_sf() so that only read file once
+        hmd_df <- trees_hmd_sf(
+          trees_poly = crowns_flist
+          , norm_las = norm_las
+          , tree_sample_n = tree_sample_n
+          , tree_sample_prop = tree_sample_prop
+          , force_same_crs = force_same_crs
+        )
+      }else{
+        hmd_df <- trees_hmd_flist(
+          flist = trees_poly # just searches the directory again so that tree points are used for sample
+          , norm_las = norm_las
+          , tree_sample_n = tree_sample_n
+          , tree_sample_prop = tree_sample_prop
+          , force_same_crs = force_same_crs
+        )
+      }
+    }else if(length(trees_poly)==1 && !file.exists(trees_poly)){
+      #############################################
+      # if trees_poly is a filename that doesn't exist
+      #############################################
       stop(paste0(
-        "`trees_poly` data must contain `treeID` column of class numeric or character."
-        , "\nProvide the `treeID` as a unique identifier of individual trees."
+        "could not find the file:"
+        , "\n    "
+        , trees_poly
       ))
+    }else if(length(trees_poly)==1){
+      #############################################
+      # if trees_poly is a filename that does exist
+      #############################################
+      crowns_flist <- trees_poly
+      hmd_df <- trees_hmd_sf(
+        trees_poly = trees_poly
+        , norm_las = norm_las
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+        , force_same_crs = force_same_crs
+      )
+    }else{
+      #############################################
+      # if trees_poly is a list of filenames
+      #############################################
+      crowns_flist <- trees_poly %>% normalizePath() %>% unique()
+      hmd_df <- trees_hmd_flist(
+        flist = crowns_flist
+        , norm_las = norm_las
+        , tree_sample_n = tree_sample_n
+        , tree_sample_prop = tree_sample_prop
+        , force_same_crs = force_same_crs
+      )
     }
-  }
-  # check for tree_height_m
-  if(
-    !(stringr::str_equal(f, "tree_height_m") %>% any())
-  ){
+  }else{
     stop(paste0(
-      "`trees_poly` data must contain `tree_height_m` column to estimate HMD."
-      , "\nRename the height column if it exists and ensure it is in meters."
+      "`trees_poly` data must be: "
+      , "\n   * an object of class `sf` with only POLYGON type"
+      , "\n   * -OR- a directory that has final_detected_crowns* files from cloud2trees::cloud2trees() or cloud2trees::raster2trees()"
+      , "\n   * -OR- a vector of class character that includes spatial files that can be read by sf::st_read()"
     ))
   }
 
-  # get rid of columns we'll create
+  #############################################
+  # read hmd_df if it was a file list to get
+  # trees where hmd extraction was successful
+  #############################################
+  if(
+    inherits(hmd_df, "character")
+    && (stringr::str_ends(hmd_df, ".*\\.csv$") %>% any())
+  ){
+    # read the output file(s)
+    hmd_df <- stringr::str_subset(hmd_df, pattern = ".*\\.csv$") %>%
+      readr::read_csv(progress = F, show_col_types = F)
+  }else if(inherits(hmd_df, "data.frame")){
+    hmd_df <- hmd_df
+  }else{
+    stop("error extracting HMD")
+  }
+  # ensure that there are enough data to estimate
+  n_hmd <- hmd_df %>%
+    sf::st_drop_geometry() %>%
+    dplyr::filter(is_training_hmd==T) %>%
+    nrow()
+
+  #############################################
+  # read trees_poly data to get full tree list
+  #############################################
+  if(inherits(trees_poly, "sf")){
+    # get rid of columns we'll create
     trees_poly <- trees_poly %>%
       # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
       dplyr::select( -dplyr::any_of(c(
@@ -185,171 +238,48 @@ trees_hmd <- function(
         , "max_crown_diam_height_m"
         , "is_training_hmd"
       )))
-
-  ####################################################################
-  # catalog apply
-  ####################################################################
-  # sample
-    if(
-      !is.na(tree_sample_prop)
-      && tree_sample_prop<1
-    ){
-      samp_trees <- trees_poly %>%
-        dplyr::slice_sample(
-          prop = tree_sample_prop
-        )
-    }else if(
-      !is.na(tree_sample_n)
-      && tree_sample_n<nrow(trees_poly)
-    ){
-      samp_trees <- trees_poly %>%
-        dplyr::slice_sample(
-          n = tree_sample_n
-        )
-    }else{
-      samp_trees <- trees_poly
-    }
-  ##################################
-  # apply the ctg_calc_tree_hmd function
-  ##################################
-  # simplify the polygons so that lidR::merge_spatial can be used
-  simp_trees_poly <- simplify_multipolygon_crowns(samp_trees)
-
-  # check if we need to split for massive tree crown data
-  if(nrow(simp_trees_poly)>500e3){
-    # for data with so many crowns I've encountered the error:
-    ### !!! Error in getGlobalsAndPackages(expr, envir = envir, tweak = tweakExpression, :
-      ### !!! The total size of the xx globals exported for future expression ...
-      ### !!! is xxx GiB.. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize').
-    # break up data
-    simp_trees_poly <-
-      simp_trees_poly %>%
-      # arrange by x,y
-      dplyr::left_join(
-        simp_trees_poly %>%
-          sf::st_centroid() %>%
-          dplyr::mutate(
-            x_xxx = sf::st_coordinates(.)[,1]
-            , y_xxx = sf::st_coordinates(.)[,2]
-          ) %>%
-          sf::st_drop_geometry() %>%
-          dplyr::select(treeID, x_xxx, y_xxx)
-        , by = "treeID"
-      ) %>%
-      dplyr::arrange(x_xxx,y_xxx) %>%
-      # groups of 250k....or larger
-      dplyr::mutate(grp = ceiling(dplyr::row_number()/500e3)) %>%
-      dplyr::select(-c(x_xxx,y_xxx))
-
-    # apply it
-    output_temp <- simp_trees_poly$grp %>%
-      unique() %>%
+  }else if(
+    !is.null(crowns_flist)
+    && inherits(crowns_flist, "character")
+  ){
+    # if we've made it this far, the polygon data has already gone through the checks in trees_hmd_sf()
+    # but we'll check again as it is quick
+    # check_trees_poly will throw error if fails any checks
+    check_trees_poly_ans <- crowns_flist %>% purrr::map(check_trees_poly)
+    # read it to get the full list of tree polygons
+    trees_poly <- crowns_flist %>%
       purrr::map(function(x){
-        # rename output
-        lidR::opt_output_files(nlas_ctg) <- paste0(tempdir(), "/{*}_treed_",x)
-        # run it
-        lidR::catalog_apply(
-          ctg = nlas_ctg
-          , FUN = ctg_calc_tree_hmd
-          , .options = list(automerge = TRUE)
-          # ctg_calc_tree_hmd options
-          , poly_df = simp_trees_poly %>% dplyr::filter(grp==x)
-          , force_crs = force_same_crs
-        )
+        sf::st_read(
+          dsn = x
+          , quiet = T
+        ) %>%
+        # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "max_crown_diam_height_m"
+          , "is_training_hmd"
+        )))
       }) %>%
-      unlist()
+      dplyr::bind_rows()
   }else{
-    # apply it
-    output_temp <- lidR::catalog_apply(
-      ctg = nlas_ctg
-      , FUN = ctg_calc_tree_hmd
-      , .options = list(automerge = TRUE)
-      # ctg_calc_tree_hmd options
-      , poly_df = simp_trees_poly
-      , force_crs = force_same_crs
-    )
+    stop("could not find tree crown polygon data")
   }
 
-  ##################################
-  # read result from calc_tree_hmd
-  ##################################
-  if(
-    stringr::str_ends(output_temp, ".*\\.(txt|csv)$") %>% any()
-  ){
-    # read the output file(s)
-    hmd_df <- stringr::str_subset(output_temp, pattern = ".*\\.(txt|csv)$") %>%
-      purrr::map(\(x) readr::read_delim(
-        file = x, progress = F, show_col_types = F
-      )) %>%
-      dplyr::bind_rows() %>%
-      # for trees on many tiles keep row with most points
-      dplyr::filter(!is.na(treeID)) %>%
-      dplyr::group_by(treeID) %>%
-      dplyr::filter(calc_tree_hmd_n_pts == max(calc_tree_hmd_n_pts)) %>%
-      dplyr::summarise(
-        calc_tree_hmd_n_pts = max(calc_tree_hmd_n_pts, na.rm = T)
-        , calc_tree_hmd_max_z = max(calc_tree_hmd_max_z, na.rm = T)
-        # favor lower hmd if still duplicates
-        , max_crown_diam_height_m = min(max_crown_diam_height_m, na.rm = T)
-      ) %>%
-      dplyr::ungroup()
-
-    # cast treeID in original type
-    if(!inherits(hmd_df$treeID, id_class)){
-      if(id_class=="character"){
-        hmd_df <- hmd_df %>%
-          dplyr::mutate(treeID = as.character(treeID))
-      }
-      if(id_class=="numeric"){
-        hmd_df <- hmd_df %>%
-          dplyr::mutate(treeID = as.numeric(treeID))
-      }
+  #############################################
+  # check for same class of treeID
+  #############################################
+  id_class <- class(trees_poly$treeID)[1]
+  # cast treeID in original type
+  if(!inherits(hmd_df$treeID, id_class)){
+    if(id_class=="character"){
+      hmd_df <- hmd_df %>%
+        dplyr::mutate(treeID = as.character(treeID))
     }
-
-    # join to original data
-    trees_poly <- trees_poly %>%
-      dplyr::left_join(
-        hmd_df %>%
-          dplyr::mutate(
-            max_crown_diam_height_m = ifelse(calc_tree_hmd_n_pts<3, as.numeric(NA), max_crown_diam_height_m)
-          ) %>%
-          dplyr::select(-tidyselect::starts_with("calc_tree_hmd"))
-        , by = "treeID"
-      )
-  }else{
-    # blank the hmd column
-    trees_poly <- trees_poly %>%
-      dplyr::mutate(
-        max_crown_diam_height_m = as.numeric(NA)
-      )
+    if(id_class=="numeric"){
+      hmd_df <- hmd_df %>%
+        dplyr::mutate(treeID = as.numeric(treeID))
+    }
   }
-
-  # check force_hmd_lte_ht
-  if(
-    force_hmd_lte_ht==T &&
-    (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
-  ){
-    trees_poly <- trees_poly %>%
-      dplyr::mutate(
-        max_crown_diam_height_m = dplyr::case_when(
-          is.na(max_crown_diam_height_m) ~ as.numeric(NA)
-          , max_crown_diam_height_m > tree_height_m ~ as.numeric(NA)
-          , T ~ max_crown_diam_height_m
-        )
-      )
-  }
-
-  # flag is_training_hmd
-  trees_poly <- trees_poly %>%
-    dplyr::mutate(
-      is_training_hmd = !is.na(max_crown_diam_height_m)
-    )
-
-  # ensure that there are enough data to estimate
-  n_hmd <- trees_poly %>%
-    sf::st_drop_geometry() %>%
-    dplyr::filter(is_training_hmd==T) %>%
-    nrow()
 
   #######################################################
   # estimate_missing_hmd
@@ -362,6 +292,12 @@ trees_hmd <- function(
   ){
     # add x,y to data
     mod_df <- trees_poly %>%
+      dplyr::left_join(
+        hmd_df %>%
+          dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_hmd = dplyr::coalesce(is_training_hmd, F)) %>%
       dplyr::select(treeID, is_training_hmd, tree_height_m, max_crown_diam_height_m) %>%
       dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
       sf::st_centroid() %>%
@@ -417,6 +353,12 @@ trees_hmd <- function(
 
     ## combine predicted data with training data for full data set
     trees_poly <- trees_poly %>%
+      dplyr::left_join(
+        hmd_df %>%
+          dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_hmd = dplyr::coalesce(is_training_hmd, F)) %>%
       # join with predicted data estimates
       dplyr::left_join(
         predict_df %>%
@@ -436,7 +378,13 @@ trees_hmd <- function(
     message(paste0(
       "No HMD values extracted"
     ))
-    return(trees_poly)
+    return(
+      trees_poly %>%
+        dplyr::mutate(
+          max_crown_diam_height_m = as.numeric(NA)
+          , is_training_hmd = as.logical(NA)
+        )
+    )
   }else if(estimate_missing_hmd==T){
     if(!(names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any()) ){
       message(paste0(
@@ -450,6 +398,23 @@ trees_hmd <- function(
         , "\nReturning HMD values extracted from cloud only."
       ))
     }
+    ## combine predicted data with training data for full data set
+    trees_poly <- trees_poly %>%
+      dplyr::left_join(
+        hmd_df %>%
+          dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_hmd = dplyr::coalesce(is_training_hmd, F))
+  }else{
+    ## combine predicted data with training data for full data set
+    trees_poly <- trees_poly %>%
+      dplyr::left_join(
+        hmd_df %>%
+          dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
+        , by = "treeID"
+      ) %>%
+      dplyr::mutate(is_training_hmd = dplyr::coalesce(is_training_hmd, F))
   }
 
   ## prevent the hmd from being > the tree height
@@ -484,135 +449,4 @@ trees_hmd <- function(
 
   # return
   return(trees_poly)
-}
-
-#####################################################
-#####################################################
-# intermediate functions
-#####################################################
-#####################################################
-################
-# let's make a function to ingest LAS class data or a data frame
-  # with `x`, `y`, `z` and `treeID` columns and return the data aggregated
-  # to the tree level with the HMD value
-################
-calc_tree_hmd <- function(las, id=NULL) {
-  #######################
-  # check data type
-  #######################
-    las_msg <- paste0(
-      "`las` must contain a data frame -or- an object of class `LAS`"
-      , "\nPlease update the `las` parameter."
-    )
-    # check
-    if(inherits(las, "LAS")){
-      dta <- las@data
-    }else if(inherits(las,"data.frame")){
-      dta <- las
-    }else{stop(las_msg)}
-
-  #######################
-  # check columns
-  #######################
-  # overwrite treeID if id is filled
-  if(!is.null(id)){
-    dta <- dta %>% dplyr::mutate(treeID = id)
-  }
-  # names
-  nms <- names(dta) %>% dplyr::coalesce("")
-  # check for treeID column
-  if(
-    !any(stringr::str_equal(nms, "treeID"))
-  ){
-    stop("the `las` data does not contain the column `treeID`, ensure this column exists or set the `id` parameter")
-  }
-  # check for xyz
-  has_xyz <- c("x", "y", "z") %>%
-    purrr::map(function(x){
-      stringr::str_equal(tolower(nms), x) %>%
-      max() # do any columns match, T=1
-    }) %>%
-    unlist() %>%
-    min()
-  if(has_xyz==0){
-    stop("the `las` data does not contain the columns `x`, `y`, and `z`, ensure columns exist")
-  }
-
-  #######################
-  # find the center and farthest point
-  #######################
-  # classify points
-  pts_temp <- dta %>%
-    dplyr::rename_with(.cols = -c(treeID), .fn = tolower) %>%
-    dplyr::mutate(dplyr::across(
-      .cols = c(x,y,z)
-      , .fns = as.numeric
-    )) %>%
-    dplyr::filter(!is.na(x) & !is.na(y) & !is.na(z)) %>%
-    dplyr::group_by(treeID) %>% # this is key
-    # first, let's arrange the points by distance from x,y center
-    dplyr::mutate(
-      x_mean = mean(x, na.rm = T)
-      , y_mean = mean(y, na.rm = T)
-      , dist_mean = sqrt((x - x_mean)^2 + (y - y_mean)^2)
-    ) %>%
-    # now find the point farthest from the tree center as defined by the max z point
-    dplyr::mutate(
-      # find the highest point in the tree as the tree "center"
-      max_z = max(z, na.rm = T)
-      , is_tree_center = z==max_z
-      # first in case many points have max z
-      , tree_center_x = dplyr::first(
-        ifelse(is_tree_center, x, NA)
-        , order_by = dist_mean # tie breaker is point closest to xy center
-        , na_rm = T
-      )
-      # first in case many points have max z
-      , tree_center_y = dplyr::first(
-        ifelse(is_tree_center, y, NA)
-        , order_by = dist_mean # tie breaker is point closest to xy center
-        , na_rm = T
-      )
-      # Calculate the distance from the center to the point
-      , dist_to_center = sqrt((x - tree_center_x)^2 + (y - tree_center_y)^2)
-      , is_max_dist_to_center = dist_to_center == max(dist_to_center)
-      , n_pts = dplyr::n()
-    ) %>%
-    dplyr::ungroup()
-
-  # aggregate to treeID level
-  df_r <- pts_temp %>%
-    dplyr::filter(is_max_dist_to_center) %>%
-    dplyr::group_by(treeID) %>%
-    # min to be conservative for fire models
-    # "conservative" = fire models will say that fire is "worse" than could be
-    dplyr::summarise(
-      calc_tree_hmd_max_z = dplyr::first(max_z, na_rm = T) # already aggregated, could go in group_by
-      , calc_tree_hmd_n_pts = dplyr::first(n_pts, na_rm = T) # already aggregated, could go in group_by
-      , max_crown_diam_height_m = min(z, na.rm = T)
-    ) %>%
-    dplyr::ungroup()
-
-  # ensure that max_crown_diam_height_m<=max_z
-  # return
-  return(df_r)
-}
-################
-## apply the function to the lascatalog
-################
-ctg_calc_tree_hmd <- function(chunk, poly_df, force_crs = F){
-  las <- lidR::readLAS(chunk)
-  if (lidR::is.empty(las)) return(NULL)
-  # attach treeID
-  nlas_tree <- polygon_attribute_to_las(
-    las
-    , poly_df
-    , attribute = "treeID"
-    , force_crs = force_crs
-  )
-  # calc_tree_hmd()
-  df <- calc_tree_hmd(nlas_tree)
-  # return
-  # return(nlas_tree)
-  return(df)
 }

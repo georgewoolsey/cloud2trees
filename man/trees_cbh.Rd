@@ -27,8 +27,8 @@ trees_cbh(
 \item{trees_poly}{must be one of the following that has required attributes \code{treeID} and \code{tree_height_m}:
 \itemize{
 \item \code{sf} class object with POLYGON geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}}). Recommended for smaller tree lists (e.g. <100k) that can fit in memory.
-\item character vector with the path to a single or multiple spatial files that can be read by \code{\link[sf:st_read]{sf::st_read()}} and have with POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
-\item character with the path to a directory that has "final_detected_crowns\*" files from \code{\link[=cloud2trees]{cloud2trees()}} or \code{\link[=raster2trees]{raster2trees()}}. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+\item character vector with the path to a single or multiple spatial files that can be read by \code{\link[sf:st_read]{sf::st_read()}} and have POLYGON geometry. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
+\item character with the path to a directory that has "final_detected_crowns*" files from \code{\link[=cloud2trees]{cloud2trees()}} or \code{\link[=raster2trees]{raster2trees()}}. Recommended for large tree lists (e.g. 100k+) that might cause memory issues.
 }}
 
 \item{norm_las}{character. a directory with nomalized las files, the path of a single .laz|.las file", -or- an object of class \code{LAS}.
