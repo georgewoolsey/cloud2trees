@@ -38,6 +38,10 @@ A numeric value to use in the \code{mtry} parameter of \code{\link[randomForest:
 However, computational cost increases significantly with the number of observations as \code{\link[randomForest:tuneRF]{randomForest::tuneRF()}} performs cross-validation internally for each \code{mtry} value it tries.
 With 100,000+ observations, each of these cross-validation runs involves building and evaluating many random forest trees, making the process very time-consuming.
 
+The computational cost of random forests is driven by the repeated tree building process,
+which involves recursive partitioning, bootstrapping, and feature subset selection.
+These operations, when performed on massive datasets, result in a significant computational burden.
+
 \code{rf_tune_subsample()} remedies these issues via:
 \itemize{
 \item Reducing the \code{ntreeTry} parameter to a smaller value. Tuning will be less precise, but it will finish in a reasonable time. The \code{ntree} parameter can then be increased for the final model.
