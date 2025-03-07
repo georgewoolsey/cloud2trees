@@ -250,7 +250,8 @@ trees_hmd <- function(
     # it's just that the individual model fits will be smaller
     ntimes_temp <- ((nrow(hmd_df)*0.5)/estimate_missing_max_n_training) %>%
       ceiling() %>%
-      max(3)
+      max(3) %>%
+      min(50)
     # estimate
     hmd_mod <- rf_subsample_and_model_n_times(
       predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))

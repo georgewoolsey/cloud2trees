@@ -305,7 +305,7 @@ trees_cbh <- function(
         , .fns = as.numeric
       )) %>%
       dplyr::select(
-        treeID, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
+        treeID, tree_height_m, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
       )
   }else if(inherits(cbh_df, "data.frame")){
     cbh_df <- cbh_df %>%
@@ -314,7 +314,7 @@ trees_cbh <- function(
         , .fns = as.numeric
       )) %>%
       dplyr::select(
-        treeID, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
+        treeID, tree_height_m, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
       )
   }else{
     stop("error extracting CBH")
@@ -337,7 +337,8 @@ trees_cbh <- function(
     # it's just that the individual model fits will be smaller
     ntimes_temp <- ((nrow(cbh_df)*0.5)/estimate_missing_max_n_training) %>%
       ceiling() %>%
-      max(3)
+      max(3) %>%
+      min(50)
     # estimate
     cbh_mod <- rf_subsample_and_model_n_times(
       predictors = cbh_df %>% dplyr::select(-c(treeID,tree_cbh_m,is_training_cbh))
