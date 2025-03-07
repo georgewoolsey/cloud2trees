@@ -104,7 +104,8 @@ trees_hmd <- function(
   , force_same_crs = F
 ){
   # could move to parameters
-  force_hmd_lte_ht = T
+  force_hmd_lte_ht <- T
+  estimate_missing_max_n_training <- 25000
   #############################################
   # estimate hmd based on what's in trees_poly
   #############################################
@@ -214,9 +215,17 @@ trees_hmd <- function(
   ){
     # read the output file(s)
     hmd_df <- stringr::str_subset(hmd_df, pattern = ".*\\.csv$") %>%
-      readr::read_csv(progress = F, show_col_types = F)
+      readr::read_csv(progress = F, show_col_types = F) %>%
+      dplyr::mutate(dplyr::across(
+        .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
+        , .fns = as.numeric
+      ))
   }else if(inherits(hmd_df, "data.frame")){
-    hmd_df <- hmd_df
+    hmd_df <- hmd_df %>%
+      dplyr::mutate(dplyr::across(
+        .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
+        , .fns = as.numeric
+      ))
   }else{
     stop("error extracting HMD")
   }
@@ -225,6 +234,34 @@ trees_hmd <- function(
     sf::st_drop_geometry() %>%
     dplyr::filter(is_training_hmd==T) %>%
     nrow()
+
+  #######################################################
+  # build hmd model using training data
+  # happens before we load trees_poly if inherits(crowns_flist, "character")
+  # so that memory isn't already stuffed
+  #######################################################
+  n_hmd <- dplyr::coalesce(n_hmd,0)
+  if(
+    estimate_missing_hmd==T
+    && n_hmd > 10
+    && (names(hmd_df) %>% stringr::str_equal("tree_height_m") %>% any())
+  ){
+    # go for at least 50% of training data sampled
+    # it's just that the individual model fits will be smaller
+    ntimes_temp <- ((nrow(hmd_df)*0.5)/estimate_missing_max_n_training) %>%
+      ceiling() %>%
+      max(3) %>%
+      min(50)
+    # estimate
+    hmd_mod <- rf_subsample_and_model_n_times(
+      predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
+      , response = hmd_df$max_crown_diam_height_m
+      , mod_n_subsample = estimate_missing_max_n_training
+      , mod_n_times = ntimes_temp
+    )
+  }else{
+    hmd_mod <- NULL
+  }
 
   #############################################
   # read trees_poly data to get full tree list
@@ -282,77 +319,28 @@ trees_hmd <- function(
   }
 
   #######################################################
-  # estimate_missing_hmd
+  # fill missing hmd values
   #######################################################
-  n_hmd <- dplyr::coalesce(n_hmd,0)
   if(
     estimate_missing_hmd==T
-    && n_hmd > 10
+    && !is.null(hmd_mod)
+    && length(hmd_mod)>0
     && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
   ){
-    # add x,y to data
-    mod_df <- trees_poly %>%
-      dplyr::left_join(
-        hmd_df %>%
-          dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
-        , by = "treeID"
-      ) %>%
-      dplyr::mutate(is_training_hmd = dplyr::coalesce(is_training_hmd, F)) %>%
-      dplyr::select(treeID, is_training_hmd, tree_height_m, max_crown_diam_height_m) %>%
-      dplyr::mutate(crown_area_zzz = sf::st_area(.) %>% as.numeric()) %>%
-      sf::st_centroid() %>%
-      dplyr::mutate(
-        tree_xxx = sf::st_coordinates(.)[,1]
-        , tree_yyy = sf::st_coordinates(.)[,2]
-        , tree_height_m = as.numeric(tree_height_m)
-        , max_crown_diam_height_m = as.numeric(max_crown_diam_height_m)
-      ) %>%
-      sf::st_drop_geometry()
-    # training versus predict data
-    training_df <- mod_df %>% dplyr::filter(is_training_hmd==T) %>% dplyr::select(-is_training_hmd)
-    predict_df <- mod_df %>% dplyr::filter(is_training_hmd==F) %>% dplyr::select(-is_training_hmd)
-
-    ### tuning RF model
-      # predictors and response to pass to randomForest functions
-      predictors <- training_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m))
-      response <- training_df$max_crown_diam_height_m
-
-      # implements steps to mitigate very long run-times when tuning random forests models
-      optimal_mtry <- rf_tune_subsample(
-        predictors = predictors
-        , response = response
-      )
-
-      ### Run a randomForest model to predict HMD using various crown predictors
-      # quiet this
-      quiet_rf <- purrr::quietly(randomForest::randomForest)
-      # run it
-      hmd_mod <- quiet_rf(
-        y = response
-        , x = predictors
-        , mtry = optimal_mtry
-        , na.action = na.omit
-      )
-
-      # just get the result
-      hmd_mod <- hmd_mod$result
-
-    # # model
-    # hmd_mod <- stats::lm(
-    #   formula = max_crown_diam_height_m ~ tree_xxx + tree_yyy + tree_xxx:tree_yyy + tree_height_m + crown_area_zzz
-    #   , data = training_df
-    # )
-
-    # predict missing
-    predicted_hmd_temp <- predict(
-        hmd_mod
-        , predict_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m))
-      ) %>%
-      dplyr::as_tibble() %>%
-      dplyr::pull(1)
+    # model the missing values
+    predict_df <- trees_poly %>%
+      dplyr::anti_join(hmd_df %>% dplyr::select(treeID), by = "treeID") %>%
+      dplyr::select(treeID, tree_height_m) %>%
+      make_spatial_predictors()
+    # get predicted values
+    predicted_temp <- rf_model_avg_predictions(mod_list = hmd_mod, predict_df = predict_df)
+    # attach back to data
+    predict_df <- predict_df %>%
+      dplyr::mutate(predicted_zzz = predicted_temp$predicted)
 
     ## combine predicted data with training data for full data set
     trees_poly <- trees_poly %>%
+      # join with training data
       dplyr::left_join(
         hmd_df %>%
           dplyr::select(treeID, max_crown_diam_height_m, is_training_hmd)
@@ -362,17 +350,14 @@ trees_hmd <- function(
       # join with predicted data estimates
       dplyr::left_join(
         predict_df %>%
-          dplyr::mutate(
-            predicted_hmd = predicted_hmd_temp
-          ) %>%
-          dplyr::select(treeID, predicted_hmd)
+          dplyr::select(treeID, predicted_zzz)
         , by = dplyr::join_by("treeID")
       ) %>%
       # clean up data
       dplyr::mutate(
-        max_crown_diam_height_m = dplyr::coalesce(max_crown_diam_height_m, predicted_hmd)
+        max_crown_diam_height_m = dplyr::coalesce(max_crown_diam_height_m, predicted_zzz)
       ) %>%
-      dplyr::select(-predicted_hmd)
+      dplyr::select(-predicted_zzz)
 
   }else if(n_hmd==0){
     message(paste0(

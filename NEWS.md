@@ -1,3 +1,11 @@
+# cloud2trees 0.6.2
+
+Several methods for attaching tree component metrics involve modelling missing values using a random forest model. The computational cost of random forests is driven by the repeated tree building process, which involves recursive partitioning, bootstrapping, and feature subset selection. When performed on XXL tree lists (e.g. 100k+) these operations result in a significant computational burden. Furthermore, large data sets can exceed the available RAM, leading to disk swapping, which significantly slows down the computation. To mitigate those memory problems when using `randomForest::randomForest()`, these updates implement data subsampling for large data sets to reduce memory consumption by randomly sampling a representative subset of the training data. This process is iterated with different subsets and the results are combined via model averaging. Model averaging is a technique for improving the robustness and accuracy of random forest models, especially when dealing with large data sets.
+
+- Change: `trees_hmd()` now implements the random forest tuning and modelling techniques described above for large data sets
+- Change: `trees_cbh()` now implements the random forest tuning and modelling techniques described above for large data sets
+- Change: moves all utility functions for random forest models to R/utils_rf.R
+
 # cloud2trees 0.6.1
 
 - Change: same updates for `trees_hmd()` as in `0.6.0` which now allows for processing a list of files with crown polygon data such as the split crown polygon files "final_detected_crowns\*" written automatically for tree lists >250k by `raster2trees()` and `cloud2trees()`. This enables extracting HMD for XXL tree lists (e.g. 100k+) and effectively mitigates memory issues associated with these lists. The sampling is still done considering the full tree list.
