@@ -1152,25 +1152,25 @@ clean_cbh_df <- function(cbh_df = NULL, trees_poly, lad_profile, force_cbh_lte_h
     nrow(cbh_df)>0
   ){
     # filter based on cbh vs ht
-    cbh_df <- cbh_df %>%
-      dplyr::inner_join(
-        trees_poly %>%
-          sf::st_drop_geometry() %>%
-          dplyr::select(treeID,tree_height_m)
-        , by = "treeID"
-      ) %>%
+    cbh_df <- trees_poly %>%
+      dplyr::select(treeID,tree_height_m) %>%
+      dplyr::inner_join(cbh_df, by = "treeID") %>%
       dplyr::filter(
         !is.na(tree_cbh_m)
         & tree_cbh_m < tree_height_m
       ) %>%
-      dplyr::mutate(is_training_cbh=T)
+      dplyr::mutate(is_training_cbh=T) %>%
+      make_spatial_predictors()
   }else if(nrow(cbh_df)>0){
     # filter cbh
-    cbh_df <- cbh_df %>%
+    cbh_df <- trees_poly %>%
+      dplyr::select(treeID) %>%
+      dplyr::inner_join(cbh_df, by = "treeID") %>%
       dplyr::filter(
         !is.na(tree_cbh_m)
       ) %>%
-      dplyr::mutate(is_training_cbh=T)
+      dplyr::mutate(is_training_cbh=T) %>%
+      make_spatial_predictors()
   }
 
   # return

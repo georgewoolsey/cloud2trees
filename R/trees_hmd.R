@@ -105,7 +105,7 @@ trees_hmd <- function(
 ){
   # could move to parameters
   force_hmd_lte_ht <- T
-  estimate_missing_hmd_max_n_training <- 25000
+  estimate_missing_max_n_training <- 25000
   #############################################
   # estimate hmd based on what's in trees_poly
   #############################################
@@ -248,14 +248,14 @@ trees_hmd <- function(
   ){
     # go for at least 50% of training data sampled
     # it's just that the individual model fits will be smaller
-    ntimes_temp <- ((nrow(hmd_df)*0.5)/estimate_missing_hmd_max_n_training) %>%
+    ntimes_temp <- ((nrow(hmd_df)*0.5)/estimate_missing_max_n_training) %>%
       ceiling() %>%
       max(3)
     # estimate
     hmd_mod <- rf_subsample_and_model_n_times(
       predictors = hmd_df %>% dplyr::select(-c(treeID,max_crown_diam_height_m,is_training_hmd))
       , response = hmd_df$max_crown_diam_height_m
-      , mod_n_subsample = estimate_missing_hmd_max_n_training
+      , mod_n_subsample = estimate_missing_max_n_training
       , mod_n_times = ntimes_temp
     )
   }else{
@@ -324,6 +324,7 @@ trees_hmd <- function(
     estimate_missing_hmd==T
     && !is.null(hmd_mod)
     && length(hmd_mod)>0
+    && (names(trees_poly) %>% stringr::str_equal("tree_height_m") %>% any())
   ){
     # model the missing values
     predict_df <- trees_poly %>%
