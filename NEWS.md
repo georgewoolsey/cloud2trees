@@ -1,3 +1,5 @@
+# cloud2trees 0.6.2
+
 # cloud2trees 0.6.1
 
 - Change: same updates for `trees_hmd()` as in `0.6.0` which now allows for processing a list of files with crown polygon data such as the split crown polygon files "final_detected_crowns\*" written automatically for tree lists >250k by `raster2trees()` and `cloud2trees()`. This enables extracting HMD for XXL tree lists (e.g. 100k+) and effectively mitigates memory issues associated with these lists. The sampling is still done considering the full tree list.
