@@ -219,13 +219,15 @@ trees_hmd <- function(
       dplyr::mutate(dplyr::across(
         .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
         , .fns = as.numeric
-      ))
+      )) %>%
+      dplyr::filter(is_training_hmd==T)
   }else if(inherits(hmd_df, "data.frame")){
     hmd_df <- hmd_df %>%
       dplyr::mutate(dplyr::across(
         .cols = c(tree_height_m, max_crown_diam_height_m, tidyselect::ends_with("_zzz"))
         , .fns = as.numeric
-      ))
+      )) %>%
+      dplyr::filter(is_training_hmd==T)
   }else{
     stop("error extracting HMD")
   }

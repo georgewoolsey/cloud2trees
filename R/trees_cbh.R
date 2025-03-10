@@ -306,7 +306,8 @@ trees_cbh <- function(
       )) %>%
       dplyr::select(
         treeID, tree_height_m, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
-      )
+      ) %>%
+      dplyr::filter(is_training_cbh==T)
   }else if(inherits(cbh_df, "data.frame")){
     cbh_df <- cbh_df %>%
       dplyr::mutate(dplyr::across(
@@ -315,7 +316,8 @@ trees_cbh <- function(
       )) %>%
       dplyr::select(
         treeID, tree_height_m, tree_cbh_m, is_training_cbh, tidyselect::ends_with("_zzz")
-      )
+      ) %>%
+      dplyr::filter(is_training_cbh==T)
   }else{
     stop("error extracting CBH")
   }
