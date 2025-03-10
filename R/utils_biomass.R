@@ -75,11 +75,15 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
       poly_vect <- poly %>%
         sf::st_union() %>%
         sf::st_transform(terra::crs(rast)) %>%
-        terra::vect()
+        terra::vect() %>%
+        # buffer by 1/2 of cell width to avoid calling the edge as no overlap
+        terra::buffer(round(terra::res(rast)[1]*0.5))
     }else if(inherits(poly, "SpatVector")){
       poly_vect <- poly %>%
         terra::union() %>%
-        terra::project(terra::crs(rast))
+        terra::project(terra::crs(rast)) %>%
+        # buffer by 1/2 of cell width to avoid calling the edge as no overlap
+        terra::buffer(round(terra::res(rast)[1]*0.5))
     }else{
       stop("must pass a spatial SpatVector or sf object to `poly`")
     }
