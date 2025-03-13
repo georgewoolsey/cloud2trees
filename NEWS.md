@@ -1,3 +1,5 @@
+# cloud2trees 0.6.4
+
 # cloud2trees 0.6.3
 
 - Fix: `trees_biomass()` (and the `trees_biomass_*()` functions) would return NA biomass values for trees that fell within a raster cell that *exactly* bordered the extent of the tree list. This change calculates the biomass for these border trees as if half of the raster cell (i.e. forest "stand") is within the study extent by updating the `calc_rast_cell_overlap()` utility function in R/utils_biomass.R
