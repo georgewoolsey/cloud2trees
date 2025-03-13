@@ -215,7 +215,7 @@ trees_dbh <- function(
     tm_id_weight_temp <- terra::freq(treemap_rast) %>%
       dplyr::select(-layer) %>%
       dplyr::rename(tm_id = value, tree_weight = count) %>%
-      dplyr::mutate(tm_id = as.character(tm_id))
+      dplyr::mutate(tm_id = as_character_safe(tm_id))
     # str(tm_id_weight_temp)
 
     ### get the TreeMap FIA tree list for only the plots included
@@ -234,8 +234,8 @@ trees_dbh <- function(
       ) %>%
       dplyr::rename_with(tolower) %>%
       dplyr::mutate(
-        cn = as.character(cn)
-        , tm_id = as.character(tm_id)
+        cn = as_character_safe(cn)
+        , tm_id = as_character_safe(tm_id)
       ) %>%
       dplyr::left_join(
         tm_id_weight_temp
@@ -359,7 +359,7 @@ trees_dbh <- function(
         , fia_est_dbh_cm_lower = lower_b
         , fia_est_dbh_cm_upper = upper_b
       ) %>%
-      dplyr::mutate(tree_height_m_tnth=as.character(tree_height_m_tnth)) %>%
+      dplyr::mutate(tree_height_m_tnth=as_character_safe(tree_height_m_tnth)) %>%
       dplyr::relocate(tree_height_m_tnth)
     # str(pred_mod_nl_pop_temp)
 
@@ -374,7 +374,7 @@ trees_dbh <- function(
     tree_tops <- tree_tops %>%
       # join with model predictions at 0.1 m height intervals
         dplyr::mutate(
-          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as.character()
+          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as_character_safe()
         ) %>%
         dplyr::left_join(
           pred_mod_nl_pop_temp
@@ -427,7 +427,7 @@ trees_dbh <- function(
       crowns_sf_joined_stems_temp <- crowns_sf_joined_stems_temp %>%
         # join with model predictions at 0.1 m height intervals
         dplyr::mutate(
-          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as.character()
+          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as_character_safe()
         ) %>%
         dplyr::inner_join(
           pred_mod_nl_pop_temp

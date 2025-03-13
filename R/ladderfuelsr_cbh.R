@@ -247,9 +247,6 @@ ladderfuelsr_cbh <- function(
           , "\n"
           , "try `pak::pak(\"DRAAlmeida/leafR\", upgrade = TRUE)`"
         ))
-      }else{
-        # leafR does not have function reference in its coding and calls this nefarious "pointsByZSlice"
-        pointsByZSlice <<- leafR::pointsByZSlice
       }
 
       # check if string to las/laz file
@@ -740,3 +737,35 @@ ladderfuelsr_cbh <- function(
       ))
 
 }
+#############################################################
+# leafR does not have function reference in its coding and calls this nefarious "pointsByZSlice"
+pointsByZSlice <<- leafR::pointsByZSlice
+# # see: https://github.com/DRAAlmeida/leafR/blob/fd1456b9692ba7b5d5ba94ae88216046c8ec186f/R/main.R#L11
+## sets this function as global so that it works in leafR commands
+# pointsByZSlice <<- function(Z, maxZ){
+#     heightSlices = as.integer(Z) # Round down
+#     zSlice = data.table::data.table(Z=Z, heightSlices=heightSlices) # Create a data.table (Z, slices))
+#     sliceCount = stats::aggregate(list(V1=Z), list(heightSlices=heightSlices), length) # Count number of returns by slice
+#
+#     ##############################################
+#     # Add columns to equalize number of columns
+#     ##############################################
+#     colRange = 0:maxZ
+#     addToList = setdiff(colRange, sliceCount$heightSlices)
+#     n = length(addToList)
+#     if (n > 0) {
+#       bindDt = data.frame(heightSlices = addToList, V1=integer(n))
+#       sliceCount = rbind(sliceCount, bindDt)
+#       # Order by height
+#       sliceCount = sliceCount[order(sliceCount$heightSlices),]
+#     }
+#
+#     colNames = as.character(sliceCount$heightSlices)
+#     colNames[1] = "ground_0_1m"
+#     colNames[-1] = paste0("pulses_", colNames[-1], "_", sliceCount$heightSlices[-1]+1, "m")
+#     metrics = list()
+#     metrics[colNames] = sliceCount$V1
+#
+#     return(metrics)
+#
+#   } #end function pointsByZSlice

@@ -45,7 +45,7 @@ check_spatial_points <- function(
           tree_x = sf::st_coordinates(.)[,1]
           , tree_y = sf::st_coordinates(.)[,2]
         ) %>%
-        dplyr::mutate(treeID = as.character(treeID))
+        dplyr::mutate(treeID = as_character_safe(treeID))
     }else{ # if spatial but not points, drop geom and set to points
       if(
         !(stringr::str_equal(nms, "tree_x") %>% any())
@@ -64,7 +64,7 @@ check_spatial_points <- function(
           coords = c("tree_x", "tree_y"), crs = sf::st_crs(tree_list)
           , remove = F
         ) %>%
-        dplyr::mutate(treeID = as.character(treeID))
+        dplyr::mutate(treeID = as_character_safe(treeID))
     }
   }else{ # not spatial data
     # convert from data.frame to spatial points
@@ -86,8 +86,31 @@ check_spatial_points <- function(
         , crs = paste0( "EPSG:", readr::parse_number(as.character(crs)) )
         , remove = F
       ) %>%
-      dplyr::mutate(treeID = as.character(treeID))
+      dplyr::mutate(treeID = as_character_safe(treeID))
   }
 
   return(tree_tops)
 }
+############################################################################
+# make a function to safely convert numeric to character so we don't get
+# scientific notation when converting treeID to numeric
+# try as.character(1e+9) versus as_character_safe(1e+9)
+############################################################################
+as_character_safe <- function(x) {
+  if(inherits(x,"character")){
+    return(x)
+  }else{
+    y <- format(x = x, scientific = F, trim = T) %>%
+      as.character() %>%
+      stringr::str_squish()
+    y[is.na(x)] <- NA
+    return(y)
+  }
+}
+# # test this thing
+# # as.character(1e+9)
+# # as_character_safe(1e+9)
+# # as.character(1e-9)
+# # as_character_safe(1e-9)
+# # as.character(c(NA,780000000000000, 100000000, 1e+9,546512, NA))
+# # as_character_safe(c(NA,780000000000000, 100000000, 1e+9,546512, NA))

@@ -100,7 +100,7 @@ trees_hmd <- function(
   , norm_las = NULL
   , tree_sample_n = NA
   , tree_sample_prop = NA
-  , estimate_missing_hmd = F
+  , estimate_missing_hmd = TRUE
   , force_same_crs = F
 ){
   # could move to parameters
@@ -312,7 +312,7 @@ trees_hmd <- function(
   if(!inherits(hmd_df$treeID, id_class)){
     if(id_class=="character"){
       hmd_df <- hmd_df %>%
-        dplyr::mutate(treeID = as.character(treeID))
+        dplyr::mutate(treeID = as_character_safe(treeID))
     }
     if(id_class=="numeric"){
       hmd_df <- hmd_df %>%

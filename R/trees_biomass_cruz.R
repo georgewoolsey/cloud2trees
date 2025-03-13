@@ -242,7 +242,7 @@ trees_biomass_cruz <- function(
       ) %>%
       dplyr::mutate(dplyr::across(
         dplyr::everything()
-        , as.character
+        , as_character_safe
       ))
 
   ##################################
