@@ -399,7 +399,7 @@ trees_cbh <- function(
   if(!inherits(cbh_df$treeID, id_class)){
     if(id_class=="character"){
       cbh_df <- cbh_df %>%
-        dplyr::mutate(treeID = as.character(treeID))
+        dplyr::mutate(treeID = as_character_safe(treeID))
     }
     if(id_class=="numeric"){
       cbh_df <- cbh_df %>%

@@ -109,7 +109,7 @@ trees_type <- function(
       ) %>%
       dplyr::mutate(dplyr::across(
         dplyr::everything()
-        , as.character
+        , as_character_safe
       ))
 
   ####################################################################
@@ -133,7 +133,7 @@ trees_type <- function(
     # # let's check with the lookup table
     na_trees <- crop_raster_match_points_ans$point_values %>%
       dplyr::mutate(
-        forest_type_code = raster_value %>% as.character()
+        forest_type_code = raster_value %>% as_character_safe()
       ) %>%
       dplyr::left_join(foresttype_lookup, by = "forest_type_code") %>%
       dplyr::filter(is.na(forest_type_group_code)) %>%
@@ -178,7 +178,7 @@ trees_type <- function(
       # now let's join it back with our data and check it
       tree_tops <- tree_tops %>%
         dplyr::mutate(
-          forest_type_code = point_values_from_rast$raster_value %>% as.character()
+          forest_type_code = point_values_from_rast$raster_value %>% as_character_safe()
         ) %>%
         dplyr::left_join(
           foresttype_lookup %>%

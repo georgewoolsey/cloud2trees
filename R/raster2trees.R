@@ -163,7 +163,7 @@ raster2trees <- function(
     crowns_sf <- crowns_sf %>%
       dplyr::bind_rows(keep_buffer_crowns_temp) %>%
       # generate tree id
-      dplyr::mutate(treeID = dplyr::row_number() %>% as.character()) %>%
+      dplyr::mutate(treeID = dplyr::row_number() %>% as_character_safe()) %>%
       dplyr::relocate(treeID)
 
     # join tree tops

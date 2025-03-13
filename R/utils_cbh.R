@@ -1025,7 +1025,7 @@ output_ctg_for_ladderfuelsr_cbh <- function(
   if(!inherits(lad_profile$treeID, id_class)){
     if(id_class=="character"){
       lad_profile <- lad_profile %>%
-        dplyr::mutate(treeID = as.character(treeID))
+        dplyr::mutate(treeID = as_character_safe(treeID))
     }
     if(id_class=="numeric"){
       lad_profile <- lad_profile %>%
@@ -1088,10 +1088,10 @@ clean_cbh_df <- function(cbh_df = NULL, trees_poly, lad_profile, force_cbh_lte_h
     # and update treeID if made backup
     if(names(lad_profile) %>% stringr::str_equal("treeID_bu") %>% any()){
       cbh_df <- cbh_df %>%
-        dplyr::mutate(treeID=as.character(treeID)) %>%
+        dplyr::mutate(treeID=as_character_safe(treeID)) %>%
         dplyr::inner_join(
           lad_profile %>% dplyr::distinct(treeID_bu, treeID, total_pulses) %>%
-            dplyr::mutate(treeID=as.character(treeID))
+            dplyr::mutate(treeID=as_character_safe(treeID))
           , by = "treeID"
         ) %>%
         dplyr::mutate(
