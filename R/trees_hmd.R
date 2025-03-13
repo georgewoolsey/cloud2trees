@@ -100,7 +100,7 @@ trees_hmd <- function(
   , norm_las = NULL
   , tree_sample_n = NA
   , tree_sample_prop = NA
-  , estimate_missing_hmd = F
+  , estimate_missing_hmd = TRUE
   , force_same_crs = F
 ){
   # could move to parameters
