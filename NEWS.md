@@ -1,5 +1,8 @@
 # cloud2trees 0.6.4
 
+- Fix: `ladderfuelsr_cbh()` would fail when using the `las` parameter due to the lack of proper reference to the `pointsByZSlice()` function from the `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)). This error is within the `leafR` package and as a workaround we define the global variable as `pointsByZSlice <<- leafR::pointsByZSlice`. Eventually, `ladderfuelsr_cbh()` needs to break the reliance on the `leafR` package.
+- Fix: implements the internal function `as_character_safe()` defined in R/check_spatial_points.R to convert numeric columns to character which are meant to be used as a table identifier (i.e. as in "primary key") by ensuring that the number is not cast as character in scientific notation. To see the difference, compare `as.character(1000000000)` to `as_character_safe(1000000000)`.
+
 # cloud2trees 0.6.3
 
 - Fix: `trees_biomass()` (and the `trees_biomass_*()` functions) would return NA biomass values for trees that fell within a raster cell that *exactly* bordered the extent of the tree list. This change calculates the biomass for these border trees as if half of the raster cell (i.e. forest "stand") is within the study extent by updating the `calc_rast_cell_overlap()` utility function in R/utils_biomass.R
