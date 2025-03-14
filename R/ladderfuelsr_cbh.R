@@ -172,7 +172,9 @@ ladderfuelsr_cbh <- function(
           treeID = dplyr::coalesce(
               as.numeric(treeID)
               , round(as.numeric(Sys.time()) + round(runif(1)*100000))
-            ) %>% as.factor()
+            ) %>% 
+            as_character_safe() %>% 
+            as.factor()
         )
     }else if( # filter for the treeID
       (names(lad_profile_df) %>% stringr::str_equal("treeID") %>% any())
@@ -302,7 +304,9 @@ ladderfuelsr_cbh <- function(
       treeID <- dplyr::coalesce(
         as.numeric(treeID)[1]
         , round(as.numeric(Sys.time()) + round(runif(1)*100000))
-      ) %>% as.factor() # if the treeID parameter is not set, fake 1
+      ) %>% 
+      as_character_safe() %>% 
+      as.factor() # if the treeID parameter is not set, fake 1
       #######################################
       ### Step 0 - `leafR` steps
       #######################################

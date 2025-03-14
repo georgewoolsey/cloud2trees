@@ -399,7 +399,7 @@ voxelize_las_to_bbox_df <- function(
     dplyr::filter(
       !dplyr::if_all(
         .cols = dplyr::all_of(cols2group)
-        , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
+        , .fns = ~ dplyr::coalesce(as.numeric(as.factor(as_character_safe(.x))), 0) == 0
       )
     )
 
@@ -462,43 +462,6 @@ voxelize_las_to_bbox_df <- function(
   return(grid_df)
 }
 
-# voxelize_las_to_bbox_df(las = las, attribute = c("treeID")) %>%
-#   dplyr::glimpse()
-# voxelize_las_to_bbox_df(las = las, attribute = "treeID") %>%
-#   dplyr::relocate(x,y,z) %>%
-#   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS(crs = lidR::st_crs(las)) %>%
-#   lidR::plot(
-#     color="TREEID"
-#     , size = 1, bg = "white", voxel = TRUE
-#   )
-# voxelize_las_to_bbox_df(las = las, attribute = "treeID", full_z_range = F) %>%
-#   dplyr::relocate(x,y,z) %>%
-#   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS(crs = lidR::st_crs(las)) %>%
-#   lidR::plot(
-#     color="TREEID"
-#     , size = 1, bg = "white", voxel = TRUE
-#   )
-# voxelize_las_to_bbox_df(las = las) %>%
-#   dplyr::relocate(x,y,z) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS(crs = lidR::st_crs(las)) %>%
-#   lidR::plot(
-#     color="Z"
-#     , size = 1, bg = "white", voxel = TRUE
-#   )
-# voxelize_las_to_bbox_df(las = las, full_z_range = F) %>%
-#   dplyr::relocate(x,y,z) %>%
-#   dplyr::rename_with(toupper) %>%
-#   lidR::LAS(crs = lidR::st_crs(las)) %>%
-#   lidR::plot(
-#     color="Z"
-#     , size = 1, bg = "white", voxel = TRUE
-#   )
-
 #####################################################################
 # intermediate function 48:
 ## in order to join by our cols2group we need to create a single column
@@ -521,7 +484,7 @@ cols2group_to_id <- function(df, cols2group, as_factor = F) {
     dplyr::ungroup() %>%
     dplyr::mutate(dplyr::across(
       dplyr::all_of(cols2group)
-      , .fns = ~ factor(.x) %>% as.character()
+      , .fns = ~ as_character_safe(.x)
       , .names = "{.col}_fctxxx"
     ))
   ## 2. combine the cols2group columns into one id column
@@ -615,7 +578,7 @@ voxel_count_pulses <- function(
       dplyr::filter(
         !dplyr::if_all(
           .cols = dplyr::all_of(cols2group)
-          , .fns = ~ dplyr::coalesce(as.numeric(as.factor(.x)), 0) == 0
+          , .fns = ~ dplyr::coalesce(as.numeric(as.factor(as_character_safe(.x))), 0) == 0
         )
       )
 
@@ -782,18 +745,6 @@ voxel_count_pulses <- function(
     dplyr::relocate(dplyr::all_of(cols2group))
   # voxel_pulses_df %>% dplyr::glimpse()
   # voxel_pulses_df %>% summary()
-
-  # voxel_pulses_df %>%
-  #   dplyr::filter(pulses>0) %>%
-  #   dplyr::filter(treeID == voxel_pulses_df$treeID[5555]) %>%
-  #   dplyr::relocate(x,y,z) %>%
-  #   dplyr::mutate(treeID = treeID %>% as.factor() %>% as.numeric()) %>%
-  #   dplyr::rename_with(toupper) %>%
-  #   lidR::LAS(crs = lidR::st_crs(las)) %>%
-  #   lidR::plot(
-  #     color="PULSES", legend = T
-  #     , size = horizontal_res, bg = "white", voxel = TRUE
-  #   )
 
   # return
   return(voxel_pulses_df)
