@@ -172,17 +172,7 @@ trees_biomass_cruz <- function(
 
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
-      # throw in hey_xxxxxxxxxx to test it works if we include non-existent columns
-      dplyr::select( -dplyr::any_of(c(
-        "hey_xxxxxxxxxx"
-        , "cruz_stand_id"
-        , "crown_dia_m"
-        , "crown_length_m"
-        , "crown_volume_m3"
-        , "cruz_tree_kg_per_m3"
-        , "cruz_stand_kg_per_m3"
-        , "cruz_crown_biomass_kg"
-      )))
+      clean_biomass_cols(method = "cruz")
 
   ##################################
   # ensure that we have forest_type_group_code

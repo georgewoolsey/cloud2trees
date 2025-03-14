@@ -1,3 +1,7 @@
+# cloud2trees 0.6.5
+
+- Fix: `trees_biomass()` would refuse to overwrite values in "landfire_" and "cruz_" columns if those columns already existed in the data passed to the `tree_list`. This update now forces the overwrite of the data in these columns if already present in the data.
+
 # cloud2trees 0.6.4
 
 - Fix: `ladderfuelsr_cbh()` would fail when using the `las` parameter due to the lack of proper reference to the `pointsByZSlice()` function from the `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)). This error is within the `leafR` package and as a workaround we define the global variable as `pointsByZSlice <<- leafR::pointsByZSlice`. Eventually, `ladderfuelsr_cbh()` needs to break the reliance on the `leafR` package.
