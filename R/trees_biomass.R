@@ -158,6 +158,9 @@ trees_biomass <- function(
       ############################
       if(inherits(trees_biomass_cruz_ans$result$tree_list, "data.frame")){
         tl_cruz <- trees_biomass_cruz_ans$result$tree_list
+        # remove columns created in trees_biomass_cruz if already existed in orig data
+        tree_tops <- tree_tops %>%
+          clean_biomass_cols(method = "cruz")
         # get names from new df
         names_temp <- c(
           "treeID"
@@ -210,6 +213,9 @@ trees_biomass <- function(
       ############################
       if(inherits(trees_biomass_landfire_ans$result$tree_list, "data.frame")){
         tl_landfire <- trees_biomass_landfire_ans$result$tree_list
+        # remove columns created in trees_biomass_landfire if already existed in orig data
+        tree_tops <- tree_tops %>%
+          clean_biomass_cols(method = "landfire")
         # get names from new df
         names_temp <- c(
           "treeID"

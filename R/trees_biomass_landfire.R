@@ -163,17 +163,7 @@ trees_biomass_landfire <- function(
 
   # get rid of columns we'll create
     tree_tops <- tree_tops %>%
-      # throw in hey_xxxxxxxxxx to test it works if we include non-existent columns
-      dplyr::select( -dplyr::any_of(c(
-        "hey_xxxxxxxxxx"
-        , "landfire_stand_id"
-        , "crown_dia_m"
-        , "crown_length_m"
-        , "crown_volume_m3"
-        , "landfire_tree_kg_per_m3"
-        , "landfire_stand_kg_per_m3"
-        , "landfire_crown_biomass_kg"
-      )))
+      clean_biomass_cols(method = "landfire")
 
   ##################################
   # ensure that we have landfire_cell_kg_per_m3

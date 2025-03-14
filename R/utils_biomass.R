@@ -644,3 +644,42 @@ get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_h
     return(T)
   }
 
+#######################################################
+# intermediate function 27
+#######################################################
+  # drop columns from df that will be created in a trees_biomass_*()
+  clean_biomass_cols <- function(df, method) {
+    # which_biomass_methods?
+    which_biomass_methods <- check_biomass_method(method)
+    # cruz columns
+    if( any(stringr::str_equal(which_biomass_methods, "cruz")) ){
+      df <- df %>%
+        # throw in hey_xxxxxxxxxx to test it works if we include non-existent columns
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "cruz_stand_id"
+          , "crown_dia_m"
+          , "crown_length_m"
+          , "crown_volume_m3"
+          , "cruz_tree_kg_per_m3"
+          , "cruz_stand_kg_per_m3"
+          , "cruz_crown_biomass_kg"
+        )))
+    }
+    # landfire columns
+    if( any(stringr::str_equal(which_biomass_methods, "landfire")) ){
+      df <- df %>%
+        # throw in hey_xxxxxxxxxx to test it works if we include non-existent columns
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "landfire_stand_id"
+          , "crown_dia_m"
+          , "crown_length_m"
+          , "crown_volume_m3"
+          , "landfire_tree_kg_per_m3"
+          , "landfire_stand_kg_per_m3"
+          , "landfire_crown_biomass_kg"
+        )))
+    }
+    return(df)
+  }
