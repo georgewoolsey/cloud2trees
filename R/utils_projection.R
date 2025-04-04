@@ -185,3 +185,149 @@ st_transform_las_z <- function(
   # return
   return(return_df)
 }
+
+###___________________________________________###
+# combine xy and z data frames to make a new las
+# uses output from from st_transform_las_xy()
+#  and from st_transform_las_z()
+# make sure to set new_epsg_code same as used in st_transform_las_xy()
+###___________________________________________###
+combine_xy_z_make_las <- function(
+  xy_df # direct from st_transform_las_xy() without any transformation
+  , z_df # direct from st_transform_las_z() without any transformation
+  , new_epsg_code # same as used in st_transform_las_xy()
+  , file # A character string naming an output file lidR::writeLAS()
+  , index = FALSE # boolean. Also write a lax file to index the points in the files lidR::writeLAS()
+) {
+  stopifnot(inherits(xy_df, "data.frame"))
+  stopifnot(inherits(z_df, "data.frame"))
+  ## check for cols
+  check_df_cols_all_missing(
+    xy_df
+    , col_names = c("X","Y")
+    , all_numeric = T
+  )
+  check_df_cols_all_missing(
+    z_df
+    , col_names = c("Z")
+    , all_numeric = T
+  )
+  # get epsg number
+  if(inherits(new_epsg_code,"character")){
+    e <- readr::parse_number(new_epsg_code)
+  }else{
+    e <- new_epsg_code
+  }
+  if(
+    is.na(e) || is.null(e) ||
+    identical(e,character(0)) ||
+    !inherits(e,"numeric")
+  ){
+    stop("could not detect numeric epsg code")
+  }
+
+  # combine xyz for small sample just to set up header
+  new_las <- dplyr::bind_cols(
+      xy_df %>% dplyr::select(X,Y) %>% dplyr::slice_head(n=11)
+      , z_df %>% dplyr::select(Z) %>% dplyr::slice_head(n=11)
+    ) %>%
+    lidR::LAS(crs = sf::st_crs(e))
+
+  #### need a header
+  # lidR::header(new_las)
+  # rlas::header_create()
+  # lidR::LASheader()
+  las_header <- lidR::header(new_las) # lidR::LASheader()
+  las_header@VLR <- list() # Erase VLR previously written
+  las_header@PHB[["Global Encoding"]][["WKT"]] <- TRUE
+  las_header@PHB[["Version Minor"]] <- 4L
+  las_header@PHB[["Header Size"]] <- 375L
+  las_header@PHB[["Offset to point data"]] <- 375L
+  lidR::crs(las_header) <- paste0("EPSG:", e) # not sure if this is needed since we set wkt below
+  lidR::wkt(las_header) <- sf::st_crs(e)$wkt
+  # las_header
+
+  # combine xyz for full set with header
+  new_las <- dplyr::bind_cols(
+      xy_df %>% dplyr::select(X,Y)
+      , z_df %>% dplyr::select(Z)
+    ) %>%
+    lidR::LAS(crs = sf::st_crs(e), header = las_header)
+
+  # write
+  if(!missing(file) && inherits(file,"character")){
+    lidR::writeLAS(new_las, file = file, index = index)
+  }
+
+  # return las
+  return(new_las)
+}
+
+###___________________________________________###
+# combine all steps above to make a new transformed las
+###___________________________________________###
+st_transform_las <- function(
+    las
+    , new_epsg_code
+    , file # A character string naming an output file lidR::writeLAS()
+    , index = FALSE # boolean. Also write a lax file to index the points in the files lidR::writeLAS()
+) {
+  # could move to parameters
+  transform_only_z_feet <- T
+
+  # checks
+  stopifnot(inherits(las, "LAS"))
+  if(lidR::is.empty(las)){return(NULL)}
+  # get epsg number
+  if(inherits(new_epsg_code,"character")){
+    e <- readr::parse_number(new_epsg_code)
+  }else{
+    e <- new_epsg_code
+  }
+  if(
+    is.na(e) || is.null(e) ||
+    identical(e,character(0)) ||
+    !inherits(e,"numeric")
+  ){
+    stop("could not detect numeric epsg code")
+  }
+
+  # transform xy
+  xy_df <- st_transform_las_xy(las, new_epsg_code = e)
+  if(dplyr::coalesce(nrow(xy_df),0)==0){return(NULL)}
+
+  # get vertical crs
+  vert_crs_df <- get_vertical_crs(las)
+
+  # transform z (or don't)
+  if(
+    inherits(vert_crs_df, "data.frame") && # df and not NA
+    dplyr::coalesce(nrow(vert_crs_df),0)==1 && # has records
+    !is.na(vert_crs_df$scale_factor[1]) && # has scale_factor
+    !identical(vert_crs_df$scale_factor[1],1) && # scale_factor!=1
+    ( # is feet
+      transform_only_z_feet &
+      !is.na(vert_crs_df$units[1]) &
+      stringr::str_detect(
+        vert_crs_df$units[1]
+        ,paste(c("foot","feet"),collapse = "|")
+      )
+    )
+  ){
+    z_df <- st_transform_las_z(las, scale_factor = vert_crs_df$scale_factor[1])
+  }else{ # no transform
+    z_df <- las@data %>% dplyr::select(Z)
+  }
+
+  # combine
+  new_las <- combine_xy_z_make_las(
+    xy_df = xy_df # direct from st_transform_las_xy() without any transformation
+    , z_df = z_df # direct from st_transform_las_z() without any transformation
+    , new_epsg_code = e # same as used in st_transform_las_xy()
+    , file = file # A character string naming an output file lidR::writeLAS()
+    , index = index # boolean. Also write a lax file to index the points in the files lidR::writeLAS()
+  )
+  if(lidR::is.empty(new_las)){return(NULL)}
+  # return
+  return(new_las)
+}
