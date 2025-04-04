@@ -47,19 +47,10 @@ chunk_las_catalog <- function(
     , T ~ 20
   )
   # check if folder contains las files directly
-  chk <- folder %>%
-    tolower() %>%
-    stringr::str_detect(".*\\.(laz|las)$")
-  # file list
-  if(max(chk)==1){
-    ff <- stringr::str_subset(folder, ".*\\.(laz|las)$")
-  }else{ # otherwise just search the folder
-    ff <- list.files(normalizePath(folder), pattern = ".*\\.(laz|las)$", full.names = T)
-  }
+    las_ctg <- check_las_data(folder)
+    if(!inherits(las, "LAScatalog")){stop("could not detect .las|.laz files in the directory provided")}
   # create spatial index files (.lax)
-    flist_temp <- create_lax_for_tiles(las_file_list = ff)
-  ### point to input las files as a lidR LAScatalog (reads the header of all the LAS files of a given folder)
-    las_ctg <- lidR::readLAScatalog(flist_temp)
+    flist_temp <- create_lax_for_tiles(las_file_list = las_ctg$filename)
 
   ###______________________________###
   # crs checks and transformations

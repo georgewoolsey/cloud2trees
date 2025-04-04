@@ -116,18 +116,7 @@ get_horizontal_crs <- function(x) {
 st_transform_las_xy <- function(las, new_epsg_code) {
   stopifnot(inherits(las, "LAS"))
   # get epsg number
-  if(inherits(new_epsg_code,"character")){
-    e <- readr::parse_number(new_epsg_code)
-  }else{
-    e <- new_epsg_code
-  }
-  if(
-    is.na(e) || is.null(e) ||
-    identical(e,character(0)) ||
-    !inherits(e,"numeric")
-  ){
-    stop("could not detect numeric epsg code")
-  }
+  e <- check_epsg_code(new_epsg_code = new_epsg_code)
   # do the work and return data.frame with X,Y that can be converted to las after adding Z
   if(lidR::is.empty(las)){return(NULL)}
   return_df <- las@data %>%
@@ -213,18 +202,7 @@ combine_xy_z_make_las <- function(
     , all_numeric = T
   )
   # get epsg number
-  if(inherits(new_epsg_code,"character")){
-    e <- readr::parse_number(new_epsg_code)
-  }else{
-    e <- new_epsg_code
-  }
-  if(
-    is.na(e) || is.null(e) ||
-    identical(e,character(0)) ||
-    !inherits(e,"numeric")
-  ){
-    stop("could not detect numeric epsg code")
-  }
+  e <- check_epsg_code(new_epsg_code = new_epsg_code)
 
   # combine xyz for small sample just to set up header
   new_las <- dplyr::bind_cols(
@@ -254,6 +232,16 @@ combine_xy_z_make_las <- function(
     ) %>%
     lidR::LAS(crs = sf::st_crs(e), header = las_header)
 
+  ### warning: Detection of quantization errors for X
+  # see: las_tools.R: https://github.com/r-lidar/lidR/blob/0a09bcb898ce58634e93b200ea0c6db5345b8ae8/R/las_tools.R
+  # Rescale and reoffset recompute the coordinates with
+  # new scales and offsets according to LAS specification
+  # new_las <- lidR::las_rescale(new_las)
+  # new_las <- lidR::las_reoffset(new_las)
+  # lidR::las_quantize(new_las)
+  # lidR::las_check(new_las)
+  # !!!! none of this fixed the warning...mapping of las looks good so let's roll with it even if warnings
+
   # write
   if(!missing(file) && inherits(file,"character")){
     lidR::writeLAS(new_las, file = file, index = index)
@@ -279,18 +267,7 @@ st_transform_las <- function(
   stopifnot(inherits(las, "LAS"))
   if(lidR::is.empty(las)){return(NULL)}
   # get epsg number
-  if(inherits(new_epsg_code,"character")){
-    e <- readr::parse_number(new_epsg_code)
-  }else{
-    e <- new_epsg_code
-  }
-  if(
-    is.na(e) || is.null(e) ||
-    identical(e,character(0)) ||
-    !inherits(e,"numeric")
-  ){
-    stop("could not detect numeric epsg code")
-  }
+  e <- check_epsg_code(new_epsg_code = new_epsg_code)
 
   # transform xy
   xy_df <- st_transform_las_xy(las, new_epsg_code = e)
@@ -331,3 +308,158 @@ st_transform_las <- function(
   # return
   return(new_las)
 }
+
+###___________________________________________###
+# st_transform_las on a LASCatalog
+# via lidR::catalog_apply()
+###___________________________________________###
+ctg_st_transform_las <- function(
+  chunk
+  , new_epsg_code
+){
+  las <- lidR::readLAS(chunk)
+  if(lidR::is.empty(las)){return(NULL)}
+  # get epsg number
+  e <- check_epsg_code(new_epsg_code = new_epsg_code)
+  # transform chunk
+  # safe_st_transform_las <- purrr::safely(st_transform_las)
+  new_las <- st_transform_las(las = las, new_epsg_code = e)
+  # just get the result
+  # new_las <- new_las$result
+  # return
+  return(new_las)
+}
+
+###___________________________________________###
+# reproject ctg or las with
+# st_transform_las()
+# always returns a LAScatalog or fails
+###___________________________________________###
+apply_st_transform_las <- function(
+  las # LAScatalog, LAS, dir with las, or las fname
+  , outfolder
+  , new_epsg_code
+) {
+  # dir
+  if(!dir.exists(outfolder)){
+    dir.create(file.path(outfolder), showWarnings = F)
+  }
+
+  # check
+  new_ctg <- check_las_data(las)
+  # set the lascatalog options
+  if(inherits(new_ctg, "LAScatalog")){
+    # options
+    lidR::opt_progress(new_ctg) <- F
+    lidR::opt_select(new_ctg) <- "xyz" # 0 enables all extra bytes to be loaded...possibly treeID
+    lidR::opt_output_files(new_ctg) <- paste0(file.path(outfolder), "/{*}_reproj")
+    # run it
+    output_temp <- lidR::catalog_apply(
+      ctg = new_ctg
+      , FUN = ctg_st_transform_las
+      , .options = list(automerge = TRUE)
+      # st_transform_las options
+      , new_epsg_code = new_epsg_code
+    )
+    # return ctg
+    if(inherits(output_temp, "LAScatalog")){
+      output_temp <- lidR::readLAScatalog(output_temp$filename)
+    }
+  }else if(inherits(new_ctg, "LAS")){
+    ofile <- file.path(outfolder, "las_reproj.las")
+    # run it
+    output_temp <- st_transform_las(las = new_ctg, new_epsg_code = new_epsg_code, file = ofile, index = T)
+    # return ctg
+    if(
+      inherits(output_temp, "LAS") &&
+      file.exists(ofile)
+    ){
+      output_temp <- lidR::readLAScatalog(ofile)
+    }
+  }else{
+    stop("could not reproject")
+  }
+
+  if(!inherits(output_temp, "LAScatalog")){
+    stop("could not reproject")
+  }
+
+  return(output_temp)
+
+}
+
+
+###___________________________________________###
+# check epsg code is numeric
+###___________________________________________###
+check_epsg_code <- function(new_epsg_code) {
+  if(inherits(new_epsg_code,"character")){
+    e <- readr::parse_number(new_epsg_code)
+  }else{
+    e <- new_epsg_code
+  }
+  if(
+    is.na(e) || is.null(e) ||
+    identical(e,character(0)) ||
+    !inherits(e,"numeric")
+  ){
+    stop("could not detect numeric epsg code")
+  }
+  return(e)
+}
+
+###___________________________________________###
+# check_horizontal_crs_is_feet
+###___________________________________________###
+check_horizontal_crs_is_feet <- function(las) {
+  data_crs_params <- las@data %>% sf::st_crs(parameters=T) # wow whaaaaa??? the goods?
+  las_crs_params <- get_horizontal_crs(las) %>% sf::st_crs(parameters=T) # wow whaaaaa??? the goods?
+  # any matches
+  m <- any(
+    data_crs_params$ud_unit %>% deparse() %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|")) %>% any()
+    , data_crs_params$units_gdal %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|")) %>% any()
+    , data_crs_params$proj4string %>% stringr::str_detect("\\+units=us-ft") %>% any()
+    # , las_crs_params$wkt %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|"))
+    # , las_crs_params$input %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|"))
+    , las_crs_params$ud_unit %>% deparse() %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|")) %>% any()
+    , las_crs_params$units_gdal %>% stringr::str_detect(paste(c("foot","feet"),collapse = "|")) %>% any()
+    , las_crs_params$proj4string %>% stringr::str_detect("\\+units=us-ft") %>% any()
+    , na.rm = T
+  )
+  if(is.na(m) || is.null(m) || identical(m,character(0))){m <- F}
+  return(m)
+}
+
+###___________________________________________###
+# THIS IS OLD AND MAY NOT WORK
+# Function to reproject las data using `lidR` but be careful!
+# This is inefficient and potentially causes inaccuracies due to transformations (see reference).
+# https://gis.stackexchange.com/questions/371566/can-i-re-project-an-las-file-in-lidr
+###___________________________________________###
+reproject_las <- function(filepath, new_crs = NA, old_crs = NA, outdir = getwd()) {
+    if(is.null(new_crs) | is.na(new_crs)){stop("the new_crs must be provided")}
+    # read individual file
+    las <- lidR::readLAS(filepath)
+    if(
+      (is.null(sf::st_crs(las)$epsg) | is.na(sf::st_crs(las)$epsg))
+      & ( is.null(old_crs) | is.na(old_crs) | old_crs=="" )
+    ){
+      stop("the raw las file has missing CRS and cannot be transformed. try setting old_crs if known")
+    }else{
+      # transform if know old crs
+      if(
+        (is.null(sf::st_crs(las)$epsg) | is.na(sf::st_crs(las)$epsg))
+        & !is.null(old_crs) & !is.na(old_crs) & length(as.character(old_crs))>0
+      ){
+        sf::st_crs(las) <- paste0("EPSG:", old_crs)
+      }
+      # get filename
+      fnm <- filepath %>% basename() %>% stringr::str_remove_all("\\.(laz|las)$")
+      new_fnm <- paste0(normalizePath(outdir),"/",fnm,"_epsg",new_crs,".las")
+      # reproject
+      las <- sf::st_transform(las, paste0("EPSG:", new_crs))
+      # write
+      lidR::writeLAS(las, file = new_fnm)
+      return(new_fnm)
+    }
+  }

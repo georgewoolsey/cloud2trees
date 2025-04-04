@@ -25,9 +25,10 @@ create_project_structure <- function(
     # if it's a file or file list...get the directory
     if(max(chk)==1){
       input <- input_las_dir %>%
-      stringr::str_subset(".*\\.(laz|las)$") %>%
-      dirname() %>%
-      normalizePath()
+        stringr::str_subset(".*\\.(laz|las)$") %>%
+        dirname() %>%
+        normalizePath()
+      input <- input[1]
     }else{ # otherwise just list the folder
       input <- normalizePath(input_las_dir)
     }
