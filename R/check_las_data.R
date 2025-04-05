@@ -14,21 +14,22 @@ check_las_data <- function(
   las
 ){
   las_msg <- paste0(
-    "`las` must contain a directory with nomalized las files, the path of a .laz|.las file"
+    "`las` must contain a directory with las files, the path of a .laz|.las file"
     , "\n, -or- an object of class `LAS`. Please update the `las` parameter."
   )
   # check the class
   if(inherits(las, "character")){
-    if(!stringr::str_ends(las, ".*\\.(laz|las)$")){
+    if(!any(stringr::str_ends(las, ".*\\.(laz|las)$")) && dir.exists(normalizePath(las))){
       # try to read directory for las files
       fls <- list.files(normalizePath(las), pattern = ".*\\.(laz|las)$", full.names = TRUE)
       # stop it if no files
       if(length(fls)<1){stop(las_msg)}
       # read it
       nlas_ctg <- lidR::readLAScatalog(fls)
-    }else if(stringr::str_ends(las, ".*\\.(laz|las)$")){
+    }else if(any(stringr::str_ends(las, ".*\\.(laz|las)$"))){
       # read it
-      nlas_ctg <- lidR::readLAScatalog(las)
+      nlas_ctg <- stringr::str_subset(las, pattern = ".*\\.(laz|las)$") %>%
+        lidR::readLAScatalog()
     }else{
       stop(las_msg)
     }

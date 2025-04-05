@@ -47,19 +47,10 @@ chunk_las_catalog <- function(
     , T ~ 20
   )
   # check if folder contains las files directly
-  chk <- folder %>%
-    tolower() %>%
-    stringr::str_detect(".*\\.(laz|las)$")
-  # file list
-  if(max(chk)==1){
-    ff <- stringr::str_subset(folder, ".*\\.(laz|las)$")
-  }else{ # otherwise just search the folder
-    ff <- list.files(normalizePath(folder), pattern = ".*\\.(laz|las)$", full.names = T)
-  }
+    las_ctg <- check_las_data(folder)
+    if(!inherits(las_ctg, "LAScatalog")){stop("could not detect .las|.laz files")}
   # create spatial index files (.lax)
-    flist_temp <- create_lax_for_tiles(las_file_list = ff)
-  ### point to input las files as a lidR LAScatalog (reads the header of all the LAS files of a given folder)
-    las_ctg <- lidR::readLAScatalog(flist_temp)
+    flist_temp <- create_lax_for_tiles(las_file_list = las_ctg$filename)
 
   ###______________________________###
   # crs checks and transformations
@@ -377,50 +368,4 @@ chunk_las_catalog <- function(
       , plt = plt
       , las_ctg = las_ctg
     ))
-}
-###_____________________________________________________###
-### Intermediate functions ###
-###_____________________________________________________###
-
-###___________________________________________###
-# Retrieve the horizontal component of a compound CRS.
-# The object x can be an 'sf' package 'crs' object or any
-# spatial object from which a CRS can be queried using the
-# sf::st_crs function.
-###___________________________________________###
-get_horizontal_crs <- function(x) {
-  xcrs <- sf::st_crs(x)
-  if (is.na(xcrs)){
-    # stop("No CRS defined...try setting the parameter `new_crs` if known")
-    return(NA)
-  }
-
-  wkt <- sf::st_as_text(xcrs)
-
-  if (!grepl("COMPD_CS", wkt)) {
-    # Should just be a horizontal CRS - simply return it
-    xcrs
-  } else {
-    # Extract the horizontal component
-    i <- regexpr("PROJCS\\[", wkt)
-    wkt <- base::substring(wkt, i)
-
-    # Match square brackets to discard any trailing
-    # component (e.g. the vertical CRS)
-    wkt_chars <- base::strsplit(wkt, "")[[1]]
-    level <- 1
-    k <- base::match("[", wkt_chars)
-    while (level > 0) {
-      k <- k + 1
-      if (wkt_chars[k] == '[') {
-        level <- level + 1
-      } else if (wkt_chars[k] == ']') {
-        level <- level - 1
-      }
-    }
-
-    wkt <- base::substring(wkt, 1, k)
-    # return
-    return(sf::st_crs(wkt))
-  }
 }
