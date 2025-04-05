@@ -131,8 +131,8 @@ cloud2raster <- function(
   ######################################
   chunk_las_catalog_ans <- chunk_las_catalog(
     folder = dplyr::case_when(
-      config$is_input_file_list == T ~ input_las_dir # it's a file list, so just pass the file list
-      , is_feet_proj ~ config$reproj_dir
+      is_feet_proj ~ config$reproj_dir
+      , config$is_input_file_list == T ~ input_las_dir # it's a file list, so just pass the file list
       , T ~ config$input_las_dir
     )
     , outfolder = config$las_grid_dir
