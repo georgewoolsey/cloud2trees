@@ -39,6 +39,7 @@ create_project_structure <- function(
   temp_dir <- file.path(normalizePath(output_dir), "point_cloud_processing_temp")
   delivery_dir <- file.path(normalizePath(output_dir), "point_cloud_processing_delivery")
   ### set output directory for temporary files
+  reproj_dir <- file.path(temp_dir, "000_reproj")
   las_grid_dir <- file.path(temp_dir, "00_grid")
   las_classify_dir <- file.path(temp_dir, "01_classify")
   las_normalize_dir <- file.path(temp_dir, "02_normalize")
@@ -48,6 +49,7 @@ create_project_structure <- function(
   ### Create the directories
   dir.create(delivery_dir, showWarnings = FALSE)
   dir.create(temp_dir, showWarnings = FALSE)
+  dir.create(reproj_dir, showWarnings = FALSE)
   dir.create(las_grid_dir, showWarnings = FALSE)
   dir.create(las_classify_dir, showWarnings = FALSE)
   dir.create(las_normalize_dir, showWarnings = FALSE)
@@ -64,6 +66,7 @@ create_project_structure <- function(
     , delivery_dir = delivery_dir
     , temp_dir = temp_dir
     , las_grid_dir = las_grid_dir
+    , reproj_dir = reproj_dir
     , las_classify_dir = las_classify_dir
     , las_normalize_dir = las_normalize_dir
     , dtm_dir = dtm_dir

@@ -97,15 +97,41 @@ cloud2raster <- function(
     list.files(config$delivery_dir, recursive = T, full.names = T) %>%
         purrr::map(file.remove)
   }
+  ######################################
+  # check if projection in feet and attempt conversion
+  ######################################
+  # check if folder contains las files directly
+    las_ctg <- check_las_data(input_las_dir)
+    if(!inherits(las_ctg, "LAScatalog")){
+      stop("could not detect .las|.laz files at `input_las_dir` provided")
+    }
+  # check feet projection
+    is_feet_proj <- check_horizontal_crs_is_feet(las_ctg)
+    if(is_feet_proj){
+      # message
+      message(
+        paste0(
+          "Horizontal projection of point cloud data is in feet ;["
+          , "\n  Nothing in `cloud2trees` will work using data projected in feet."
+          , "\n  Attempting to reproject to EPSG:5070 started at: ......"
+          , Sys.time()
+        )
+      )
+      # attempt reprojection
+      new_ctg <- apply_st_transform_las(las = las_ctg, outfolder = config$reproj_dir, new_epsg_code = 5070)
+      if(!inherits(new_ctg, "LAScatalog")){
+        stop("reprojection from feet failed (sadness) try again with point cloud data that has a horizontal projection in meters.")
+      }
+    }
 
   ######################################
   # Tile raw las files to work with smaller chunks
   ######################################
   chunk_las_catalog_ans <- chunk_las_catalog(
-    folder = ifelse(
-      config$is_input_file_list == T
-      , input_las_dir
-      , config$input_las_dir
+    folder = dplyr::case_when(
+      config$is_input_file_list == T ~ input_las_dir # it's a file list, so just pass the file list
+      , is_feet_proj ~ config$reproj_dir
+      , T ~ config$input_las_dir
     )
     , outfolder = config$las_grid_dir
     , accuracy_level = accuracy_level

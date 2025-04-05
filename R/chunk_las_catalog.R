@@ -48,7 +48,7 @@ chunk_las_catalog <- function(
   )
   # check if folder contains las files directly
     las_ctg <- check_las_data(folder)
-    if(!inherits(las, "LAScatalog")){stop("could not detect .las|.laz files in the directory provided")}
+    if(!inherits(las_ctg, "LAScatalog")){stop("could not detect .las|.laz files")}
   # create spatial index files (.lax)
     flist_temp <- create_lax_for_tiles(las_file_list = las_ctg$filename)
 
