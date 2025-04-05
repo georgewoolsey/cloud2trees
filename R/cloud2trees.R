@@ -903,7 +903,8 @@ cloud2trees <- function(
       keep_intrmdt==F &&
       estimate_tree_cbh==F &&
       estimate_tree_hmd==F &&
-      estimate_dbh_from_cloud==F
+      estimate_dbh_from_cloud==F &&
+      length(list.files(cloud2raster_ans$create_project_structure_ans$reproj_dir))==0
     ){
       unlink(cloud2raster_ans$create_project_structure_ans$temp_dir, recursive = T)
     }else if(
@@ -990,7 +991,7 @@ cloud2trees <- function(
             , timer_total_time_mins = difftime(xx11_fin, xx1_cloud2raster, units = c("mins")) %>%
               as.numeric()
             # settings
-            , sttng_input_las_dir = input_las_dir
+            , sttng_input_las_dir = input_las_dir[1]
             , sttng_accuracy_level = accuracy_level
             , sttng_max_ctg_pts = max_ctg_pts
             , sttng_max_area_m2 = max_area_m2

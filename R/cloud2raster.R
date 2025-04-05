@@ -118,7 +118,9 @@ cloud2raster <- function(
         )
       )
       # attempt reprojection
-      new_ctg <- apply_st_transform_las(las = las_ctg, outfolder = config$reproj_dir, new_epsg_code = 5070)
+      quiet_apply_st_transform_las <- purrr::quietly(apply_st_transform_las)
+      new_ctg <- quiet_apply_st_transform_las(las = las_ctg, outfolder = config$reproj_dir, new_epsg_code = 5070)
+      new_ctg <- new_ctg$result
       if(!inherits(new_ctg, "LAScatalog")){
         stop("reprojection from feet failed (sadness) try again with point cloud data that has a horizontal projection in meters.")
       }
