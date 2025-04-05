@@ -1,3 +1,5 @@
+# cloud2trees 0.6.6
+
 # cloud2trees 0.6.5
 
 - Fix: `trees_biomass()` would refuse to overwrite values in "landfire_" and "cruz_" columns if those columns already existed in the data passed to the `tree_list`. This update now forces the overwrite of the data in these columns if already present in the data.
