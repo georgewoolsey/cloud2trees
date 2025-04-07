@@ -321,6 +321,11 @@ sample_las_point_extract_trees <- function(
       max(
         sqrt(1000/4) ## numerator = desired plot size in m2
       )
+    # FEEEEEEEET ;\
+    if(check_horizontal_crs_is_feet(las)){
+      # convert to ft
+      buffer <- buffer*3.28084
+    }
   # plot
     plot_poly <- sample_point %>%
       sf::st_buffer(buffer, endCapStyle = "SQUARE") %>%
@@ -407,6 +412,13 @@ sample_las_point_extract_trees <- function(
   #####################################################
     # crowns %>% dplyr::glimpse()
     # crowns %>% sf::st_drop_geometry() %>% dplyr::count(ws_fn)
+    # FEEEEEEEET ;\
+    # plot_poly %>% sf::st_crs()
+    # crowns %>% sf::st_crs()
+    if(check_horizontal_crs_is_feet(las)){
+      # convert to ft
+      plot_poly <- plot_poly %>% sf::st_transform(sf::st_crs(crowns))
+    }
     # plot the chm
     p_chm <- ggplot2::ggplot() +
       # adding the plot boundary should keep the plots at the same scale
