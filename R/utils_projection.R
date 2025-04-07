@@ -233,14 +233,20 @@ combine_xy_z_make_las <- function(
     lidR::LAS(crs = sf::st_crs(e), header = las_header)
 
   ### warning: Detection of quantization errors for X
-  # see: las_tools.R: https://github.com/r-lidar/lidR/blob/0a09bcb898ce58634e93b200ea0c6db5345b8ae8/R/las_tools.R
-  # Rescale and reoffset recompute the coordinates with
-  # new scales and offsets according to LAS specification
+  ### see: las_tools.R: https://github.com/r-lidar/lidR/blob/0a09bcb898ce58634e93b200ea0c6db5345b8ae8/R/las_tools.R
+  ### Rescale and reoffset recompute the coordinates with
+  ### new scales and offsets according to LAS specification
   # new_las <- lidR::las_rescale(new_las)
   # new_las <- lidR::las_reoffset(new_las)
-  # lidR::las_quantize(new_las)
-  # lidR::las_check(new_las)
-  # !!!! none of this fixed the warning...mapping of las looks good so let's roll with it even if warnings
+  ### !!!! including lidR::las_rescale & lidR::las_reoffset did not remove the warning...
+  ### !!!! ...mapping of las looks good so let's roll with it even if warnings
+  ### !!!! based on: https://github.com/r-lidar/lidR/blob/0a09bcb898ce58634e93b200ea0c6db5345b8ae8/R/methods-LAS.R
+  ### !!!! lidR::LAS() defaults the x,y offset based on the minimum in the data set and the z offset to "0"
+  ### !!!! lidR::LAS() defaults the scale to 0.001 (1 mm if projection is m) for x,y,z
+  ### !!!! based on these defaults and an x value of 900567.58294561 (m) which is also the minimum value, x will be stored as:
+  ### !!!! (x - offset)/scale = floor( (900567.58294561 - floor(900567.58294561))/0.001 ) = 582 (the decimal part to the mm)
+  ### !!!! with an offset set to floor(900567.58294561) = 900567
+  ### !!!! ...this all just helps to save on memory as all values are stored as integers and is good enough for our purposes
 
   # write
   if(!missing(file) && inherits(file,"character")){
