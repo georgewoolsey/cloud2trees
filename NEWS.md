@@ -1,3 +1,7 @@
+# cloud2trees 0.6.8
+
+- Change: `cloud2raster()` now implements noise removal from the point cloud prior to the ground classification stage (in addition to after the stage) to minimize the influence of egregious outlier points on classification
+
 # cloud2trees 0.6.7
 
 - Fix: `itd_tuning()` now accounts for possible data transformation that occurs in `raster2trees()` on State Plane Coordinate System (SPCS) zone projections which use U.S. survey feet to express eastings and northings
