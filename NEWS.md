@@ -1,3 +1,5 @@
+# cloud2trees 0.6.8
+
 # cloud2trees 0.6.7
 
 - Fix: `itd_tuning()` now accounts for possible data transformation that occurs in `raster2trees()` on State Plane Coordinate System (SPCS) zone projections which use U.S. survey feet to express eastings and northings
