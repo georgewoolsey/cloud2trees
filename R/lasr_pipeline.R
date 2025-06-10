@@ -100,7 +100,7 @@ lasr_pipeline <- function(
     # denoise
     ###################
       # classify isolated points
-      lasr_denoise <- lasR::classify_with_ivf(res =  5, n = 6)
+      lasr_denoise <- lasR::classify_with_ivf(res =  5, n = 9L) + lasR::delete_noise()
     ###################
     # write
     ###################
@@ -122,6 +122,7 @@ lasr_pipeline <- function(
   if(keep_intrmdt == T){
     # pipeline
       lasr_pipeline_temp <- lasr_read +
+        lasr_denoise +
         lasr_classify +
         lasr_denoise +
         lasr_write_classify +
@@ -142,6 +143,7 @@ lasr_pipeline <- function(
   }else{
     # pipeline
       lasr_pipeline_temp <- lasr_read +
+        lasr_denoise +
         lasr_classify +
         lasr_denoise +
         lasr_dtm_norm(
