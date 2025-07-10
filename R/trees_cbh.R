@@ -40,6 +40,9 @@
 #' @param frst_layer_min_ht_m numeric. value for the depth height of the first fuel layer. If the first fuel layer has the maximum LAD and its depth is greater than the indicated value, then this fuel layer is considered as the CBH of the tree. On the contrary, if its depth is <= the value, the CBH with maximum LAD will be the second fuel layer, although it has not the maximum LAD. See `hdepth1_height` in [LadderFuelsR::get_cbh_metrics()]
 #' @param force_same_crs logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
 #' data created by a `cloud2trees` pipeline (e.g. [cloud2raster()]) will always have the same projection even if not recognized by `lidR` functions
+#' @param outfolder string. The path of a folder to write the model data to.
+#'   Note, in the actual missing value estimation many RF models are estimated and model averaging is used.
+#'   However, only the first estimated model is saved in this export which does not fully represent the process used to fill in missing values.
 #'
 #' @references
 #' * [https://doi.org/10.1111/2041-210X.14427](https://doi.org/10.1111/2041-210X.14427)
@@ -136,6 +139,7 @@ trees_cbh <- function(
   , min_lad_pct = 10
   , frst_layer_min_ht_m = 1
   , force_same_crs = F
+  , outfolder = tempdir()
 ){
   # could move to parameters
   force_cbh_lte_ht <- T
@@ -348,6 +352,13 @@ trees_cbh <- function(
       , mod_n_subsample = estimate_missing_max_n_training
       , mod_n_times = ntimes_temp
     )
+    # write just the first model
+    if(
+      !is.null(cbh_mod)
+      && length(cbh_mod)>0
+    ){
+      saveRDS(cbh_mod[[1]], file = file.path(normalizePath(outfolder), "cbh_height_model_estimates.rds"))
+    }
   }else{
     cbh_mod <- NULL
   }

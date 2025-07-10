@@ -29,6 +29,9 @@
 #'   Should the missing HMD values be estimated using the tree height and location information based on trees for which HMD is successfully extracted?
 #' @param force_same_crs logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
 #' data created by a `cloud2trees` pipeline (e.g. [cloud2raster()]) will always have the same projection even if not recognized by `lidR` functions
+#' @param outfolder string. The path of a folder to write the model data to.
+#'   Note, in the actual missing value estimation many RF models are estimated and model averaging is used.
+#'   However, only the first estimated model is saved in this export which does not fully represent the process used to fill in missing values.
 #'
 #' @references
 #' An early version of this process was developed by [Andrew Sanchez Meador](https://github.com/bi0m3trics).
@@ -102,6 +105,7 @@ trees_hmd <- function(
   , tree_sample_prop = NA
   , estimate_missing_hmd = TRUE
   , force_same_crs = F
+  , outfolder = tempdir()
 ){
   # could move to parameters
   force_hmd_lte_ht <- T
@@ -261,6 +265,13 @@ trees_hmd <- function(
       , mod_n_subsample = estimate_missing_max_n_training
       , mod_n_times = ntimes_temp
     )
+    # write just the first model
+    if(
+      !is.null(hmd_mod)
+      && length(hmd_mod)>0
+    ){
+      saveRDS(hmd_mod[[1]], file = file.path(normalizePath(outfolder), "hmd_height_model_estimates.rds"))
+    }
   }else{
     hmd_mod <- NULL
   }
