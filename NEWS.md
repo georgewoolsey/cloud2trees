@@ -1,3 +1,5 @@
+# cloud2trees 0.6.9
+
 # cloud2trees 0.6.8
 
 - Change: `cloud2raster()` now implements noise removal from the point cloud prior to the ground classification stage (in addition to after the stage) to minimize the influence of egregious outlier points on classification
