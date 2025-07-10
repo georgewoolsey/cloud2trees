@@ -1,5 +1,11 @@
 # cloud2trees 0.6.9
 
+Saving models used to estimate missing HMD and CBH values. Note, in the actual missing value estimation many RF models are estimated and model averaging is used. However, only the first estimated model is saved in this new export functionality which does not fully represent the process used to fill in missing values.
+
+- Change: `trees_hmd()` now saves the model used to estimate missing HMD values to the path specified in `outfolder` if the parameter `estimate_missing_hmd = T`
+- Change: `trees_cbh()` now saves the model used to estimate missing HMD values to the path specified in `outfolder` if the parameter `estimate_missing_hmd = T`
+- Change: `cloud2trees()` automatically saves the model used to estimate missing HMD and CBH values to the `point_cloud_processing_delivery` directory
+
 # cloud2trees 0.6.8
 
 - Change: `cloud2raster()` now implements noise removal from the point cloud prior to the ground classification stage (in addition to after the stage) to minimize the influence of egregious outlier points on classification
