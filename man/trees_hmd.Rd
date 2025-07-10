@@ -10,7 +10,8 @@ trees_hmd(
   tree_sample_n = NA,
   tree_sample_prop = NA,
   estimate_missing_hmd = TRUE,
-  force_same_crs = F
+  force_same_crs = F,
+  outfolder = tempdir()
 )
 }
 \arguments{
@@ -34,6 +35,10 @@ Should the missing HMD values be estimated using the tree height and location in
 
 \item{force_same_crs}{logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
 data created by a \code{cloud2trees} pipeline (e.g. \code{\link[=cloud2raster]{cloud2raster()}}) will always have the same projection even if not recognized by \code{lidR} functions}
+
+\item{outfolder}{string. The path of a folder to write the model data to.
+Note, in the actual missing value estimation many RF models are estimated and model averaging is used.
+However, only the first estimated model is saved in this export which does not fully represent the process used to fill in missing values.}
 }
 \value{
 Returns a spatial data frame of individual trees with the added columns: \code{max_crown_diam_height_m}, \code{is_training_hmd}

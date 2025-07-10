@@ -20,7 +20,8 @@ trees_cbh(
   num_jump_steps = 1,
   min_lad_pct = 10,
   frst_layer_min_ht_m = 1,
-  force_same_crs = F
+  force_same_crs = F,
+  outfolder = tempdir()
 )
 }
 \arguments{
@@ -69,6 +70,10 @@ Should the missing CBH values be estimated using the tree height and location in
 
 \item{force_same_crs}{logical. force the same crs between the point cloud and polygon if confident that data are in same projection.
 data created by a \code{cloud2trees} pipeline (e.g. \code{\link[=cloud2raster]{cloud2raster()}}) will always have the same projection even if not recognized by \code{lidR} functions}
+
+\item{outfolder}{string. The path of a folder to write the model data to.
+Note, in the actual missing value estimation many RF models are estimated and model averaging is used.
+However, only the first estimated model is saved in this export which does not fully represent the process used to fill in missing values.}
 }
 \value{
 Returns a spatial data frame of individual trees.

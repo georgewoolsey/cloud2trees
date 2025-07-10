@@ -539,6 +539,7 @@ cloud2trees <- function(
       , min_lad_pct = cbh_min_lad_pct
       , frst_layer_min_ht_m = cbh_frst_layer_min_ht_m
       , force_same_crs = T
+      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
     )
     # handle error
     if(is.null(trees_cbh_ans$error)){ # no error
@@ -643,6 +644,7 @@ cloud2trees <- function(
       , tree_sample_prop = hmd_tree_sample_prop
       , estimate_missing_hmd = hmd_estimate_missing_hmd
       , force_same_crs = T
+      , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
     )
     # handle error
     if(is.null(trees_hmd_ans$error)){ # no error
