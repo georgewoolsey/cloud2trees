@@ -17,7 +17,7 @@
 #' This must be an sf class object with a single record. If you need to get the trees within multiple different AOI's, then `purrr::map()` this function.
 #' @param bbox_of_aoi logical. Should the study_boundary be transformed to a bounding box instead of it's original shape for determining the trees within the boundary?
 #' If set to true, the bounding box is created prior to applying the buffer.
-#' @param buffer numeric. Buffer to be applied to the study area prior to determining trees within the boundary. 
+#' @param buffer numeric. Buffer to be applied to the study area prior to determining trees within the boundary.
 #' Units are determined by the horizontal CRS settings of the tree_list data or the CRS of the reproject_epsg.
 #' @param reproject_epsg numeric. The EPSG code to reproject the data in prior to buffering and clipping.
 #' Will determine the projection of the output data.
@@ -39,7 +39,7 @@ clip_tree_list_aoi <- function(
   ###############################
   if(!inherits(tree_list,"sf")){stop("tree_list must be sf class object")}
   if(is.na(sf::st_crs(tree_list))){stop("tree_list does not have a CRS")}
-  
+
   # set reproject_epsg if null
   if(is.null(reproject_epsg)){
     reproject_epsg <- sf::st_crs(tree_list)
@@ -57,19 +57,19 @@ clip_tree_list_aoi <- function(
   ###############################
   # convert tree list to spatial points data
   tree_tops <- check_spatial_points(tree_list, crs)
-  
+
   # reproj...if is.null(reproject_epsg) initially, this line has no impact
   tree_tops <- tree_tops %>% sf::st_transform(crs = sf::st_crs(study_boundary))
-  
+
   ###############################
   # intersect
   ###############################
   # intersect based on points but filter original tree list
-  tree_list <- tree_list %>% 
+  tree_list <- tree_list %>%
     dplyr::slice(
       sf::st_intersects(tree_tops, study_boundary, sparse = F) %>% which()
     )
-  
+
   # return will include the tree list and the spatial aoi used to filter the list
   ret <- list(
       tree_list = tree_list
@@ -95,9 +95,15 @@ get_custom_aoi <- function(
   , reproject_epsg = NULL
 ) {
   # bounds check
-  if(!inherits(study_boundary,"sf")){stop("study_boundary must be sf class object")}
+  if(
+    !inherits(study_boundary,"sf")
+    && !inherits(study_boundary,"sfc")
+  ){stop("study_boundary must be sf class object")}
   if(is.na(sf::st_crs(study_boundary))){stop("study_boundary does not have a CRS")}
-  if(nrow(study_boundary)!=1){
+  if(inherits(study_boundary,"sf") && nrow(study_boundary)!=1){
+    stop("study_boundary must only have a single record geometry")
+  }
+  if(inherits(study_boundary,"sfc") && length(study_boundary)!=1){
     stop("study_boundary must only have a single record geometry")
   }
   if(
@@ -105,7 +111,7 @@ get_custom_aoi <- function(
   ){
     stop("study_boundary must contain POLYGON type geometry only")
   }
-  
+
   # check epsg
   if(inherits(reproject_epsg,"crs")){
     # transform
@@ -118,7 +124,7 @@ get_custom_aoi <- function(
       reproject_epsg <- readr::parse_number(reproject_epsg)
     } # if numeric, just use it
 
-    # set the crs to use 
+    # set the crs to use
     this_crs <- sf::st_crs(reproject_epsg)
     if(is.na(this_crs)){
       stop("could not find CRS information for given reproject_epsg. make sure this is just the numeric EPSG code.")
@@ -128,19 +134,19 @@ get_custom_aoi <- function(
     study_boundary <- study_boundary %>% sf::st_transform(reproject_epsg)
   }
 
-  # bbox
-  if(bbox_of_aoi){
-    study_boundary <- sf::st_bbox(study_boundary) %>% 
-      sf::st_as_sfc()
-  }
-  
   # buff
   # check buff
   if(is.character(buffer)){
-    buffer <- readr::parse_number(buffer) 
+    buffer <- readr::parse_number(buffer)
   }
   if(dplyr::coalesce(buffer,0)>0){
     study_boundary <- sf::st_buffer(study_boundary, buffer)
+  }
+
+  # bbox
+  if(bbox_of_aoi){
+    study_boundary <- sf::st_bbox(study_boundary) %>%
+      sf::st_as_sfc()
   }
 
   return(study_boundary)
@@ -156,12 +162,15 @@ quicfire_define_domain <- function(
   , outdir = tempdir()
 ){
   # checks
-  if(!inherits(sf_data,"sf")){stop("sf_data must be sf class object")}
+  if(
+    !inherits(sf_data,"sf")
+    && !inherits(sf_data,"sfc")
+  ){stop("sf_data must be sf class object")}
   if(is.na(sf::st_crs(sf_data))){stop("sf_data does not have a CRS")}
 
   horizontal_resolution <- as.numeric(horizontal_resolution)
   if(
-    is.null(horizontal_resolution) 
+    is.null(horizontal_resolution)
     || is.na(horizontal_resolution)
     || !inherits(horizontal_resolution,"numeric")
   ){
@@ -208,8 +217,8 @@ quicfire_define_domain <- function(
   bbox <- sf::st_bbox(
       c(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax)
       , crs = sf::st_crs(sf_data)
-    ) %>% 
-    sf::st_as_sfc() %>% 
+    ) %>%
+    sf::st_as_sfc() %>%
     sf::st_transform(crs=4326)
 
   # write it
@@ -226,30 +235,31 @@ quicfire_define_domain <- function(
     , "\n ........ "
     , file.path(outdir,"Lidar_Bounds.geojson")
   ))
-  
+
   return(list("xmin" = xmin, "ymin" = ymin,"nx" = nx, "ny"= ny, "width" = width, "length" = length, "bbox"=bbox))
 
 }
 
 #######################################################
-# intermediate function 6
+# intermediate function 4
 # function to make a Fortran topography file for QUIC-Fire O_o
 #######################################################
 quicfire_dtm_topofile <- function(
   dtm_rast
   , horizontal_resolution = 2
   , study_boundary = NULL
+  , outdir = tempdir()
 ){
   # open dtm
-  if(inherits(dtm_rast, "SpatRaster")) {
-    dtm_rast <- dtm_rast
-  }else if(inherits(dtm_rast,"raster")){
-    dtm_rast <- terra::rast(dtm_rast)
+  if(inherits(dtm_rast, "SpatRaster")) { # terra
+    dtm_rast <- dtm_rast %>% terra::subset(1)
+  }else if(inherits(dtm_rast,"RasterLayer")){ # raster
+    dtm_rast <- terra::rast(dtm_rast) %>% terra::subset(1)
   }else if(
     inherits(dtm_rast, "character")
   ){
     if(
-      !any(stringr::str_ends(dtm_rast, ".*\\.(tif|tiff)$")) 
+      !any(stringr::str_ends(dtm_rast, ".*\\.(tif|tiff)$"))
       && dir.exists(file.path(dtm_rast))
     ){
       # try to read directory for dtm_rast files
@@ -267,13 +277,15 @@ quicfire_dtm_topofile <- function(
         ))
       }
       # read it
-      dtm_rast <- terra::rast(fls[1]) ## only reads one file...but what if multiple?
+      dtm_rast <- terra::rast(fls[1]) %>% ## only reads one file...but what if multiple?
+        terra::subset(1)
 
     }else if(any(stringr::str_ends(dtm_rast, ".*\\.(tif|tiff)$"))){
       # read it
       dtm_rast <- stringr::str_subset(dtm_rast, pattern = ".*\\.(tif|tiff)$")[1] %>%
         ## only reads one file...but what if multiple?
-        terra::rast()
+        terra::rast() %>%
+        terra::subset(1)
     }else{
       stop("this is not a readabile dtm_rast")
     }
@@ -285,11 +297,29 @@ quicfire_dtm_topofile <- function(
   if(is.na(terra::crs(dtm_rast))){
     stop("the crs for dtm_rast is NA")
   }
-  
-  # we need to make the raster in the desired resolution
+
+  # check the study_boundary
+  if(
+    inherits(study_boundary,"sf")
+    || inherits(study_boundary,"sfc")
+  ){
+    study_boundary <- get_custom_aoi(
+      study_boundary = study_boundary
+      , bbox_of_aoi = F, buffer = 0
+      , reproject_epsg = terra::crs(dtm_rast) %>% sf::st_crs()
+    )
+  }
+
+  # outdir
+  outdir <- file.path(outdir)
+  if(!dir.exists(outdir)){
+    dir.create(outdir)
+  }
+
+  # we need to get the raster in the desired resolution
   horizontal_resolution <- as.numeric(horizontal_resolution)
   if(
-    is.null(horizontal_resolution) 
+    is.null(horizontal_resolution)
     || is.na(horizontal_resolution)
     || !inherits(horizontal_resolution,"numeric")
   ){
@@ -298,30 +328,117 @@ quicfire_dtm_topofile <- function(
   dtm_rast <- adjust_raster_resolution(dtm_rast, target_resolution = horizontal_resolution)
 
   #clip dtm to domain bounds
-  Lidar_Bounds <- st_transform(st_read(paste0(project_path,"Lidar_Bounds.geojson")), crs = epsg_data) #read shapefile we made earlier
-  clipped_dtm <- crop(dtm, Lidar_Bounds)
+  if(
+    inherits(study_boundary,"sf")
+    || inherits(study_boundary,"sfc")
+  ){
+    clipped_dtm <- terra::crop(dtm_rast, study_boundary)
+  }
   #sum(is.na(values(clipped_dtm)))#count NANS
-  
-  #write the clipped dtm to a tif file just to be nice
-  writeRaster(clipped_dtm, paste0(project_path,"dtm_Clipped"), format = "GTiff",overwrite=TRUE) #write clipped dtm raster to tif to check
 
+  #write the clipped dtm to a tif file just to be nice
+  terra::writeRaster(
+    x = clipped_dtm
+    , filename = file.path(outdir,"dtm_Clipped.tif")
+    , overwrite = TRUE
+  ) #write clipped dtm raster to tif to check
 
   ### Write to FORTRAN File in format needed for QUIC-Fire (and FIRETEC)
 
   # Flip the raster over the y-axis
-  raster_data <- flip(clipped_dtm, direction = 'y')
-  
+  raster_data <- terra::flip(clipped_dtm, direction = "vertical")
+
   # Extract the raster values
-  values <- getValues(raster_data)
-  
+  values <- terra::values(raster_data) %>% c()
+
   # Open a connection to the unformatted Fortran file
-  fortran_file <- file(paste0(project_path,"topo.dat"), "wb")
-  
+  fortran_file <- file(file.path(outdir,"topo.dat"), "wb")
+
   # Write the data to the file
-  writeBin(charToRaw("BRUH"), fortran_file) #Topo requires a header of 4 bits... this works and brings me joy
+  writeBin(charToRaw("BRUH"), fortran_file) #Topo requires a header of 4 bits... this works and brings Sophie B. joy
   writeBin(values, fortran_file, size = 4)  # Assuming 4-byte (32-bit) floats
-  
+
   # Close the file connection
   close(fortran_file)
-  print('Written topo.dat to fortran file')
+
+  message(paste0(
+    "exported QUIC-Fire topo.dat to:"
+    , "\n ........ "
+    , file.path(outdir,"topo.dat")
+  ))
+
+  return(clipped_dtm)
+}
+
+
+#######################################################
+# intermediate function 5
+# Format and export the data to work directly in TREES (default of 2m horizontal resolution) with Fuellist
+#######################################################
+export_to_TREES <- function(lines, data, box_coords, project_path,
+                            litter=list( 'ilitter'  = 0,# 0 = no litter, 1 = litter
+                                         'lrho'     = 4.667, #litter bulk density
+                                         'lmoisture'= 0.06,  #litter moisture
+                                         'lss'      = 0.0005,#litter sizescale
+                                         'ldepth'   = 0.06), #litter depth
+                            grass=list(  'igrass'   = 0,# 0 = no grass, 1 = grass
+                                         'grho'     = 1.17, #grass bulk density
+                                         'gmoisture'= 0.06,  #grass moisture
+                                         'gss'      = 0.0005,#grass sizescale
+                                         'gdepth'   = 0.27), #grass depth
+                            topofile='flat',CBD_choice="cruz_tree_kg_per_m3",horizontal_resolution=2)
+{
+
+
+    data <- data %>% as.data.frame %>% dplyr::select(-geom)   #remove geometry column
+
+    #Convert coordinates to be relative to SW corner of that geojson we made earlier
+    data$x_coord = data$tree_x - box_coords$xmin
+    data$y_coord = data$tree_y - box_coords$ymin
+
+    #Rearrange the dataframe columns
+    treelist <- data %>% dplyr::select(sp,x_coord,y_coord,tree_height_m,tree_cbh_m,crown_dia_m,max_crown_diam_height_m,CBD_choice,moist,ss) %>%
+      mutate(across(where(is.numeric), ~ round(., 4))) #round to 4 decimal places for clarity (and TREES doesn't need that much precision)
+
+    #remove trees with no data in row
+    treelist <- na.omit(treelist)
+
+    #write full George treelist to formatted txt file (MUST BE A TEXTFILE WITHOUT HEADERS)
+    write.table(treelist, file=paste0(project_path,"Cloud2Trees_TreeList.txt"), row.names = FALSE,sep=" ",  col.names=FALSE)
+
+    print("Exported Treelist for LANL TREES Program!")
+
+    nz = ceiling(max(treelist$tree_height_m)) + 1 #max tree height + 1 m
+
+    # Make Fuellist for TREES
+    lines[4]  <- paste0("      nx  = "      ,box_coords$nx)#nx
+    lines[5]  <- paste0("      ny  = "      ,box_coords$ny)#ny
+    lines[6]  <- paste0("      nz  = "      ,nz)#nz
+    lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
+    lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
+    lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
+    lines[36] <- paste0("      treefile = '",project_path,"Cloud2Trees_DomainSW.txt'")#treefile path
+    lines[37] <- paste0("      ndatax = "   ,box_coords$width)#ndatax
+    lines[38] <- paste0("      ndatay = "   ,box_coords$length)#ndatay
+
+    #Litter
+    lines[44] <- paste0("      ilitter = "  ,litter$ilitter)# ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
+    lines[47] <- paste0("      lrho = "     ,litter$lrho)
+    lines[48] <- paste0("      lmoisture = ",litter$lmoisture)
+    lines[49] <- paste0("      lss = "      ,litter$lss)
+    lines[50] <- paste0("      ldepth = "   ,litter$ldepth)
+
+    #Grass
+    lines[71] <- paste0("      igrass = "   ,grass$igrass)
+    lines[75] <- paste0("      grho = "     ,grass$grho)
+    lines[76] <- paste0("      gmoisture = ",grass$gmoisture)
+    lines[77] <- paste0("      gss = "      ,grass$gss)
+    lines[78] <- paste0("      gdepth = "   ,grass$gdepth)
+
+    print(lines)
+
+    writeLines(lines, paste0(project_path,"fuellist"))
+
+    print('Exported TREES Fuellist')
+
 }
