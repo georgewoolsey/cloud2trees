@@ -47,7 +47,7 @@
 #' * and one of `dbh_cm`, `dbh_m`, or  `basal_area_m2` (e.g. as exported by [trees_dbh()])
 #' @param crs string. A crs string as returned from [sf::st_crs()] or the EPSG code of the x,y coordinates.
 #' Defaults to the crs of the `tree_list` data if of class "sf".
-#' @param study_boundary sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
+#' @param study_boundary sf. The boundary of the study area to define the area of interest which may extend beyond the space with trees.
 #' If no boundary given, the AOI will be built from location of trees in the tree list.
 #' @param input_foresttype_dir directory where Forest Type Groups data exists. Use [get_foresttype()] first.
 #' @param max_crown_kg_per_m3 numeric. the maximum CBD of the tree crown in kilograms per cubic meter.
