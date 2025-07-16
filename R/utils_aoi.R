@@ -223,9 +223,10 @@ quicfire_define_domain <- function(
 
   # write it
   # writes to geojson in WGS84
+  fp <- file.path(normalizePath(outdir),"Lidar_Bounds.geojson")
   sf::st_write(
     bbox
-    , file.path(outdir,"Lidar_Bounds.geojson")
+    , fp
     , driver = "GeoJSON"
     , delete_dsn = TRUE
   )
@@ -233,7 +234,7 @@ quicfire_define_domain <- function(
   message(paste0(
     "exported QUIC-Fire domain to:"
     , "\n ........ "
-    , file.path(outdir,"Lidar_Bounds.geojson")
+    , fp
   ))
 
   # make box_coords df
@@ -250,7 +251,10 @@ quicfire_define_domain <- function(
       , length = length
     )
 
-  return(box_coords_df)
+  return(list(
+    quicfire_domain_df = box_coords_df
+    , domain_path = fp
+  ))
 
 }
 
@@ -277,21 +281,19 @@ quicfire_dtm_topofile <- function(
       && dir.exists(file.path(dtm_rast))
     ){
       # try to read directory for dtm_rast files
-      fls <- list.files(
-        file.path(dtm_rast)
-        , pattern = "dtm_.*\\.tif$"
-        , full.names = TRUE
-      )
+      search_dir_final_detected_ans <- search_dir_final_detected(file.path(dtm_rast))
+      dtm_flist <- search_dir_final_detected_ans$dtm_flist
+
       # stop it if no files
-      if(length(fls)<1){
+      if(length(dtm_flist)<1){
         stop(paste0(
           "no DTM raster file found at: "
           , "\n .... "
-          , file.path(dtm_rast)
+          , file.path(normalizePath(dtm_rast))
         ))
       }
       # read it
-      dtm_rast <- terra::rast(fls[1]) %>% ## only reads one file...but what if multiple?
+      dtm_rast <- terra::rast(dtm_flist[1]) %>% ## only reads one file...but what if multiple?
         terra::subset(1)
 
     }else if(any(stringr::str_ends(dtm_rast, ".*\\.(tif|tiff)$"))){
@@ -366,7 +368,8 @@ quicfire_dtm_topofile <- function(
   values <- terra::values(raster_data) %>% c()
 
   # Open a connection to the unformatted Fortran file
-  fortran_file <- file(file.path(outdir,"topo.dat"), "wb")
+  fp <- file.path(normalizePath(outdir),"topo.dat")
+  fortran_file <- file(fp, "wb")
 
   # Write the data to the file
   writeBin(charToRaw("BRUH"), fortran_file) #Topo requires a header of 4 bits... this works and brings Sophie B. joy
@@ -378,10 +381,13 @@ quicfire_dtm_topofile <- function(
   message(paste0(
     "exported QUIC-Fire topo.dat to:"
     , "\n ........ "
-    , file.path(outdir,"topo.dat")
+    , fp
   ))
 
-  return(clipped_dtm)
+  return(list(
+    dtm = clipped_dtm
+    , topofile_path = fp
+  ))
 }
 
 #######################################################
@@ -401,43 +407,62 @@ quicfire_get_fuellist <- function() {
 # check the fuellist
 #######################################################
 quicfire_check_fuellist <- function(fuellist) {
-  # get the parameters in order from fuellist
-    # quicfire_get_fuellist() %>%
-    #   dplyr::as_tibble() %>%
-    #   dplyr::rename(huh=1) %>%
-    #   dplyr::mutate(huh = stringr::str_squish(huh)) %>%
-    #   # remove comments and blanks
-    #   dplyr::filter(
-    #     !stringr::str_starts(huh, pattern = "\\!")
-    #     & huh!=""
-    #     & !is.na(huh)
-    #   ) %>%
-    #   # get the name of the parameter
-    #   dplyr::mutate(
-    #     parameter = stringr::word(huh, sep = "=") %>% stringr::str_squish()
-    #   ) %>%
-    #   dplyr::pull(parameter) %>%
-    #   paste(collapse = ",")
+  # # get the parameters in order from fuellist
+  #   quicfire_get_fuellist() %>%
+  #     dplyr::as_tibble() %>%
+  #     dplyr::rename(huh=1) %>%
+  #     dplyr::mutate(
+  #       huh = stringr::str_squish(huh)
+  #       , row_number = dplyr::row_number()
+  #     ) %>%
+  #     # remove comments and blanks
+  #     dplyr::filter(
+  #       !stringr::str_starts(huh, pattern = "\\!")
+  #       & huh!=""
+  #       & !is.na(huh)
+  #     ) %>%
+  #     # get the name of the parameter
+  #     dplyr::mutate(
+  #       parameter = stringr::word(huh, sep = "=") %>% stringr::str_squish()
+  #     ) %>%
+  #     # dplyr::pull(parameter) %>%
+  #     dplyr::pull(row_number) %>%
+  #     paste(collapse = ",")
+
 
     # the parameters in order form fuellist
-    orig <- c(
-      # firetech domain info
-      "nx","ny","nz","dx","dy","dz","aa1","singlefuel","lreduced","topofile"
-      # data import from existing files
-      ,"ifuelin","inx","iny","inz","idx","idy","idz","iaa1","infuel","intopofile","rhoffile","ssfile","moistfile","afdfile"
-      # input trees dataset info
-      ,"itrees","tfuelbins","treefile","ndatax","ndatay","datalocx","datalocy"
-      # litter switch
-      ,"ilitter","litterconstant","lrho","lmoisture","lss","ldepth","windprofile","YearsSinceBurn","StepsPerYear"
-      ,"relhum","grassstep","iFIA","FIA","randomwinds","litout","gmoistoverride","uavg","vavg","ustd","vstd"
-      # grass switch
-      ,"igrass","ngrass","grassconstant","grho","gmoisture","gss","gdepth"
-      # option to output tree list and fuellist
-      ,"verbose"
-    ) %>%
-    dplyr::as_tibble() %>%
-    dplyr::rename(parameter=1) %>%
-    dplyr::mu
+    orig <- dplyr::tibble(
+      parameter = c(
+        # firetech domain info
+        "nx","ny","nz","dx","dy","dz","aa1","singlefuel","lreduced","topofile"
+        # data import from existing files
+        ,"ifuelin","inx","iny","inz","idx","idy","idz","iaa1","infuel","intopofile","rhoffile","ssfile","moistfile","afdfile"
+        # input trees dataset info
+        ,"itrees","tfuelbins","treefile","ndatax","ndatay","datalocx","datalocy"
+        # litter switch
+        ,"ilitter","litterconstant","lrho","lmoisture","lss","ldepth","windprofile","YearsSinceBurn","StepsPerYear"
+        ,"relhum","grassstep","iFIA","FIA","randomwinds","litout","gmoistoverride","uavg","vavg","ustd","vstd"
+        # grass switch
+        ,"igrass","ngrass","grassconstant","grho","gmoisture","gss","gdepth"
+        # option to output tree list and fuellist
+        ,"verbose"
+      )
+      , row_number = c(
+        # firetech domain info
+        4,5,6,7,8,9,10,11,12,13
+        # data import from existing files
+        ,17,18,19,20,21,22,23,24,25,26,27,28,29,30
+        # input trees dataset info
+        ,34,35,36,37,38,39,40
+        # litter switch
+        ,44,46,47,48,49,50,53,54,55
+        ,56,57,58,59,60,62,63,64,65,66,67
+        # grass switch
+        ,71,73,74,75,76,77,78
+        # option to output tree list and fuellist
+        ,82
+      )
+    )
 
     # check
     if(!inherits(fuellist,"character")){stop("this fuellist isn't even character")}
@@ -447,7 +472,10 @@ quicfire_check_fuellist <- function(fuellist) {
         fuellist %>%
           dplyr::as_tibble() %>%
           dplyr::rename(huh=1) %>%
-          dplyr::mutate(huh = stringr::str_squish(huh)) %>%
+          dplyr::mutate(
+            huh = stringr::str_squish(huh)
+            , row_number = dplyr::row_number()
+          ) %>%
           # remove comments and blanks
           dplyr::filter(
             !stringr::str_starts(huh, pattern = "\\!")
@@ -458,13 +486,15 @@ quicfire_check_fuellist <- function(fuellist) {
           dplyr::mutate(
             parameter = stringr::word(huh, sep = "=") %>% stringr::str_squish()
           )
-        , by = "parameter"
-      )
+        , by = dplyr::join_by("parameter", "row_number")
+      ) %>%
+      dplyr::mutate(l = stringr::str_c(row_number,parameter,sep=":"))
+
     if(nrow(comp)!=0){
       stop(paste0(
-        "fuellist is missing parameters listed below. see `quicfire_get_fuellist()`"
+        "fuellist has missing or unordered parameters listed below (expected_row:parameter). see `quicfire_get_fuellist()`"
         , "\n   "
-        , paste(comp$parameter, collapse = ", ")
+        , paste(comp$l, collapse = ", ")
       ))
     }else{
       return(T)
@@ -473,15 +503,15 @@ quicfire_check_fuellist <- function(fuellist) {
 # quicfire_check_fuellist(quicfire_get_fuellist() %>% sample(66))
 
 #######################################################
-# intermediate function 5
+# intermediate function 87
 # Format and export the data to work directly in TREES (default of 2m horizontal resolution) with Fuellist
 # could eventually just use lanl trees to directly generate QF input?
 # https://github.com/lanl/Trees/
 #######################################################
 make_lanl_trees_input <- function(
-  tree_list = clip_tree_list_aoi_ans$tree_list
-  , quicfire_domain_df = quicfire_domain_df
-  , topofile = "flat"
+  tree_list
+  , quicfire_domain_df
+  , topofile = "flat" #This is always flat for QF, but can be applied as a pathfile to topo.dat (eg "C:\\data\\topo.dat") for FIRETEC
   , cbd_col_name = "landfire_tree_kg_per_m3" # "cruz_tree_kg_per_m3" "landfire_tree_kg_per_m3"
   , horizontal_resolution = 2
   , outdir = tempdir()
@@ -519,6 +549,19 @@ make_lanl_trees_input <- function(
   ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  # topofile
+  if(
+    stringr::str_ends(tolower(topofile),"\\.dat")
+  ){
+    # make it the proper path format
+    topofile <- topofile %>%
+      normalizePath() %>%
+      stringr::str_replace_all(pattern = "/", replacement = "\\\\\\") %>% # hopefully TREES can read this filepath format?
+      sQuote(q=F) # q=F > the undirectional ASCII quotation style is used
+  }else if(tolower(topofile)!="flat"){
+    stop("topofile must be either 'flat' or the path to a '.dat' file")
+  }
 
 
   # outdir
@@ -612,7 +655,7 @@ make_lanl_trees_input <- function(
   ))
 
   # enclose the fpath string in single quotes
-  treefile_path <- sQuote(treefile_path)
+  treefile_path_q <- sQuote(treefile_path, q = F) # q=F > the undirectional ASCII quotation style is used
 
   ###############################
   #### !!!! now the fuellist
@@ -627,7 +670,7 @@ make_lanl_trees_input <- function(
   lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
   lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
   lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
-  lines[36] <- paste0("      treefile = " ,treefile_path)#treefile path
+  lines[36] <- paste0("      treefile = " ,treefile_path_q)#treefile path
   lines[37] <- paste0("      ndatax = "   ,quicfire_domain_df$width[1])#ndatax
   lines[38] <- paste0("      ndatay = "   ,quicfire_domain_df$length[1])#ndatay
 
@@ -646,18 +689,19 @@ make_lanl_trees_input <- function(
   lines[78] <- paste0("      gdepth = "   ,fuel_grass$gdepth[1])
 
   # print(lines)
-
-  writeLines(lines, file.path(outdir,"fuellist"))
+  fuellist_path <- file.path(normalizePath(outdir),"fuellist")
+  writeLines(lines, fuellist_path)
 
   message(paste0(
     "exported TREES program fuellist to:"
     , "\n ........ "
-    , file.path(outdir,"fuellist")
+    , fuellist_path
   ))
 
   return(list(
     treelist = data
-    , fuellist = lines
+    , fuellist_path = fuellist_path
+    , treelist_path = treefile_path
   ))
 }
 
