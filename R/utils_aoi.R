@@ -545,10 +545,8 @@ make_lanl_trees_input <- function(
       dplyr::ungroup()
 
   ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  fuel_litter <- check_fuel_list(fuel_litter, "litter")
+  fuel_grass <- check_fuel_list(fuel_grass, "grass")
 
   # topofile
   if(
@@ -705,7 +703,75 @@ make_lanl_trees_input <- function(
   ))
 }
 
+############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+check_fuel_list <- function(fuel_list,ftype = "grass") {
+  # clean ftype
+    ftype <- dplyr::coalesce(ftype, "") %>%
+      tolower() %>%
+      stringr::str_squish()
+    # potential methods
+    pot_methods <- c("litter", "grass") %>% unique()
+    find_method <- paste(pot_methods, collapse="|")
+    # can i find one?
+    ftype <- stringr::str_extract_all(string = ftype, pattern = find_method) %>%
+      unlist() %>%
+      unique()
+    # make sure at least one is selected
+    # get_list_diff() from get_url_data.R
+    n_methods_not <- get_list_diff(pot_methods, ftype) %>% length()
+    ftype <- ftype[1] # just get the first
+    if(n_methods_not>=length(pot_methods)){
+      stop(paste0(
+        "`ftype` parameter must be one of:\n"
+        , "    "
+        , paste(pot_methods, collapse=", ")
+      ))
+    }
+  # names
+    if(ftype=="grass"){
+      fnames <- c("igrass", "grho", "gmoisture", "gss", "gdepth")
+    }else if(ftype=="litter"){
+      fnames <- c("ilitter", "lrho", "lmoisture", "lss", "ldepth")
+    }else{stop("wrong ftype")}
 
+  # do it
+    expected_len <- 5
+    if(dplyr::coalesce(length(fuel_list),0)!=expected_len){
+      stop(paste0(
+        "incorrect list length in "
+        , ftype
+        , " fuel list. expecting: "
+        , expected_len
+      ))
+    }
+    # get names
+    curr_nms <- names(fuel_list)
+
+    if(inherits(fuel_list,"list") && !is.null(curr_nms)){
+      # check names
+      ndiff <- base::setdiff(fnames,curr_nms)
+      if(length(ndiff)>0){
+        stop(paste0(
+          "incorrect list names in "
+          , ftype
+          , " fuel list. need to add/rename:\n   "
+          , ndiff
+        ))
+      }
+    }else if(inherits(fuel_list,"list") && is.null(curr_nms)){
+      names(fuel_list) <- fnames
+    }else if(inherits(fuel_list,"numeric")){
+      fuel_list <- fuel_list %>% as.list() %>% setNames(fnames)
+    }else{
+      stop(paste0(
+        "incorrect list structure in "
+        , ftype
+        , " fuel list"
+      ))
+    }
+  return(fuel_list)
+}
 
 
 

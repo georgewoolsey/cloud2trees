@@ -17,7 +17,7 @@
 #' If an `sf` class object with POINT geometry (see [sf::st_geometry_type()]), the program will use the data "as-is" and only require the `treeID` column.
 #' @param crs string. A crs string as returned from [sf::st_crs()] or the EPSG code of the x,y coordinates.
 #' Defaults to the crs of the `tree_list` data if of class "sf".
-#' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
+#' @param study_boundary sf. The boundary of the study area to define the area of the regional model.
 #' If no boundary given, regional model will be built from location of trees in the tree list.
 #' @param input_foresttype_dir directory where Forest Type Groups data exists. Use [get_foresttype()] first.
 #' @param max_search_dist_m number. Maximum search distance (m) to obtain forest type group data for trees in `tree_list` that overlap with non-forest data in the original Wilson (2023) data.

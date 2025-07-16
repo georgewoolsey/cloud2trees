@@ -731,7 +731,7 @@ sample_trees_flist <- function(
   ##################################
   # filter
   ##################################
-    trees_sf <- trees_sf %>% 
+    trees_sf <- trees_sf %>%
         # we only need the id
         sf::st_drop_geometry()
   ##################################
@@ -897,6 +897,12 @@ check_trees_poly <- function(fnm, orig_fnm = "the sf object") {
 # function to search a directory for final_detected_tree_tops* and final_detected_crowns* files
 ################################################################################################################################################
 search_dir_final_detected <- function(dir) {
+  if(!dir.exists(dir)){
+    stop(paste0(
+      "could not locate the directory:\n   "
+      , normalizePath(dir)
+    ))
+  }
   # check for crowns
   crowns_flist <- list.files(
     normalizePath(dir)
