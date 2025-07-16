@@ -15,7 +15,7 @@
 #' Defaults to the crs of the `tree_list` data if of class "sf".
 #' @param study_boundary sf. The boundary of the study area to define the area of interest which may extend beyond the space with trees.
 #' This must be an sf class object with a single record. If you need to get the trees within multiple different AOI's, then `purrr::map()` this function.
-#' @param bbox_of_aoi logical. Should the study_boundary be transformed to a bounding box instead of it's original shape for determining the trees within the boundary?
+#' @param bbox_aoi logical. Should the study_boundary be transformed to a bounding box instead of it's original shape for determining the trees within the boundary?
 #' If set to true, the bounding box is created prior to applying the buffer.
 #' @param buffer numeric. Buffer to be applied to the study area prior to determining trees within the boundary.
 #' Units are determined by the horizontal CRS settings of the tree_list data or the CRS of the reproject_epsg.
@@ -28,7 +28,7 @@ clip_tree_list_aoi <- function(
   tree_list
   , crs
   , study_boundary
-  , bbox_of_aoi = F
+  , bbox_aoi = F
   , buffer = 0
   , reproject_epsg = NULL
 ) {
@@ -47,7 +47,7 @@ clip_tree_list_aoi <- function(
   # custom boundary
   study_boundary <- get_custom_aoi(
       study_boundary = study_boundary
-      , bbox_of_aoi = dplyr::coalesce(bbox_of_aoi,FALSE)
+      , bbox_aoi = dplyr::coalesce(bbox_aoi,FALSE)
       , buffer = buffer
       , reproject_epsg = reproject_epsg
     )
@@ -73,7 +73,7 @@ clip_tree_list_aoi <- function(
   # return will include the tree list and the spatial aoi used to filter the list
   ret <- list(
       tree_list = tree_list
-      , aoi = study_boundary # will be the bbox as an sf if bbox_of_aoi
+      , aoi = study_boundary # will be the bbox as an sf if bbox_aoi
     )
 
   if(nrow(tree_list)==0){
@@ -90,7 +90,7 @@ clip_tree_list_aoi <- function(
 #######################################################
 get_custom_aoi <- function(
   study_boundary
-  , bbox_of_aoi = F
+  , bbox_aoi = F
   , buffer = 0
   , reproject_epsg = NULL
 ) {
@@ -144,7 +144,7 @@ get_custom_aoi <- function(
   }
 
   # bbox
-  if(bbox_of_aoi){
+  if(bbox_aoi){
     study_boundary <- sf::st_bbox(study_boundary) %>%
       sf::st_as_sfc()
   }
@@ -236,7 +236,21 @@ quicfire_define_domain <- function(
     , file.path(outdir,"Lidar_Bounds.geojson")
   ))
 
-  return(list("xmin" = xmin, "ymin" = ymin,"nx" = nx, "ny"= ny, "width" = width, "length" = length, "bbox"=bbox))
+  # make box_coords df
+  box_coords_df <- bbox %>%
+    sf::st_as_sf() %>%
+    sf::st_transform(sf::st_crs(sf_data)) %>%
+    sf::st_set_geometry("geometry") %>%
+    dplyr::mutate(
+      xmin = xmin
+      , ymin = ymin
+      , nx = nx
+      , ny= ny
+      , width = width
+      , length = length
+    )
+
+  return(box_coords_df)
 
 }
 
@@ -305,7 +319,7 @@ quicfire_dtm_topofile <- function(
   ){
     study_boundary <- get_custom_aoi(
       study_boundary = study_boundary
-      , bbox_of_aoi = F, buffer = 0
+      , bbox_aoi = F, buffer = 0
       , reproject_epsg = terra::crs(dtm_rast) %>% sf::st_crs()
     )
   }
@@ -370,75 +384,324 @@ quicfire_dtm_topofile <- function(
   return(clipped_dtm)
 }
 
+#######################################################
+# intermediate function 5
+# Read the fuellist example file into a vector of lines (use default version of file and then save to new location, keeping this version)
+#######################################################
+# Read the fuellist example file into a vector of lines (use default version of file and then save to new location, keeping this version)
+# MAKE THIS FILE INHERENT IN THE PACKAGE... USE AS BASELINE FOR TREELIST
+quicfire_get_fuellist <- function() {
+  f <- system.file("extdata", "fuellist", package = "cloud2trees")
+  lines <- readLines(f)
+  return(lines)
+}
+
+#######################################################
+# intermediate function 6
+# check the fuellist
+#######################################################
+quicfire_check_fuellist <- function(fuellist) {
+  # get the parameters in order from fuellist
+    # quicfire_get_fuellist() %>%
+    #   dplyr::as_tibble() %>%
+    #   dplyr::rename(huh=1) %>%
+    #   dplyr::mutate(huh = stringr::str_squish(huh)) %>%
+    #   # remove comments and blanks
+    #   dplyr::filter(
+    #     !stringr::str_starts(huh, pattern = "\\!")
+    #     & huh!=""
+    #     & !is.na(huh)
+    #   ) %>%
+    #   # get the name of the parameter
+    #   dplyr::mutate(
+    #     parameter = stringr::word(huh, sep = "=") %>% stringr::str_squish()
+    #   ) %>%
+    #   dplyr::pull(parameter) %>%
+    #   paste(collapse = ",")
+
+    # the parameters in order form fuellist
+    orig <- c(
+      # firetech domain info
+      "nx","ny","nz","dx","dy","dz","aa1","singlefuel","lreduced","topofile"
+      # data import from existing files
+      ,"ifuelin","inx","iny","inz","idx","idy","idz","iaa1","infuel","intopofile","rhoffile","ssfile","moistfile","afdfile"
+      # input trees dataset info
+      ,"itrees","tfuelbins","treefile","ndatax","ndatay","datalocx","datalocy"
+      # litter switch
+      ,"ilitter","litterconstant","lrho","lmoisture","lss","ldepth","windprofile","YearsSinceBurn","StepsPerYear"
+      ,"relhum","grassstep","iFIA","FIA","randomwinds","litout","gmoistoverride","uavg","vavg","ustd","vstd"
+      # grass switch
+      ,"igrass","ngrass","grassconstant","grho","gmoisture","gss","gdepth"
+      # option to output tree list and fuellist
+      ,"verbose"
+    ) %>%
+    dplyr::as_tibble() %>%
+    dplyr::rename(parameter=1) %>%
+    dplyr::mu
+
+    # check
+    if(!inherits(fuellist,"character")){stop("this fuellist isn't even character")}
+    # compare to orig
+    comp <- orig %>%
+      dplyr::anti_join(
+        fuellist %>%
+          dplyr::as_tibble() %>%
+          dplyr::rename(huh=1) %>%
+          dplyr::mutate(huh = stringr::str_squish(huh)) %>%
+          # remove comments and blanks
+          dplyr::filter(
+            !stringr::str_starts(huh, pattern = "\\!")
+            & huh!=""
+            & !is.na(huh)
+          ) %>%
+          # get the name of the parameter
+          dplyr::mutate(
+            parameter = stringr::word(huh, sep = "=") %>% stringr::str_squish()
+          )
+        , by = "parameter"
+      )
+    if(nrow(comp)!=0){
+      stop(paste0(
+        "fuellist is missing parameters listed below. see `quicfire_get_fuellist()`"
+        , "\n   "
+        , paste(comp$parameter, collapse = ", ")
+      ))
+    }else{
+      return(T)
+    }
+}
+# quicfire_check_fuellist(quicfire_get_fuellist() %>% sample(66))
 
 #######################################################
 # intermediate function 5
 # Format and export the data to work directly in TREES (default of 2m horizontal resolution) with Fuellist
+# could eventually just use lanl trees to directly generate QF input?
+# https://github.com/lanl/Trees/
 #######################################################
-export_to_TREES <- function(lines, data, box_coords, project_path,
-                            litter=list( 'ilitter'  = 0,# 0 = no litter, 1 = litter
-                                         'lrho'     = 4.667, #litter bulk density
-                                         'lmoisture'= 0.06,  #litter moisture
-                                         'lss'      = 0.0005,#litter sizescale
-                                         'ldepth'   = 0.06), #litter depth
-                            grass=list(  'igrass'   = 0,# 0 = no grass, 1 = grass
-                                         'grho'     = 1.17, #grass bulk density
-                                         'gmoisture'= 0.06,  #grass moisture
-                                         'gss'      = 0.0005,#grass sizescale
-                                         'gdepth'   = 0.27), #grass depth
-                            topofile='flat',CBD_choice="cruz_tree_kg_per_m3",horizontal_resolution=2)
-{
+make_lanl_trees_input <- function(
+  tree_list = clip_tree_list_aoi_ans$tree_list
+  , quicfire_domain_df = quicfire_domain_df
+  , topofile = "flat"
+  , cbd_col_name = "landfire_tree_kg_per_m3" # "cruz_tree_kg_per_m3" "landfire_tree_kg_per_m3"
+  , horizontal_resolution = 2
+  , outdir = tempdir()
+  # fuel settings
+  , fuel_litter = list(
+    "ilitter"  = 0 # 0 = no litter, 1 = litter
+    , "lrho"     = 4.667 #litter bulk density
+    , "lmoisture"= 0.06 #litter moisture
+    , "lss"      = 0.0005 #litter sizescale
+    , "ldepth"   = 0.06 #litter depth
+  )
+  , fuel_grass = list(
+    "igrass"   = 0 # 0 = no grass, 1 = grass
+    , "grho"     = 1.17 #grass bulk density
+    , "gmoisture"= 0.06 #grass moisture
+    , "gss"      = 0.0005 #grass sizescale
+    , "gdepth"   = 0.27 #grass depth
+  )
+){
+  # eventually have species-specific fuel settings
+  # this is the parameter str
+  fuel_trees <-
+    dplyr::tibble(
+      "sp" = c(1) #make species column where its all 1 (for now)...idk what the numeric codes in QF are, do you?
+      , "moist" = c(1) #setting moisture at 100% here for now... can be a species-level input
+      , "ss" = c(0.0005) #species-level input, putting as the common value for pine for now (doesn't actually matter for QF atm)
+    ) %>%
+      # this is all just QC that could be done on parameter
+      dplyr::group_by(sp) %>%
+      dplyr::filter(dplyr::row_number()==1) %>%
+      dplyr::ungroup()
+
+  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ############!!!!!!!!!!!!!!! need to check str of fuel_litter and fuel_grass !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-    data <- data %>% as.data.frame %>% dplyr::select(-geom)   #remove geometry column
+  # outdir
+  outdir <- file.path(outdir)
+  if(!dir.exists(outdir)){
+    dir.create(outdir)
+  }
 
+  # Read the fuellist example file into a vector of lines (use default version of file and then save to new location, keeping this version)
+  lines <- quicfire_get_fuellist()
+  quicfire_check_fuellist(lines)
+
+  # check the str of the quicfire_domain_df
+  check_df_cols_all_missing(
+    df = quicfire_domain_df
+    , col_names = c(
+      "xmin","ymin","nx","ny","width","length"
+    )
+    , check_vals_missing = T
+  )
+
+  # convert tree list to spatial points data
+  tree_list <- check_spatial_points(tree_list)
+
+  # check the str of the tree_list
+  check_df_cols_all_missing(
+    tree_list
+    , col_names = c(
+      "tree_x", "tree_y"
+      , "tree_height_m", "tree_cbh_m", "crown_dia_m", "max_crown_diam_height_m"
+      , cbd_col_name
+    )
+    , check_vals_missing = T
+    , all_numeric = T
+  )
+
+  # set up data for return
+  data <-
+    tree_list %>%
+    sf::st_drop_geometry() %>%
+    #make species column where its all 1 (for now)...idk what the numeric codes in QF are, do you?
+    dplyr::mutate(sp = 1) %>% ### eventually this can be the QF species codes
+    # add fuel_trees
+    dplyr::left_join(fuel_trees, by = "sp") %>%
     #Convert coordinates to be relative to SW corner of that geojson we made earlier
-    data$x_coord = data$tree_x - box_coords$xmin
-    data$y_coord = data$tree_y - box_coords$ymin
-
-    #Rearrange the dataframe columns
-    treelist <- data %>% dplyr::select(sp,x_coord,y_coord,tree_height_m,tree_cbh_m,crown_dia_m,max_crown_diam_height_m,CBD_choice,moist,ss) %>%
-      mutate(across(where(is.numeric), ~ round(., 4))) #round to 4 decimal places for clarity (and TREES doesn't need that much precision)
-
+    dplyr::mutate(
+      x_coord = tree_x - quicfire_domain_df$xmin[1]
+      , y_coord = tree_y - quicfire_domain_df$ymin[1]
+    ) %>%
+    # select and rearrange the columns
+    dplyr::select(dplyr::all_of(c(
+      "sp", "x_coord", "y_coord"
+      , "tree_height_m", "tree_cbh_m", "crown_dia_m", "max_crown_diam_height_m"
+      , cbd_col_name
+      , "moist", "ss"
+    ))) %>%
+    #round to 4 decimal places for clarity (and TREES doesn't need that much precision)
+    dplyr::mutate(dplyr::across(
+      dplyr::where(is.numeric)
+      , ~ round(.x, 4))
+    ) %>%
     #remove trees with no data in row
-    treelist <- na.omit(treelist)
+    tidyr::drop_na()  # remove rows with any NA values in any column
+    # # tidyr::drop_na(col1,col2) # remove rows with NA values in select columns
+    # # dplyr::filter( # remove rows with NA values in all columns...i.e. keep rows where AT LEAST ONE column is NOT NA
+    # #   dplyr::if_any(
+    # #     dplyr::everything()
+    # #     , ~ !is.na(.x))
+    # # )
 
-    #write full George treelist to formatted txt file (MUST BE A TEXTFILE WITHOUT HEADERS)
-    write.table(treelist, file=paste0(project_path,"Cloud2Trees_TreeList.txt"), row.names = FALSE,sep=" ",  col.names=FALSE)
+  # stop it if too many trees dropped
+  if( nrow(data) < floor(nrow(tree_list)*0.9) ){
+    stop("more than 10% of data dropped due to missing values in tree attributes...fill in missing data first")
+  }
 
-    print("Exported Treelist for LANL TREES Program!")
+  #write full cloud2trees treelist to formatted txt file (MUST BE A TEXTFILE WITHOUT HEADERS)
+  treefile_path <- file.path(normalizePath(outdir),"Cloud2Trees_TreeList.txt") %>%
+    stringr::str_replace_all(pattern = "/", replacement = "\\\\\\") # hopefully TREES can read this filepath format?
+  write.table(
+    data
+    , file = treefile_path
+    , row.names = FALSE
+    , sep = " "
+    , col.names = FALSE
+  )
 
-    nz = ceiling(max(treelist$tree_height_m)) + 1 #max tree height + 1 m
+  message(paste0(
+    "exported Treelist for LANL TREES program to:"
+    , "\n ........ "
+    , treefile_path
+  ))
 
-    # Make Fuellist for TREES
-    lines[4]  <- paste0("      nx  = "      ,box_coords$nx)#nx
-    lines[5]  <- paste0("      ny  = "      ,box_coords$ny)#ny
-    lines[6]  <- paste0("      nz  = "      ,nz)#nz
-    lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
-    lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
-    lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
-    lines[36] <- paste0("      treefile = '",project_path,"Cloud2Trees_DomainSW.txt'")#treefile path
-    lines[37] <- paste0("      ndatax = "   ,box_coords$width)#ndatax
-    lines[38] <- paste0("      ndatay = "   ,box_coords$length)#ndatay
+  # enclose the fpath string in single quotes
+  treefile_path <- sQuote(treefile_path)
 
-    #Litter
-    lines[44] <- paste0("      ilitter = "  ,litter$ilitter)# ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
-    lines[47] <- paste0("      lrho = "     ,litter$lrho)
-    lines[48] <- paste0("      lmoisture = ",litter$lmoisture)
-    lines[49] <- paste0("      lss = "      ,litter$lss)
-    lines[50] <- paste0("      ldepth = "   ,litter$ldepth)
+  ###############################
+  #### !!!! now the fuellist
+  ## could make this a separate fn eventually
+  ###############################
+  nz <- ceiling(max(data$tree_height_m)) + 1 #max tree height + 1 m
 
-    #Grass
-    lines[71] <- paste0("      igrass = "   ,grass$igrass)
-    lines[75] <- paste0("      grho = "     ,grass$grho)
-    lines[76] <- paste0("      gmoisture = ",grass$gmoisture)
-    lines[77] <- paste0("      gss = "      ,grass$gss)
-    lines[78] <- paste0("      gdepth = "   ,grass$gdepth)
+  # Make Fuellist for TREES
+  lines[4]  <- paste0("      nx  = "      ,quicfire_domain_df$nx[1])#nx
+  lines[5]  <- paste0("      ny  = "      ,quicfire_domain_df$ny[1])#ny
+  lines[6]  <- paste0("      nz  = "      ,nz)#nz
+  lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
+  lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
+  lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
+  lines[36] <- paste0("      treefile = " ,treefile_path)#treefile path
+  lines[37] <- paste0("      ndatax = "   ,quicfire_domain_df$width[1])#ndatax
+  lines[38] <- paste0("      ndatay = "   ,quicfire_domain_df$length[1])#ndatay
 
-    print(lines)
+  #Litter
+  lines[44] <- paste0("      ilitter = "  ,fuel_litter$ilitter[1])# ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
+  lines[47] <- paste0("      lrho = "     ,fuel_litter$lrho[1])
+  lines[48] <- paste0("      lmoisture = ",fuel_litter$lmoisture[1])
+  lines[49] <- paste0("      lss = "      ,fuel_litter$lss[1])
+  lines[50] <- paste0("      ldepth = "   ,fuel_litter$ldepth[1])
 
-    writeLines(lines, paste0(project_path,"fuellist"))
+  #Grass
+  lines[71] <- paste0("      igrass = "   ,fuel_grass$igrass[1])
+  lines[75] <- paste0("      grho = "     ,fuel_grass$grho[1])
+  lines[76] <- paste0("      gmoisture = ",fuel_grass$gmoisture[1])
+  lines[77] <- paste0("      gss = "      ,fuel_grass$gss[1])
+  lines[78] <- paste0("      gdepth = "   ,fuel_grass$gdepth[1])
 
-    print('Exported TREES Fuellist')
+  # print(lines)
 
+  writeLines(lines, file.path(outdir,"fuellist"))
+
+  message(paste0(
+    "exported TREES program fuellist to:"
+    , "\n ........ "
+    , file.path(outdir,"fuellist")
+  ))
+
+  return(list(
+    treelist = data
+    , fuellist = lines
+  ))
 }
+
+
+
+
+
+
+# library(tidyverse)
+# # customize the aoi settings and clip the tree list
+# clip_tree_list_aoi_ans <- clip_tree_list_aoi(
+#   tree_list = sf::st_read("c:/data/usfs/dod_cloud2trees_demo/data/SycanMarsh/als_2021_processing/point_cloud_processing_delivery/final_detected_tree_tops.gpkg")
+#   , study_boundary = sf::st_read("c:/data/usfs/dod_cloud2trees_demo/data/SycanMarsh/Sycan_2A.shp")
+#   , bbox_aoi = T
+#   , buffer = 50
+#   , reproject_epsg = NULL
+# )
+# clip_tree_list_aoi_ans %>% names()
+# inherits(clip_tree_list_aoi_ans$aoi,"sfc")
+# sf::st_crs(clip_tree_list_aoi_ans$aoi)
+# ggplot() + geom_sf(data=clip_tree_list_aoi_ans$aoi)
+# # do the domain thing
+# quicfire_domain_df <- quicfire_define_domain(
+#   sf_data = clip_tree_list_aoi_ans$aoi
+#   , horizontal_resolution = 2
+#   , outdir = tempdir()
+# )
+# quicfire_domain_df %>% dplyr::glimpse()
+# quicfire_domain_df %>% sf::st_crs(parameters = T)
+# nrow(quicfire_domain_df)
+# # don't forget the fortran flipped over rast
+# quicfire_dtm_topofile_ans <- quicfire_dtm_topofile(
+#   dtm_rast = terra::rast("c:/data/usfs/dod_cloud2trees_demo/data/SycanMarsh/als_2021_processing/point_cloud_processing_delivery/dtm_1m.tif")
+#   , horizontal_resolution = 2
+#   , study_boundary = quicfire_domain_df
+#   , outdir = tempdir()
+# )
+# # terra::plot(quicfire_dtm_topofile_ans)
+# # terra::plot(
+# #   quicfire_domain_df %>%
+# #     sf::st_transform(terra::crs(quicfire_dtm_topofile_ans)) %>%
+# #     terra::vect()
+# #   , add = T, border = "blue", col = NA
+# #   , lwd = 22
+# # )
+#
+# quicfire_get_fuellist() %>% length()
