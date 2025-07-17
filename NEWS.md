@@ -1,3 +1,5 @@
+# cloud2trees 0.7.0
+
 # cloud2trees 0.6.9
 
 Saving models used to estimate missing HMD and CBH values. Note, in the actual missing value estimation many RF models are estimated and model averaging is used. However, only the first estimated model is saved in this new export functionality which does not fully represent the process used to fill in missing values.
