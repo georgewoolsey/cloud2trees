@@ -396,6 +396,64 @@ apply_st_transform_las <- function(
 
 
 ###___________________________________________###
+# adjust the resolution of a raster to be in exactly the target resolution
+###___________________________________________###
+adjust_raster_resolution <- function(
+  raster_object
+  , target_resolution
+  , fun = mean
+  , resample_method = "bilinear"
+) {
+  # check if the input is a spatraster object
+  if (!inherits(raster_object, "SpatRaster")) {
+    stop("Input must be a SpatRaster object.")
+  }
+
+  current_resolution <- terra::res(raster_object)[1] # get current resolution (assuming square pixels)
+  result_raster <- NULL
+
+  # aggregating (decreasing resolution)
+  if (target_resolution > current_resolution) {
+    # calculate the aggregation factor
+    # we aim for an integer factor for aggregate, but then refine with resample
+    fact <- max(1, floor(target_resolution / current_resolution))
+
+    # aggregate the raster
+    aggregated_raster <- terra::aggregate(raster_object, fact = fact, fun = fun)
+    result_raster <- aggregated_raster  
+  }else if(target_resolution < current_resolution) {
+    # disaggregating (increasing resolution)
+
+    # calculate the disaggregation factor
+    # we aim for an integer factor for disaggregate, but then refine with resample
+    fact <- max(1, floor(current_resolution / target_resolution)) # round down to ensure disagg factor is not too large
+    
+    # disaggregate the raster
+    disaggregated_raster <- terra::disagg(raster_object, fact = fact)
+    result_raster <- disaggregated_raster
+
+  }else if(target_resolution == current_resolution){
+    return(raster_object)
+  } else {
+    stop("this resolution is unresovable D: ")
+  }
+
+  # check if the resulting resolution is exactly the target resolution
+  if (abs(terra::res(result_raster)[1] - target_resolution) > 0.0001) { # Using a small tolerance for comparison
+    message("the initial aggregation/disaggregation did not result in the exact target resolution. resampling to achieve the precise target resolution.")
+    
+    # create a dummy raster with the desired resolution and extent for resampling
+    template_raster <- terra::rast(result_raster)
+    terra::res(template_raster) <- target_resolution
+    
+    # resample the result_raster to the exact target resolution
+    result_raster <- terra::resample(result_raster, template_raster, method = resample_method)
+  }
+
+  return(result_raster)
+}
+
+###___________________________________________###
 # check epsg code is numeric
 ###___________________________________________###
 check_epsg_code <- function(new_epsg_code) {

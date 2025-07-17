@@ -19,7 +19,7 @@ If an \code{sf} class object with POINT geometry (see \code{\link[sf:st_geometry
 \item{crs}{string. A crs string as returned from \code{\link[sf:st_crs]{sf::st_crs()}} or the EPSG code of the x,y coordinates.
 Defaults to the crs of the \code{tree_list} data if of class "sf".}
 
-\item{study_boundary}{sf. The boundary of the study are to define the area of the regional model.
+\item{study_boundary}{sf. The boundary of the study area to define the area of the regional model.
 If no boundary given, regional model will be built from location of trees in the tree list.}
 
 \item{input_foresttype_dir}{directory where Forest Type Groups data exists. Use \code{\link[=get_foresttype]{get_foresttype()}} first.}

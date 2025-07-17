@@ -1,0 +1,82 @@
+! ----------------------------------
+! FIRETEC domain info
+! ----------------------------------
+      nx  = 64
+      ny  = 64
+      nz  = 29
+      dx  = 2
+      dy  = 2
+      dz  = 1.0                    ! Grid Resolution [m]
+      aa1 = 0.1                     ! Vertical stretching component [default=0.1]
+      singlefuel = 1                ! Flag forcing single fuel type instead of multiple fuels
+      lreduced = 0                  ! Flag to reduce output vertical number of cells to only layers with fuel
+      topofile = flat
+! ----------------------------------
+! Data import from existing files
+! ----------------------------------
+      ifuelin = 0                               ! Fuel read-in flag (0 no existing fuel files, 1 read-in exisiting fuel files)
+      inx = 100 
+      iny = 100 
+      inz = 41                                  ! Size of HIGRAD/FIRETEC grid [cells]
+      idx = 2.0 
+      idy = 2.0 
+      idz = 15.0                                ! Grid Resolution [m]
+      iaa1 = 0.1                                ! Vertical stretching component [default=0.1]
+      infuel = 2                                ! Number of Fuel Types
+      intopofile = 'flat'                       ! 'flat' -> no topo, 'name.dat' of topo file for topo JO
+      rhoffile = 'treesrhof.dat.orig'           ! Existing rhof fuel file
+      ssfile   = 'treesss.dat.orig'             ! Existing sizescale fuel file
+      moistfile = 'treesmoist.dat.orig'         ! Existing moisture fuel file
+      afdfile  = 'treesfueldepth.dat.orig'      ! Existing depth fuel file
+! ----------------------------------
+! Input trees dataset info
+! ----------------------------------
+      itrees = 2                        ! Trees flag (1 is generalized tree data, 2 is specific tree data with locations, 3 is specific tree data with randomized locations)
+      tfuelbins = 1                     ! Number of size bins to distribute branches
+      treefile = "C:/Users/sbonner/Documents/QUICFIRE/GitLab/gui/GUI/projects/FortHuachuca/Sophie_Treelist.txt"
+      ndatax = 128
+      ndatay = 128
+      datalocx = 0                       !x coordinate for bottom left corner where dataset should be placed 
+      datalocy = 0                       !y coordinate for bottom left corner where dataset should be placed 
+! ----------------------------------
+! Litter switch
+! ----------------------------------
+      ilitter = 0
+      !ilitter eq 1 (BASIC) info
+      litterconstant = 5  ! Exponential constant to determine increase of litter mass under trees
+      lrho = 4.667
+      lmoisture = 0.06
+      lss = 0.0005
+      ldepth = 0.06
+      
+      !ilitter eq 2 (DUET) info    
+      windprofile = 2                 ! type of windprofile used by DUET: 0 = user provided below, 1 = binary wind profile, 2 = random generated
+      YearsSinceBurn = 1              ! number of years since the last burn
+      StepsPerYear = 1                ! number of time steps during the year: 1 = yearly, 2 = semiyearly, 4 = seasonally, 6 = bimonthly, 12 = monthly
+      relhum = 0.1                    ! relative humidity of the area
+      grassstep = 1                   ! StepPerYear in which the grass grows
+      iFIA = 1
+      FIA = 121,819
+      randomwinds = 2                 ! if windprofile=2, choose 1 for up to 3m/s, 2 for up to 6m/s, 3 for up to 9m/s, etc.
+      
+      litout = 0                      ! flag to turn on extra output files for visualizations of DUET functionality
+      gmoistoverride = 0        ! value for moisture if override is desired; SET TO 0 TO TURN OFF
+      uavg = 0,0,15,15,20             ! wind velocity m/s average (u) each year since burn
+      vavg = 0,0,15,15,20             ! wind velocity m/s average (v) each year since burn
+      ustd = 0,8,0,8,20               ! wind velocity m/s STDev (u) each year since burn
+      vstd = 0,8,0,8,20               ! wind velocity m/s STDev (v) each year since burn
+! ----------------------------------
+! Grass switch
+! ----------------------------------
+      igrass = 1
+      !igrass options 
+      ngrass = 1                ! Number of Grass Species
+      grassconstant = 5         ! Exponential constant used to determine the decay of grass mass with tree shading
+      grho = 0.27
+      gmoisture = 0.09
+      gss = 0.0005
+      gdepth = 0.05
+! ----------------------------------
+! Option to output tree list and fuellist
+! ----------------------------------
+      verbose = 0              !flag to output treelist and fuellist from resulting run: 0=No ; 1=Yes

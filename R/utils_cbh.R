@@ -615,26 +615,35 @@ trees_cbh_flist <- function(
 }
 
 ################################################################################################################################################
-# function to sample from a list of files
-# if the tree polygon data is split across multiple files
+# function to read a list of files
+# if the tree polygon/point data is split across multiple files
 # pass this function the list of files with spatial tree crown polygons
-# and it will return sample from all polygons found in the list of files
+# and it will read it all
 ################################################################################################################################################
-sample_trees_flist <- function(
-  flist
-  , tree_sample_n = NA
-  , tree_sample_prop = NA
-) {
-  ##################################
-  # check sample proportion
-  ##################################
-    check_sample_vals_ans <- check_sample_vals(
-      tree_sample_n = tree_sample_n
-      , tree_sample_prop = tree_sample_prop
-      , def_tree_sample_n = 333
-    )
-    tree_sample_n <- check_sample_vals_ans$tree_sample_n
-    tree_sample_prop <- check_sample_vals_ans$tree_sample_prop
+read_trees_flist <- function(flist,which_trees = "tops"){
+  # clean which_trees
+    which_trees <- dplyr::coalesce(which_trees, "") %>%
+      tolower() %>%
+      stringr::str_squish()
+    # potential methods
+    pot_methods <- c("crowns", "tops") %>% unique()
+    find_method <- paste(pot_methods, collapse="|")
+    # can i find one?
+    which_trees <- stringr::str_extract_all(string = which_trees, pattern = find_method) %>%
+      unlist() %>%
+      unique()
+    # make sure at least one is selected
+    # get_list_diff() from get_url_data.R
+    n_methods_not <- get_list_diff(pot_methods, which_trees) %>% length()
+    which_trees <- which_trees[1] # just get the first
+    if(n_methods_not>=length(pot_methods)){
+      stop(paste0(
+        "`which_trees` parameter must be one of:\n"
+        , "    "
+        , paste(pot_methods, collapse=", ")
+      ))
+    }
+
   ##################################
   # check flist
   ##################################
@@ -657,8 +666,21 @@ sample_trees_flist <- function(
       search_dir_final_detected_ans <- search_dir_final_detected(flist)
       crowns_flist <- search_dir_final_detected_ans$crowns_flist
       ttops_flist <- search_dir_final_detected_ans$ttops_flist
+
       if(is.null(crowns_flist) && is.null(ttops_flist)){stop(msg)}
-      flist <- ifelse(is.null(ttops_flist), crowns_flist, ttops_flist)
+
+      # which?
+      if(!is.null(ttops_flist) && which_trees == "tops"){
+        flist <- ttops_flist
+      }else if(!is.null(crowns_flist) && which_trees == "crowns"){
+        flist <- crowns_flist
+      }else if(!is.null(ttops_flist)){
+        flist <- ttops_flist
+      }else if(!is.null(crowns_flist)){
+        flist <- crowns_flist
+      }else{
+        stop(msg)
+      }
     }
   ##################################
   # read file list
@@ -671,13 +693,47 @@ sample_trees_flist <- function(
           dsn = x
           , quiet = T
         ) %>%
-        # we only need the id
-        sf::st_drop_geometry() %>%
         dplyr::mutate(
           source_filename = x
         )
       }) %>%
       dplyr::bind_rows()
+  # return
+  if(dplyr::coalesce(nrow(trees_sf),0)==0){stop(msg)}
+  return(trees_sf)
+}
+
+################################################################################################################################################
+# function to sample from a list of files
+# if the tree polygon data is split across multiple files
+# pass this function the list of files with spatial tree crown polygons
+# and it will return sample from all polygons found in the list of files
+################################################################################################################################################
+sample_trees_flist <- function(
+  flist
+  , tree_sample_n = NA
+  , tree_sample_prop = NA
+) {
+  ##################################
+  # check sample proportion
+  ##################################
+    check_sample_vals_ans <- check_sample_vals(
+      tree_sample_n = tree_sample_n
+      , tree_sample_prop = tree_sample_prop
+      , def_tree_sample_n = 333
+    )
+    tree_sample_n <- check_sample_vals_ans$tree_sample_n
+    tree_sample_prop <- check_sample_vals_ans$tree_sample_prop
+  ##################################
+  # check/read flist
+  ##################################
+    trees_sf <- read_trees_flist(flist, "tops")
+  ##################################
+  # filter
+  ##################################
+    trees_sf <- trees_sf %>%
+        # we only need the id
+        sf::st_drop_geometry()
   ##################################
   # check for treeID
   ##################################
@@ -841,6 +897,12 @@ check_trees_poly <- function(fnm, orig_fnm = "the sf object") {
 # function to search a directory for final_detected_tree_tops* and final_detected_crowns* files
 ################################################################################################################################################
 search_dir_final_detected <- function(dir) {
+  if(!dir.exists(dir)){
+    stop(paste0(
+      "could not locate the directory:\n   "
+      , normalizePath(dir)
+    ))
+  }
   # check for crowns
   crowns_flist <- list.files(
     normalizePath(dir)
@@ -859,9 +921,29 @@ search_dir_final_detected <- function(dir) {
   if(identical(ttops_flist, character(0))){
     ttops_flist <- NULL
   }
+  # check for dtm
+  dtm_flist <- list.files(
+    normalizePath(dir)
+    , pattern = "dtm_.*\\.tif$"
+    , full.names = T
+  )
+  if(identical(dtm_flist, character(0))){
+    dtm_flist <- NULL
+  }
+  # check for chm
+  chm_flist <- list.files(
+    normalizePath(dir)
+    , pattern = "chm_.*\\.tif$"
+    , full.names = T
+  )
+  if(identical(chm_flist, character(0))){
+    chm_flist <- NULL
+  }
   return(list(
     crowns_flist = crowns_flist
     , ttops_flist = ttops_flist
+    , dtm_flist = dtm_flist
+    , chm_flist = chm_flist
   ))
 }
 ################################################################################################################################################

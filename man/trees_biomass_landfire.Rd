@@ -25,7 +25,7 @@ Other required columns include:
 \item{crs}{string. A crs string as returned from \code{\link[sf:st_crs]{sf::st_crs()}} or the EPSG code of the x,y coordinates.
 Defaults to the crs of the \code{tree_list} data if of class "sf".}
 
-\item{study_boundary}{sf. The boundary of the study are to define the area of interest which may extend beyond the space with trees.
+\item{study_boundary}{sf. The boundary of the study area to define the area of interest which may extend beyond the space with trees.
 If no boundary given, the AOI will be built from location of trees in the tree list.}
 
 \item{input_landfire_dir}{directory where LANDFIRE CBD data exists. Use \code{\link[=get_landfire]{get_landfire()}} first.}
