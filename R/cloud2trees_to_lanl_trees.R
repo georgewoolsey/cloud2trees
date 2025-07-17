@@ -1,15 +1,18 @@
 #' @title Use outputs from [cloud2trees()] to generate inputs for LANL TREES program
 #'
 #' @description
-#' `cloud2trees_to_lanl_trees()` uses the output from [cloud2trees()] to generate inputs for [LANL TREES](https://github.com/lanl/Trees/)
-#' program as a pathway to fire modeling with [Quic-Fire](https://doi.org/10.1016/j.envsoft.2019.104616).
+#' `cloud2trees_to_lanl_trees()` uses the output from [cloud2trees()] to generate inputs for LANL TREES
+#' program as a pathway to fire modeling with Quic-Fire
 #'
 #' The primary input is a directory with outputs from [cloud2trees()]. The default directory written by [cloud2trees()] is `point_cloud_processing_delivery`
 #' which must contain (at a minimum):
 #'
-#' * DTM raster with a name formatted as : "dtm_\*.tif"
-#' * Tree list data with the name formatted as : "final_detected_tree_tops_\*.gpkg" (tree points) or "final_detected_crowns_\*.gpkg" (tree crowns)
+#' * DTM raster with a name formatted as: "dtm_xx.tif"
+#' * Tree list data with the name formatted as : "final_detected_tree_tops.gpkg" (tree points) or "final_detected_crowns.gpkg" (tree crowns)
 #' * A study area spatial file that can be read with the `sf` package (see [sf::st_drivers()])
+#' @references
+#' * [https://github.com/lanl/Trees/](https://github.com/lanl/Trees/)
+#' * [Quic-Fire](https://doi.org/10.1016/j.envsoft.2019.104616)
 #'
 #' @param input_dir directory with outputs from [cloud2trees()]. The default directory written by [cloud2trees()] is `point_cloud_processing_delivery`
 #' @param study_boundary sf. The boundary of the study area which is used to determine the outputs
@@ -39,8 +42,65 @@
 #'    - "gss" : grass sizescale
 #'    - "gdepth" : grass depth
 #'
-#' @return Returns a list of objects: tree_list = spatial data frame of individual trees; foresttype_rast = raster of forest types in the area.
+#' @return Returns a list of objects:
+#' * "tree_list" = the cropped tree list based on the study area extent with customized settings
+#' * "aoi" = the study area extent with customized settings
+#' * "dtm" = the cropped DTM based on the study area extent with customized settings
+#' * "domain_path" = the path to the "Lidar_Bounds.geojson" file
+#' * "topofile_path" = the path to the "topo.dat" file
+#' * "fuellist_path" = the path to the TREES program "fuellist" file
+#' * "treelist_path" = the path to the "Cloud2Trees_TreeList.txt" file
 #'
+#' @examples
+#'  \dontrun{
+#'  # test las file but this could also be a directory path with >1 .las|.laz files
+#'  i <- system.file("extdata", "MixedConifer.laz", package="lidR")
+#'  # set the dir to write the output
+#'  my_dir <- tempdir()
+#'  # run it
+#'  cloud2trees_ans <- cloud2trees::cloud2trees(
+#'    output_dir = my_dir
+#'    , input_las_dir = i
+#'    # turn on all of the attribute estimations
+#'    , estimate_tree_dbh = T
+#'    , estimate_tree_type = T
+#'    , estimate_tree_hmd = T
+#'    , hmd_tree_sample_prop = 0.5
+#'    , hmd_estimate_missing_hmd = T
+#'    , estimate_biomass_method = "landfire"
+#'    , estimate_tree_cbh = T
+#'    , cbh_tree_sample_prop = 0.3
+#'    , cbh_estimate_missing_cbh = T
+#'  )
+#'  # generate a fake study_boundary we know overlaps the tree list
+#'  my_aoi <- cloud2trees_ans$treetops_sf %>%
+#'    sf::st_bbox() %>%
+#'    sf::st_as_sfc() %>%
+#'    sf::st_buffer(-10) %>%
+#'    sf::st_as_sf()
+#'  # plot it
+#'  ggplot2::ggplot() +
+#'    ggplot2::geom_sf(data = cloud2trees_ans$treetops_sf) +
+#'    ggplot2::geom_sf(data = my_aoi, fill = NA, color = "blue")
+#'  # cloud2trees::cloud2trees() wrote the `point_cloud_processing_delivery` folder
+#'  cloud2trees_output_dir <- file.path(my_dir,"point_cloud_processing_delivery")
+#'  list.files(cloud2trees_output_dir)
+#'  list.dirs(cloud2trees_output_dir, recursive = F)
+#'  # now cloud2trees_to_lanl_trees()
+#'  cloud2trees_to_lanl_trees_ans <- cloud2trees_to_lanl_trees(
+#'    input_dir = cloud2trees_output_dir
+#'    , study_boundary = my_aoi
+#'    , bbox_aoi = F
+#'    , buffer = 0
+#'    , topofile = "flat"
+#'    , cbd_method = "landfire"
+#'    , output_dir = cloud2trees_output_dir
+#'  )
+#'  cloud2trees_to_lanl_trees_ans %>% names()
+#'  list.dirs(cloud2trees_output_dir, recursive = F)
+#'  lanl_trees_output_dir <- file.path(cloud2trees_output_dir,"lanl_trees_delivery")
+#'  list.files(lanl_trees_output_dir)
+#'  }
 #' @export
 #'
 cloud2trees_to_lanl_trees <- function(
@@ -236,5 +296,15 @@ cloud2trees_to_lanl_trees <- function(
       , fuel_litter = fuel_litter
       , fuel_grass = fuel_grass
     )
-
+  # return
+    ret <- list(
+      tree_list = clip_tree_list_aoi_ans$tree_list
+      , aoi = clip_tree_list_aoi_ans$aoi
+      , dtm = quicfire_dtm_topofile_ans$dtm
+      , domain_path = quicfire_domain_df$domain_path
+      , topofile_path = quicfire_dtm_topofile_ans$topofile_path
+      , fuellist_path = make_lanl_trees_input_ans$fuellist_path
+      , treelist_path = make_lanl_trees_input_ans$treelist_path
+    )
+    return(ret)
 }
