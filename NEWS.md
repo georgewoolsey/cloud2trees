@@ -1,5 +1,10 @@
 # cloud2trees 0.7.0
 
+Enable formatting of `cloud2trees()` data outputs for [LANL TREES](https://github.com/lanl/Trees/) program which does formatting for fire modeling
+
+- New: Adds the function `cloud2trees_to_lanl_trees()` to use outputs from `cloud2trees()` to generate inputs for LANL TREES program
+- New: all utility functions for working with tree list data given an AOI as well as preparing data for LANL TREES are in R/utils_aoi.R
+
 # cloud2trees 0.6.9
 
 Saving models used to estimate missing HMD and CBH values. Note, in the actual missing value estimation many RF models are estimated and model averaging is used. However, only the first estimated model is saved in this new export functionality which does not fully represent the process used to fill in missing values.
