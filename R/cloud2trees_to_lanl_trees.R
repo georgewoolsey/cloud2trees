@@ -279,7 +279,19 @@ cloud2trees_to_lanl_trees <- function(
   #######################################
   # make_lanl_trees_input
   #######################################
-    if(topofile=="dtm"){
+    if(
+      topofile=="dtm" && 
+      (
+        is.na(quicfire_dtm_topofile_ans$topofile_path) || 
+        dplyr::coalesce(quicfire_dtm_topofile_ans$topofile_path,"")=="" || 
+        is.null(quicfire_dtm_topofile_ans$topofile_path)
+      )
+    ){
+      stop(paste0(
+        "`topofile` set to dtm but the topo.dat file could not be generated due to missing vaules in bounding box."
+        , "\n   set `topofile` to flat instead?"
+      )
+    }else if(topofile=="dtm"){
       topofile <- quicfire_dtm_topofile_ans$topofile_path
     }else{
       topofile <- "flat"

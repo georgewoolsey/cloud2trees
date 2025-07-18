@@ -350,7 +350,6 @@ quicfire_dtm_topofile <- function(
   ){
     clipped_dtm <- terra::crop(dtm_rast, study_boundary)
   }
-  #sum(is.na(values(clipped_dtm)))#count NANS
 
   #write the clipped dtm to a tif file just to be nice
   terra::writeRaster(
@@ -360,29 +359,37 @@ quicfire_dtm_topofile <- function(
   ) #write clipped dtm raster to tif to check
 
   ### Write to FORTRAN File in format needed for QUIC-Fire (and FIRETEC)
+  if( sum(is.na(terra::values(clipped_dtm))) ){ #count NA
+    warning(paste0(
+      " .................................................... \n"
+      , "missing values in DTM bounding box extent, could not write QUIC-Fire topo.dat to"
+      , "\n .................................................... "
+    ))
+    fp <- as.character(NA)
+  }else{
+    # Flip the raster over the y-axis
+    raster_data <- terra::flip(clipped_dtm, direction = "vertical")
 
-  # Flip the raster over the y-axis
-  raster_data <- terra::flip(clipped_dtm, direction = "vertical")
+    # Extract the raster values
+    values <- terra::values(raster_data) %>% c()
 
-  # Extract the raster values
-  values <- terra::values(raster_data) %>% c()
+    # Open a connection to the unformatted Fortran file
+    fp <- file.path(normalizePath(outdir),"topo.dat")
+    fortran_file <- file(fp, "wb")
 
-  # Open a connection to the unformatted Fortran file
-  fp <- file.path(normalizePath(outdir),"topo.dat")
-  fortran_file <- file(fp, "wb")
+    # Write the data to the file
+    writeBin(charToRaw("BRUH"), fortran_file) #Topo requires a header of 4 bits... this works and brings Sophie B. joy
+    writeBin(values, fortran_file, size = 4)  # Assuming 4-byte (32-bit) floats
 
-  # Write the data to the file
-  writeBin(charToRaw("BRUH"), fortran_file) #Topo requires a header of 4 bits... this works and brings Sophie B. joy
-  writeBin(values, fortran_file, size = 4)  # Assuming 4-byte (32-bit) floats
+    # Close the file connection
+    close(fortran_file)
 
-  # Close the file connection
-  close(fortran_file)
-
-  message(paste0(
-    "exported QUIC-Fire topo.dat to:"
-    , "\n ........ "
-    , fp
-  ))
+    message(paste0(
+      "exported QUIC-Fire topo.dat to:"
+      , "\n ........ "
+      , fp
+    ))
+  }
 
   return(list(
     dtm = clipped_dtm
@@ -619,8 +626,9 @@ make_lanl_trees_input <- function(
     #round to 4 decimal places for clarity (and TREES doesn't need that much precision)
     dplyr::mutate(dplyr::across(
       dplyr::where(is.numeric)
-      , ~ round(.x, 4))
-    ) %>%
+      , ~ as_character_safe(round(.x, 4))
+      # , ~ round(.x, 4)
+    )) %>%
     #remove trees with no data in row
     tidyr::drop_na()  # remove rows with any NA values in any column
     # # tidyr::drop_na(col1,col2) # remove rows with NA values in select columns
@@ -644,6 +652,7 @@ make_lanl_trees_input <- function(
     , row.names = FALSE
     , sep = " "
     , col.names = FALSE
+    , quote = FALSE
   )
 
   message(paste0(
@@ -668,23 +677,23 @@ make_lanl_trees_input <- function(
   lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
   lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
   lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
-  lines[36] <- paste0("      treefile = " ,treefile_path_q)#treefile path
+  lines[36] <- paste0("      treefile = " ,treefile_path_q) #treefile path
   lines[37] <- paste0("      ndatax = "   ,quicfire_domain_df$width[1])#ndatax
   lines[38] <- paste0("      ndatay = "   ,quicfire_domain_df$length[1])#ndatay
 
   #Litter
-  lines[44] <- paste0("      ilitter = "  ,fuel_litter$ilitter[1])# ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
-  lines[47] <- paste0("      lrho = "     ,fuel_litter$lrho[1])
-  lines[48] <- paste0("      lmoisture = ",fuel_litter$lmoisture[1])
-  lines[49] <- paste0("      lss = "      ,fuel_litter$lss[1])
-  lines[50] <- paste0("      ldepth = "   ,fuel_litter$ldepth[1])
+  lines[44] <- paste0("      ilitter = "  , as_character_safe(round(fuel_litter$ilitter[1],0))  ) # ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
+  lines[47] <- paste0("      lrho = "     , as_character_safe(round(fuel_litter$lrho[1],3)) )
+  lines[48] <- paste0("      lmoisture = ", as_character_safe(round(fuel_litter$lmoisture[1],2)) )
+  lines[49] <- paste0("      lss = "      , as_character_safe(round(fuel_litter$lss[1],5)) )
+  lines[50] <- paste0("      ldepth = "   , as_character_safe(round(fuel_litter$ldepth[1],2)) )
 
   #Grass
-  lines[71] <- paste0("      igrass = "   ,fuel_grass$igrass[1])
-  lines[75] <- paste0("      grho = "     ,fuel_grass$grho[1])
-  lines[76] <- paste0("      gmoisture = ",fuel_grass$gmoisture[1])
-  lines[77] <- paste0("      gss = "      ,fuel_grass$gss[1])
-  lines[78] <- paste0("      gdepth = "   ,fuel_grass$gdepth[1])
+  lines[71] <- paste0("      igrass = "   , as_character_safe(round(fuel_grass$igrass[1],0)) )
+  lines[75] <- paste0("      grho = "     , as_character_safe(round(fuel_grass$grho[1],3)) )
+  lines[76] <- paste0("      gmoisture = ", as_character_safe(round(fuel_grass$gmoisture[1],2)) )
+  lines[77] <- paste0("      gss = "      , as_character_safe(round(fuel_grass$gss[1],5)) )
+  lines[78] <- paste0("      gdepth = "   , as_character_safe(round(fuel_grass$gdepth[1],2)) )
 
   # print(lines)
   fuellist_path <- file.path(normalizePath(outdir),"fuellist")
