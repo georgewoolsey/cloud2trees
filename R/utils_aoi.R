@@ -361,9 +361,9 @@ quicfire_dtm_topofile <- function(
   ### Write to FORTRAN File in format needed for QUIC-Fire (and FIRETEC)
   if( sum(is.na(terra::values(clipped_dtm))) ){ #count NA
     warning(paste0(
-      " .................................................... \n"
-      , "missing values in DTM bounding box extent, could not write QUIC-Fire topo.dat to"
-      , "\n .................................................... "
+      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+      , "missing values in DTM bounding box extent, could not write QUIC-Fire topo.dat file"
+      , "\n  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     ))
     fp <- as.character(NA)
   }else{
@@ -668,7 +668,7 @@ make_lanl_trees_input <- function(
   #### !!!! now the fuellist
   ## could make this a separate fn eventually
   ###############################
-  nz <- ceiling(max(data$tree_height_m)) + 1 #max tree height + 1 m
+  nz <- ceiling(max(as.numeric(data$tree_height_m))) + 1 #max tree height + 1 m
 
   # Make Fuellist for TREES
   lines[4]  <- paste0("      nx  = "      ,quicfire_domain_df$nx[1])#nx
