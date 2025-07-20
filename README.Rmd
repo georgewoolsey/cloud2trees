@@ -293,8 +293,11 @@ Let's work through how to test some custom window size functions. We'll test a c
 
 ```{r}
 # a constant window size has to be defined as:
+ ## rep(constant, times = length(x))
  ## x*0 + constant
- my_constant <- function(x){(x * 0) + 3} ## will always return 3
+  my_constant <- function(x){ 
+   return( rep(3, times = length(x)) ) ## will always return 3
+  } 
 # a custom linear function
  my_linear <- function(x) {(x * 0.1) + 3}
 # let's put these in a list to test with the best default function we saved from above

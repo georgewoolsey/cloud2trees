@@ -47,6 +47,9 @@ raster2trees <- function(
   , min_crown_area = 0.1
   , tempdir = tempdir()
 ){
+  # check ws
+  ws <- check_numeric_returning_function(ws)
+
   ##############################################
   # check if raster is too big to fit in memory
   ##############################################
@@ -650,3 +653,40 @@ write_raster2trees_ans <- function(raster2trees_ans, dir) {
     }
   return(write_fnl_temp)
 }
+
+####################################################################
+### 5/3 write it
+## check if the ws is a function that returns numeric
+####################################################################
+check_numeric_returning_function <- function(ws) {
+  # check if numeric
+  if(is.numeric(ws)) {
+    stop(paste0(
+      "`ws` must be a function..............\n"
+      , "  if trying to define a constant, use: function(x){return(rep(my_constant, times = length(x)))}"
+    ))
+  }
+
+  # check if function
+  if(!is.function(ws)) {
+    stop("`ws` must be a function")
+  }
+
+  #fake some heights
+  ht <- c(1:90)
+  test_result <- ws(ht)
+
+  # check if the result is numeric
+  if(!is.numeric(test_result)) {
+    stop("`ws` function must return a numeric value")
+  }
+
+  # check if the result is a single numeric value (length 1)
+  if (length(test_result) != length(ht)) {
+    stop("`ws` function must return a numeric response of the same length as the input")
+  }
+
+  # if all checks pass return the function
+  return(ws)
+}
+# check_numeric_returning_function(itd_ws_functions()[["log_fn"]])
