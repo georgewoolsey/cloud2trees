@@ -50,10 +50,10 @@ Units are determined by the horizontal CRS settings of the tree list data}
 \item must have parameters in order:
 \itemize{
 \item "ilitter" : 0 = no litter, 1 = litter
-\item "lrho" : litter bulk density
-\item "lmoisture : litter moisture
-\item "lss" : litter sizescale
-\item "ldepth" : litter depth
+\item "lrho" : litter bulk density (kg/m3)
+\item "lmoisture : litter moisture (percent on 0-1 scale)
+\item "lss" : litter sizescale (m)
+\item "ldepth" : litter depth (m)
 }
 }}
 
@@ -62,10 +62,10 @@ Units are determined by the horizontal CRS settings of the tree list data}
 \item must have parameters in order:
 \itemize{
 \item "igrass" : 0 = no grass, 1 = grass
-\item "grho" : grass bulk density
-\item "gmoisture" : grass moisture
-\item "gss" : grass sizescale
-\item "gdepth" : grass depth
+\item "grho" : grass bulk density (kg/m3)
+\item "gmoisture" : grass moisture (percent on 0-1 scale)
+\item "gss" : grass sizescale (m)
+\item "gdepth" : grass depth (m)
 }
 }}
 }

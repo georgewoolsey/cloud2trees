@@ -354,11 +354,17 @@ Customizing the `cloud2trees()` function parameters we'll:
 * Quantify tree competition metrics with `estimate_tree_competition`
 * Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 555 trees using `cbh_tree_sample_n`
 * Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 555 trees
+* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 555 trees
+* Extract tree height to maximum crown diameter (HMD) from the point cloud with `estimate_tree_hmd` for a sample of 50% trees using `hmd_tree_sample_prop`
+* Model the remaining tree HMD values with `hmd_estimate_missing_hmd` based on our sample
+* Estimate tree crown biomass using the LANDFIRE CBD product with `estimate_biomass_method`
 
 ```{r, results = FALSE}
+# make sure we know where the results are going
+my_dir <- tempdir()
 # run it
 cloud2trees_ans_c <- cloud2trees::cloud2trees(
-  output_dir = tempdir()
+  output_dir = my_dir
   , input_las_dir = i
   , dtm_res_m = 0.5
   , ws = best_ws
@@ -368,6 +374,10 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
   , estimate_tree_cbh = TRUE
   , cbh_tree_sample_n = 555
   , cbh_estimate_missing_cbh = TRUE
+  , estimate_tree_hmd = TRUE
+  , hmd_tree_sample_prop = 0.5
+  , hmd_estimate_missing_hmd = TRUE
+  , estimate_biomass_method = "landfire"
 )
 ```
 
@@ -478,6 +488,149 @@ Let's look at the FIA Forest Type Group data we extracted for the tree list.
 cloud2trees_ans_c$treetops_sf %>%
   sf::st_drop_geometry() %>% 
   dplyr::count(forest_type_group_code, forest_type_group)
+```
+
+## `cloud2trees()` outputs
+
+The `cloud2trees()` process generates a list of outputs which are written to the disk in a delivery directory titled "point_cloud_processing_delivery" in the `output_dir` argument defined by the user in the function call.
+
+The astute reader will have noticed that we saved our outputs to a temporary directory (`my_dir`) but this could have been any directory on our local machine (e.g. "C:\\Data"). Let's check out the files that were delivered in the "point_cloud_processing_delivery" folder.
+
+```{r}
+# append the "point_cloud_processing_delivery"  to our output_dir
+cloud2trees_delivery_dir <- file.path(my_dir,"point_cloud_processing_delivery")
+# which files?
+list.files( cloud2trees_delivery_dir )
+```
+
+here is a description of each of those files:
+
+File Name|File Type|Description
+---------------------------------------------
+cbh_height_model_estimates.rds|R Data Serialization|saved R object of random forest model predicting tree crown base height
+chm_0.25m_tif|GeoTif|canopy height model derived at user-defined resolution
+dtm_1m.tif|GeoTif|digital terrain model derived at user-defined resolution
+fia_foresttype_raster.tif|GeoTif|30 m resolution raster of predicted forest type|
+final_detected_crowns.gpkg|Geopackage|polygons of individual tree crowns with appended tree level attributes
+final_detected_tree_tops.gpkg|Geopackage|tree top point locations of individual trees with append tree level attributes
+hmd_height_model_estimates.rds|R Data Serialization|saved R object of random forest model predicting tree height to max crown diameter
+processed_tracking_data.csv|comma separated values|summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters
+raw_las_ctg_info.gpkg|Geopackage|polygon of point cloud tiles used in data processing
+regional_dbh_height_model.rds|R Data Serialization|saved R object of polynomial regression to predict tree diameter at breast height
+regional_dbh_height_model_estimates.csv|comma separated values|table of predicted coefficient values of polynomial regression to predict tree diameter at breast height
+regional_dbh_height_model_predictions.csv|comma separated values|predicted diameter at breast height from polynomial regression at 0.1 m height increments
+regional_dbh_height_model_training_data.csv|comma separated values|table of TreeMap tree data used to train diameter at breast height prediction model
+stand_cell_data_landfire.csv|comma separated values|table of parameters used to convert LANDFIRE CBD to tree level crown bulk density
+
+# Format `cloud2trees()` output for LANL TREES
+
+We developed the `cloud2trees_to_lanl_trees()` function to use the output from `cloud2trees()` to generate inputs for the [LANL TREES](https://github.com/lanl/Trees/) program as a pathway to fire modeling with [Quic-Fire](https://doi.org/10.1016/j.envsoft.2019.104616)
+
+If you want to use the `cloud2trees()` framework to generate all of the required fire modeling input variables, the minimum required settings are:
+
+```{r, include=TRUE, eval=FALSE}
+cloud2trees::cloud2trees(
+  ...
+  , estimate_tree_dbh = TRUE
+  , estimate_tree_type = TRUE
+  , estimate_tree_cbh = TRUE
+  , cbh_estimate_missing_cbh = TRUE
+  , estimate_tree_hmd = TRUE
+  , hmd_estimate_missing_hmd = TRUE
+  , estimate_biomass_method = "landfire" # or "cruz" or both c("landfire","cruz")
+)
+```
+
+The primary input of `cloud2trees_to_lanl_trees()` is a directory with outputs from `cloud2trees()`. As a reminder, the default directory written by `cloud2trees()` is "point_cloud_processing_delivery". Also required is a spatial file defining the boundary of our area of interest.
+
+We'll pretend our area of interest is the central 2,000 m^2^ of our point cloud data
+
+```{r}
+my_aoi <-
+  cloud2trees_ans_c$treetops_sf %>% 
+    sf::st_union() %>% 
+    sf::st_centroid() %>% 
+    sf::st_buffer(sqrt(2000)/2, endCapStyle = "SQUARE")
+# what is this?
+my_aoi %>% dplyr::glimpse()
+```
+
+Now, we'll call the function and tell it where our `cloud2trees()` outputs are located and what our study area is. We'll also tell it just to write the inputs for the [LANL TREES](https://github.com/lanl/Trees/) program to the same directory and the program will automatically create a new folder titled "lanl_trees_delivery"
+
+```{r, message=F,results=F}
+# run it with no customization
+cloud2trees_to_lanl_trees(
+  input_dir = cloud2trees_delivery_dir
+  , study_boundary = my_aoi
+  , output_dir = cloud2trees_delivery_dir
+)
+```
+
+Let's check out the files that were delivered in the "lanl_trees_delivery" folder.
+
+```{r}
+# append the "point_cloud_processing_delivery"  to our output_dir
+lanl_trees_delivery_dir <- file.path(cloud2trees_delivery_dir,"lanl_trees_delivery")
+# which files?
+list.files( lanl_trees_delivery_dir )
+```
+
+here is a description of each of those files:
+
+File Name|File Type|Description
+---------------------------------------------
+Cloud2Trees_TreeList.txt|text document|tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program
+dtm_Clipped.tif|GeoTif|digital terrain model clipped to a projected rectangular extent and scaled to 2 m resolution for use in LANL TREES program
+fuellist|file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program
+Lidar_Bounds.geojson|Geographic JavaScript Object Notation|projected polygon delineating the data and simulation extent
+topo.dat|DAT File|digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program
+
+## Define surface fuel
+
+The current iteration of `cloud2trees_to_lanl_trees()` requires the user to specify surface fuel load parameters, such as litter and herbaceous/grass fuel loads, which are assumed constant across the study area. Surface fuel loading parameters should be determined through a literature review or expert opinion.
+
+The `fuel_litter` argument of the `cloud2trees_to_lanl_trees()` function allows users to define the litter fuel load with the parameters in order:
+* "ilitter" : 0 = no litter, 1 = litter
+* "lrho" : litter bulk density (kg/m3)
+* "lmoisture : litter moisture (percent on 0-1 scale)
+* "lss" : litter sizescale (m)
+* "ldepth" : litter depth (m)
+
+The `fuel_grass` argument of the `cloud2trees_to_lanl_trees()` function allows users to define the grass/herbaceous fuel load with the parameters in order:
+* "igrass" : 0 = no grass, 1 = grass
+* "grho" : grass bulk density (kg/m3)
+* "gmoisture" : grass moisture (percent on 0-1 scale)
+* "gss" : grass sizescale (m)
+* "gdepth" : grass depth (m)
+
+here is what customizing these fuel loads would look like in the `cloud2trees_to_lanl_trees()` call
+
+```{r, message=F,results=F, eval=FALSE, include=T}
+# fuel_litter
+my_fuel_litter <- list(
+  ilitter = 1
+  , lrho = 13.44
+  , lmoisture = 0.09
+  , lss = 0.00041
+  , ldepth = 0.032
+)
+# fuel_grass
+my_fuel_grass <- list(
+  igrass = 1
+  , grho = 0.0065
+  , gmoisture = 0.3
+  , gss = 0.00033
+  , gdepth = 0.15
+)
+# run it with all customization
+cloud2trees_to_lanl_trees(
+  input_dir = cloud2trees_delivery_dir
+  , study_boundary = my_aoi
+  , output_dir = cloud2trees_delivery_dir
+  , topofile = "flat"
+  , fuel_litter = my_fuel_litter
+  , fuel_grass = my_fuel_grass
+)
 ```
 
 # Extract Raster Data from Point Cloud
