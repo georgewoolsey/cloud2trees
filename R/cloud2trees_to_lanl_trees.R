@@ -30,17 +30,17 @@
 #' @param fuel_litter list. a `list()` or numeric vector `c()`. see default.
 #' * must have parameters in order:
 #'    - "ilitter" : 0 = no litter, 1 = litter
-#'    - "lrho" : litter bulk density
-#'    - "lmoisture : litter moisture
-#'    - "lss" : litter sizescale
-#'    - "ldepth" : litter depth
+#'    - "lrho" : litter bulk density (kg/m3)
+#'    - "lmoisture : litter moisture (percent on 0-1 scale)
+#'    - "lss" : litter sizescale (m)
+#'    - "ldepth" : litter depth (m)
 #' @param fuel_grass list. a `list()` or numeric vector `c()`. see default.
 #' * must have parameters in order:
 #'    - "igrass" : 0 = no grass, 1 = grass
-#'    - "grho" : grass bulk density
-#'    - "gmoisture" : grass moisture
-#'    - "gss" : grass sizescale
-#'    - "gdepth" : grass depth
+#'    - "grho" : grass bulk density (kg/m3)
+#'    - "gmoisture" : grass moisture (percent on 0-1 scale)
+#'    - "gss" : grass sizescale (m)
+#'    - "gdepth" : grass depth (m)
 #'
 #' @return Returns a list of objects:
 #' * "tree_list" = the cropped tree list based on the study area extent with customized settings
@@ -279,7 +279,19 @@ cloud2trees_to_lanl_trees <- function(
   #######################################
   # make_lanl_trees_input
   #######################################
-    if(topofile=="dtm"){
+    if(
+      topofile=="dtm" &&
+      (
+        is.na(quicfire_dtm_topofile_ans$topofile_path) ||
+        dplyr::coalesce(quicfire_dtm_topofile_ans$topofile_path,"")=="" ||
+        is.null(quicfire_dtm_topofile_ans$topofile_path)
+      )
+    ){
+      stop(paste0(
+        "`topofile` set to dtm but the topo.dat file could not be generated due to missing vaules in bounding box."
+        , "\n   set `topofile` to flat instead?"
+      ))
+    }else if(topofile=="dtm"){
       topofile <- quicfire_dtm_topofile_ans$topofile_path
     }else{
       topofile <- "flat"

@@ -23,7 +23,7 @@ simplify_multipolygon_crowns <- function(trees_poly) {
   }
 
   # check if not polygon
-  if( min(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON"))) == 0 ){
+  if( !all(sf::st_is(trees_poly, type = c("POLYGON", "MULTIPOLYGON"))) ){
     warning(paste0(
       "data passed to `trees_poly` is not polygon or multipolygon data"
       , "\n see sf::st_geometry_type...returning original data"
@@ -32,13 +32,13 @@ simplify_multipolygon_crowns <- function(trees_poly) {
   }
 
   # return data as-is if no multipolygon
-  if( max(sf::st_is(trees_poly, type = c("MULTIPOLYGON"))) == 0 ){
+  if( !any(sf::st_is(trees_poly, type = c("MULTIPOLYGON"))) ){
     return(trees_poly)
   }
 
   # check if has a treeID
   if(
-    (names(trees_poly) %>% stringr::str_detect("treeID") %>% max())==0
+    !any(names(trees_poly) %>% stringr::str_detect("treeID"))
   ){
     stop(paste0(
       "`trees_poly` data must contain `treeID` column."
@@ -59,6 +59,9 @@ simplify_multipolygon_crowns <- function(trees_poly) {
         dplyr::mutate(axxx = sf::st_area(.)) %>% # axxx is so we don't overwrite a column
         dplyr::group_by(treeID) %>%
         dplyr::filter(axxx == max(axxx)) %>% # keep the biggest crown polygon by treeID
+        # filter again in cases where tree has same sized polygons
+        dplyr::group_by(treeID) %>%
+        dplyr::filter(dplyr::row_number()==1) %>%
         dplyr::ungroup() %>%
         dplyr::select(-axxx)
     ) %>%

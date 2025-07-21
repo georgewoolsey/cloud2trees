@@ -1,3 +1,21 @@
+# cloud2trees 0.7.1
+
+Updates how `cloud2trees_to_lanl_trees()` writes data, includes unit tests for `cloud2trees_to_lanl_trees()` (by testing each processing step directly), adds description of file outputs and `cloud2trees_to_lanl_trees()` process to README, and more
+
+- Change: `cloud2trees_to_lanl_trees()` was updated to format the inputs of the *fuellist* file and the *Cloud2Trees_TreeList.txt* file:
+  + Rounded litter and grass bulk density to 3 digits in *fuellist* output file
+  + Rounded litter and grass moisture to 2 digits in *fuellist* output file
+  + Rounded litter and grass sizescale to 5 digits in *fuellist* output file
+  + Rounded litter and grass depth to 2 digits in *fuellist* output file
+  + Rounded all numeric data in the *Cloud2Trees_TreeList.txt* file to 4 digits
+- Change: `cloud2trees_to_lanl_trees()` was updated to issue warnings/errors if the DTM extent does not fully encompass the study area extent, a requirement for many fire modeling tools
+  + If there are any NA’s in the DTM and the `topofile` argument is set to "flat", then
+    * Generate all files except the “topo.dat” file and issue a warning about the missing data
+  + If there are any NA’s in the DTM and the `topofile` argument is set to "dtm", then
+    * Halt execution and issue an error about the missing data
+- Change: `cloud2trees()` and `raster2trees()` now check the `ws` argument (for ITD window function) prior to any data processing to avoid failure after some processing steps have already been completed
+- Fix: `simplify_multipolygon_crowns()` now accounts for cases when a single tree has multiple polygon parts that are equal in area and also the largest part so that the function returns exactly the same number of records as the input data
+
 # cloud2trees 0.7.0
 
 Enable formatting of `cloud2trees()` data outputs for [LANL TREES](https://github.com/lanl/Trees/) program which does formatting for fire modeling

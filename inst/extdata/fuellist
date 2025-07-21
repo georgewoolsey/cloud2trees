@@ -7,7 +7,7 @@
       dx  = 2
       dy  = 2
       dz  = 1.0                    ! Grid Resolution [m]
-      aa1 = 0.1                     ! Vertical stretching component [default=0.1]
+      aa1 = 1                      ! Vertical stretching component [default=1] for Quic-Fire
       singlefuel = 1                ! Flag forcing single fuel type instead of multiple fuels
       lreduced = 0                  ! Flag to reduce output vertical number of cells to only layers with fuel
       topofile = flat

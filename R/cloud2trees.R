@@ -154,6 +154,9 @@ cloud2trees <- function(
   , cbh_frst_layer_min_ht_m = 1
   , overwrite = TRUE
 ){
+  # check ws
+  ws <- check_numeric_returning_function(ws)
+
   ####################################################################
   # check deprecated parameters
   ####################################################################
