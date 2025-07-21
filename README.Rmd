@@ -354,7 +354,6 @@ Customizing the `cloud2trees()` function parameters we'll:
 * Quantify tree competition metrics with `estimate_tree_competition`
 * Extract tree CBH from the point cloud with `estimate_tree_cbh` for a sample of 555 trees using `cbh_tree_sample_n`
 * Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 555 trees
-* Model the remaining tree CBH values with `cbh_estimate_missing_cbh` based on our sample of 555 trees
 * Extract tree height to maximum crown diameter (HMD) from the point cloud with `estimate_tree_hmd` for a sample of 50% trees using `hmd_tree_sample_prop`
 * Model the remaining tree HMD values with `hmd_estimate_missing_hmd` based on our sample
 * Estimate tree crown biomass using the LANDFIRE CBD product with `estimate_biomass_method`
@@ -392,7 +391,7 @@ paste(
 )
 ```
 
-Check that our spatial data frame with tree crown polygons has data in the `dbh`, `cbh`, `forest_type`, and `comp` (i.e. competition) columns.
+Check that our spatial data frame with tree crown polygons has data on DBH (`dbh_*`), CBH (`tree_cbh_m`), HMD (`max_crown_diam_height_m`), `forest_type_*`, competition (`comp_*`), and crown biomass using the LANDFIRE data (`landfire_*`).
 
 ```{r}
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
@@ -492,9 +491,9 @@ cloud2trees_ans_c$treetops_sf %>%
 
 ## `cloud2trees()` outputs
 
-The `cloud2trees()` process generates a list of outputs which are written to the disk in a delivery directory titled "point_cloud_processing_delivery" in the `output_dir` argument defined by the user in the function call.
+The `cloud2trees()` process generates a list of outputs which are written to the disk in a delivery directory titled *point_cloud_processing_delivery* in the `output_dir` argument defined by the user in the function call.
 
-The astute reader will have noticed that we saved our outputs to a temporary directory (`my_dir`) but this could have been any directory on our local machine (e.g. "C:\\Data"). Let's check out the files that were delivered in the "point_cloud_processing_delivery" folder.
+The astute reader will have noticed that we saved our outputs to a temporary directory (`my_dir`) but this could have been any directory on our local machine (e.g. "C:\\Data"). Let's check out the files that were delivered in the *point_cloud_processing_delivery* folder.
 
 ```{r}
 # append the "point_cloud_processing_delivery"  to our output_dir
@@ -505,22 +504,76 @@ list.files( cloud2trees_delivery_dir )
 
 here is a description of each of those files:
 
-File Name|File Type|Description
----------------------------------------------
-cbh_height_model_estimates.rds|R Data Serialization|saved R object of random forest model predicting tree crown base height
-chm_0.25m_tif|GeoTif|canopy height model derived at user-defined resolution
-dtm_1m.tif|GeoTif|digital terrain model derived at user-defined resolution
-fia_foresttype_raster.tif|GeoTif|30 m resolution raster of predicted forest type|
-final_detected_crowns.gpkg|Geopackage|polygons of individual tree crowns with appended tree level attributes
-final_detected_tree_tops.gpkg|Geopackage|tree top point locations of individual trees with append tree level attributes
-hmd_height_model_estimates.rds|R Data Serialization|saved R object of random forest model predicting tree height to max crown diameter
-processed_tracking_data.csv|comma separated values|summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters
-raw_las_ctg_info.gpkg|Geopackage|polygon of point cloud tiles used in data processing
-regional_dbh_height_model.rds|R Data Serialization|saved R object of polynomial regression to predict tree diameter at breast height
-regional_dbh_height_model_estimates.csv|comma separated values|table of predicted coefficient values of polynomial regression to predict tree diameter at breast height
-regional_dbh_height_model_predictions.csv|comma separated values|predicted diameter at breast height from polynomial regression at 0.1 m height increments
-regional_dbh_height_model_training_data.csv|comma separated values|table of TreeMap tree data used to train diameter at breast height prediction model
-stand_cell_data_landfire.csv|comma separated values|table of parameters used to convert LANDFIRE CBD to tree level crown bulk density
+```{r, eval=F,include=FALSE,results='asis'}
+library(kableExtra)
+
+dplyr::tibble(
+  file_name = c(
+    "cbh_height_model_estimates.rds", "chm_0.25m_tif", "dtm_1m.tif", "fia_foresttype_raster.tif",
+    "final_detected_crowns.gpkg", "final_detected_tree_tops.gpkg", "hmd_height_model_estimates.rds",
+    "processed_tracking_data.csv", "raw_las_ctg_info.gpkg", "regional_dbh_height_model.rds",
+    "regional_dbh_height_model_estimates.csv", "regional_dbh_height_model_predictions.csv",
+    "regional_dbh_height_model_training_data.csv", "stand_cell_data_cruz.csv",
+    "stand_cell_data_landfire.csv", "Cloud2Trees_TreeList.txt", "dtm_Clipped.tif", "fuellist",
+    "Lidar_Bounds.geojson", "topo.dat"
+  ),
+  file_type = c(
+    "R Data Serialization", "GeoTif", "GeoTif", "GeoTif", "Geopackage", "Geopackage",
+    "R Data Serialization", "CSV", "Geopackage", "R Data Serialization", "CSV", "CSV", "CSV",
+    "CSV", "CSV", "Text", "GeoTif", "File", "GeoJSON", "DAT File"
+  ),
+  description = c(
+    "saved R object of random forest model predicting tree crown base height",
+    "canopy height model derived at user-defined resolution",
+    "digital terrain model derived at user-defined resolution",
+    "30 m resolution raster of predicted forest type",
+    "polygons of individual tree crowns with appended tree level attributes",
+    "tree top point locations of individual trees with appened tree level attributes",
+    "saved R object of random forest model predicting tree height to max crown diameter",
+    "summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters",
+    "polygon of las tiles used in data processing",
+    "saved R object of polynomial regression to predict tree diameter at breast height",
+    "table of predicted coefficient values of polynomial regression to predict tree diameter at breast height",
+    "predicted diameter at breast height from polynomial regression at 0.1 m height increments",
+    "table of TreeMap tree data used to train diameter at breast height prediction model",
+    "table of parameters used to predict CBD using Cruz et al. 2003 and to convert to tree level crown bulk density",
+    "table of parameters used to convert LANDFIRE CBD to tree level crown bulk density",
+    "tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program",
+    "digital terrain model clipped to a projected rectangular extent and scaled to 2 m resolution for use in LANL TREES program",
+    "file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program",
+    "projected polygon delineating the data and simulation extent",
+    "digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program"
+  )
+) %>% 
+kableExtra::kbl(
+  caption = "Cloud2Trees Output File Descriptions"
+  , col.names = c(
+      "File Name"
+      , "File Type"
+      , "Description"
+    )
+    , escape = F
+) %>% 
+kableExtra::kable_styling(font_size = 12)
+```
+
+| File Name                                 | File Type             | Description                                                                                                     |
+|------------------------------------------|------------------------|-----------------------------------------------------------------------------------------------------------------|
+| cbh_height_model_estimates.rds           | R Data Serialization   | saved R object of random forest model predicting tree crown base height                                         |
+| chm_0.25m_tif                             | GeoTif                 | canopy height model derived at user-defined resolution                                                          |
+| dtm_1m.tif                                | GeoTif                 | digital terrain model derived at user-defined resolution                                                        |
+| fia_foresttype_raster.tif                 | GeoTif                 | 30 m resolution raster of predicted forest type                                                                 |
+| final_detected_crowns.gpkg                | Geopackage             | polygons of individual tree crowns with appended tree level attributes                                          |
+| final_detected_tree_tops.gpkg            | Geopackage             | tree top point locations of individual trees with appended tree level attributes                                |
+| hmd_height_model_estimates.rds           | R Data Serialization   | saved R object of random forest model predicting tree height to max crown diameter                              |
+| processed_tracking_data.csv              | CSV                    | summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters    |
+| raw_las_ctg_info.gpkg                    | Geopackage             | polygon of point cloud tiles tiles used in data processing                                                      |
+| regional_dbh_height_model.rds            | R Data Serialization   | saved R object of polynomial regression to predict tree diameter at breast height                               |
+| regional_dbh_height_model_estimates.csv  | CSV                    | table of predicted coefficient values of polynomial regression to predict tree diameter at breast height        |
+| regional_dbh_height_model_predictions.csv| CSV                    | predicted diameter at breast height from polynomial regression at 0.1 m height increments                        |
+| regional_dbh_height_model_training_data.csv | CSV                 | table of TreeMap tree data used to train diameter at breast height prediction model                             |
+| stand_cell_data_landfire.csv             | CSV                    | table of parameters used to convert LANDFIRE CBD to tree-level crown bulk density                               |
+
 
 # Format `cloud2trees()` output for LANL TREES
 
@@ -541,7 +594,7 @@ cloud2trees::cloud2trees(
 )
 ```
 
-The primary input of `cloud2trees_to_lanl_trees()` is a directory with outputs from `cloud2trees()`. As a reminder, the default directory written by `cloud2trees()` is "point_cloud_processing_delivery". Also required is a spatial file defining the boundary of our area of interest.
+The primary input of `cloud2trees_to_lanl_trees()` is a directory with outputs from `cloud2trees()`. As a reminder, the default directory written by `cloud2trees()` is *point_cloud_processing_delivery*. Also required is a spatial file defining the boundary of our area of interest.
 
 We'll pretend our area of interest is the central 2,000 m^2^ of our point cloud data
 
@@ -555,7 +608,7 @@ my_aoi <-
 my_aoi %>% dplyr::glimpse()
 ```
 
-Now, we'll call the function and tell it where our `cloud2trees()` outputs are located and what our study area is. We'll also tell it just to write the inputs for the [LANL TREES](https://github.com/lanl/Trees/) program to the same directory and the program will automatically create a new folder titled "lanl_trees_delivery"
+Now, we'll call the function and tell it where our `cloud2trees()` outputs are located and what our study area is. We'll also tell it just to write the inputs for the [LANL TREES](https://github.com/lanl/Trees/) program to the same directory and the program will automatically create a new folder titled *lanl_trees_delivery*
 
 ```{r, message=F,results=F}
 # run it with no customization
@@ -566,7 +619,7 @@ cloud2trees_to_lanl_trees(
 )
 ```
 
-Let's check out the files that were delivered in the "lanl_trees_delivery" folder.
+Let's check out the files that were delivered in the *lanl_trees_delivery* folder.
 
 ```{r}
 # append the "point_cloud_processing_delivery"  to our output_dir
@@ -577,31 +630,33 @@ list.files( lanl_trees_delivery_dir )
 
 here is a description of each of those files:
 
-File Name|File Type|Description
----------------------------------------------
-Cloud2Trees_TreeList.txt|text document|tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program
-dtm_Clipped.tif|GeoTif|digital terrain model clipped to a projected rectangular extent and scaled to 2 m resolution for use in LANL TREES program
-fuellist|file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program
-Lidar_Bounds.geojson|Geographic JavaScript Object Notation|projected polygon delineating the data and simulation extent
-topo.dat|DAT File|digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program
+| File Name               | File Type                        | Description                                                                                                     |
+|------------------------|----------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Cloud2Trees_TreeList.txt | text                           | tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program       |
+| dtm_Clipped.tif         | GeoTif                           | digital terrain model clipped to a rectangular extent and scaled to 2 m resolution for use in LANL TREES program|
+| fuellist                | raw                              | file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program |
+| Lidar_Bounds.geojson    | Geographic JavaScript Object Notation | projected polygon delineating the data and simulation extent                                              |
+| topo.dat                | DAT                              | digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program                    |
 
 ## Define surface fuel
 
 The current iteration of `cloud2trees_to_lanl_trees()` requires the user to specify surface fuel load parameters, such as litter and herbaceous/grass fuel loads, which are assumed constant across the study area. Surface fuel loading parameters should be determined through a literature review or expert opinion.
 
 The `fuel_litter` argument of the `cloud2trees_to_lanl_trees()` function allows users to define the litter fuel load with the parameters in order:
-* "ilitter" : 0 = no litter, 1 = litter
-* "lrho" : litter bulk density (kg/m3)
-* "lmoisture : litter moisture (percent on 0-1 scale)
-* "lss" : litter sizescale (m)
-* "ldepth" : litter depth (m)
+
+* *ilitter* : 0 = no litter, 1 = litter
+* *lrho* : litter bulk density (kg/m3)
+* *lmoisture*: litter moisture (percent on 0-1 scale)
+* *lss* : litter sizescale (m)
+* *ldepth* : litter depth (m)
 
 The `fuel_grass` argument of the `cloud2trees_to_lanl_trees()` function allows users to define the grass/herbaceous fuel load with the parameters in order:
-* "igrass" : 0 = no grass, 1 = grass
-* "grho" : grass bulk density (kg/m3)
-* "gmoisture" : grass moisture (percent on 0-1 scale)
-* "gss" : grass sizescale (m)
-* "gdepth" : grass depth (m)
+
+* *igrass* : 0 = no grass, 1 = grass
+* *grho* : grass bulk density (kg/m3)
+* *gmoisture* : grass moisture (percent on 0-1 scale)
+* *gss* : grass sizescale (m)
+* *gdepth* : grass depth (m)
 
 here is what customizing these fuel loads would look like in the `cloud2trees_to_lanl_trees()` call
 
