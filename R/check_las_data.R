@@ -19,7 +19,11 @@ check_las_data <- function(
   )
   # check the class
   if(inherits(las, "character")){
-    if(!any(stringr::str_ends(las, ".*\\.(laz|las)$")) && dir.exists(normalizePath(las))){
+    if(
+      !any(stringr::str_ends(las, ".*\\.(laz|las)$"))
+      && length(las)==1
+      && dir.exists(normalizePath(las))
+    ){
       # try to read directory for las files
       fls <- list.files(normalizePath(las), pattern = ".*\\.(laz|las)$", full.names = TRUE)
       # stop it if no files
