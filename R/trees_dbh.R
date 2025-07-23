@@ -161,7 +161,7 @@ trees_dbh <- function(
   ##################################
   # define study boundary
   ##################################
-  if(inherits(study_boundary, "sf") | inherits(study_boundary, "sfc")){
+  if(inherits(study_boundary, "sf") || inherits(study_boundary, "sfc")){
     buff <- study_boundary %>%
       sf::st_union() %>%
       sf::st_as_sf() %>%
@@ -172,6 +172,14 @@ trees_dbh <- function(
       sf::st_bbox() %>%
       sf::st_as_sfc() %>%
       sf::st_buffer(boundary_buffer)
+  }
+  #check trees vs boundary
+  nintersect <- tree_tops %>% sf::st_intersection(buff) %>% nrow() %>% dplyr::coalesce(0)
+  if(nintersect==0){
+    stop(paste0(
+      "No trees in `tree_list` are within the `study_boundary`. DBH not estimated.\n"
+      , " .... Check your data locations. If confident in tree locations, leave `study_boundary` as NA"
+    ))
   }
 
   ####################################################################
@@ -195,6 +203,25 @@ trees_dbh <- function(
     # downloaded from: https://www.fs.usda.gov/rds/archive/Catalog/RDS-2021-0074
     # read in treemap (no memory is taken)
     treemap_rast <- terra::rast(file.path(find_ext_data_ans$treemap_dir, "treemap2016.tif"))
+
+    # check study boundary against the raster
+    # the resulting matrix will have a true value where an intersection exists
+    intersection_result <- terra::relate(
+      x = buff %>%
+        sf::st_union() %>%
+        sf::st_transform(terra::crs(treemap_rast)) %>%
+        terra::vect()
+      , y = treemap_rast
+      , relation = "intersects"
+    )
+
+    if(!any(intersection_result)) {
+      stop(paste0(
+        "The search area does not overlap with an area within CONUS. Cannot estimate DBH."
+        , "\n.... If provided data in `study_boundary` ensure that it overlaps with CONUS"
+        , "\n.... If did not provide data in `study_boundary` ensure that the `tree_list` data overlaps with CONUS"
+      ))
+    }
 
     ### filter treemap based on las...rast now in memory
     treemap_rast <- treemap_rast %>%

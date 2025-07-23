@@ -47,6 +47,19 @@ raster2trees <- function(
   , min_crown_area = 0.1
   , tempdir = tempdir()
 ){
+  # check raster
+  if(inherits(chm_rast, "SpatRaster")) { # terra
+    chm_rast <- chm_rast %>% terra::subset(1)
+  }else if(inherits(chm_rast,"RasterLayer")){ # raster
+    chm_rast <- terra::rast(chm_rast) %>% terra::subset(1)
+  }else if(inherits(chm_rast,"SpatRasterCollection")){ # terra::sprc
+    stop(paste0(
+      "`chm_rast` must be of SpatRaster class....\n"
+      , "    You need to combine this collection into a singular SpatRaster (see `terra::mosaic` ?)"
+    ))
+  }else{
+    stop("`chm_rast` must be of SpatRaster class as read by the `terra` package")
+  }
   # check ws
   ws <- check_numeric_returning_function(ws)
 
