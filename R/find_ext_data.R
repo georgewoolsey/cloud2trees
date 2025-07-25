@@ -125,28 +125,49 @@ find_ext_data <- function(
 check_dir_files <- function(dir, which_data = "treemap") {
   if(tolower(which_data)=="treemap"){
     # files to look for
-    req_file_list <- c("treemap2016.tif", "treemap2016_tree_table.csv")
+    req_file_list <- list(
+      treemap2022()
+      , treemap2016()
+    )
     # folder to append
     which_data <- tolower(which_data)
   }else if(tolower(which_data)=="foresttype"){
     # files to look for
-    req_file_list <- c("foresttype_lookup.csv", "foresttype.tif")
+    req_file_list <- list(
+      c("foresttype_lookup.csv", "foresttype.tif")
+    )
     # folder to append
     which_data <- tolower(which_data)
   }else if(tolower(which_data)=="landfire"){
     # files to look for
-    req_file_list <- c("lc23_cbd_240.tif")
+    req_file_list <- list(
+      c("lc23_cbd_240.tif")
+    )
     # folder to append
     which_data <- tolower(which_data)
   }else{
     return(NULL)
   }
 
+  find_file_list_ans <-
+    req_file_list %>%
+    # map over the function to find files for each list element
+    purrr::map(
+      \(x)
+      find_file_list(dir = dir, flist = x, which_data = which_data)
+    ) %>%
+    # keep the first non-null element
+    purrr::detect(~ !is.null(.x))
+
+  return(find_file_list_ans)
+}
+# look in folders for a file list
+find_file_list <- function(dir, flist, which_data) {
   # if the dir exists
   if(dir.exists(dir)){
     # check the dir
     f <- list.files(dir) %>% tolower()
-    ld <- get_list_diff(req_file_list, f)
+    ld <- get_list_diff(flist, f)
     if(length(ld)==0){
       return(dir)
     }else{ # wasn't found in dir
@@ -154,7 +175,7 @@ check_dir_files <- function(dir, which_data = "treemap") {
       ad <- file.path(dir, which_data)
       if(dir.exists(ad)){
         f <- list.files(ad) %>% tolower()
-        ld <- get_list_diff(req_file_list, f)
+        ld <- get_list_diff(flist, f)
       }else{return(NULL)}
       # check if found in appended dir
       if(length(ld)==0){
@@ -163,6 +184,34 @@ check_dir_files <- function(dir, which_data = "treemap") {
         return(NULL)
       } # wasn't found in appended dir
     } # wasn't found in dir
-  }else{return(NULL)}
+  }else{
+    return(NULL)
+  }
+}
 
+####################################################
+# function to check dir for tree list data
+####################################################
+treemap_data_finder <- function(dir) {
+  treemap2022 <- treemap2022()
+  treemap2016 <- treemap2016()
+  f <- list.files(dir) %>% tolower()
+  # find matches
+  m2022 <- base::intersect(base::unlist(f), base::unlist(treemap2022))
+  m2016 <- base::intersect(base::unlist(f), base::unlist(treemap2016))
+  if(length(m2022)==length(treemap2022)){
+    return(list(
+      which_treemap = 2022
+      , treemap_rast = file.path( dir, treemap2022[1] )
+      , treemap_trees = file.path( dir, treemap2022[2] )
+    ))
+  }else if(length(m2016)==length(treemap2016)){
+    return(list(
+      which_treemap = 2016
+      , treemap_rast = file.path( dir, treemap2016[1] )
+      , treemap_trees = file.path( dir, treemap2016[2] )
+    ))
+  }else{
+    stop("couldn't find any treemap data :[")
+  }
 }

@@ -81,6 +81,13 @@ trees_dbh <- function(
       ))
     }
 
+    #treemap files
+    treemap_data_finder_ans <- treemap_data_finder(find_ext_data_ans$treemap_dir)
+    # treemap_data_finder_ans$which_treemap
+    # treemap_data_finder_ans$treemap_trees
+    # treemap_data_finder_ans$treemap_rast
+
+
   ##################################
   # ensure that tree height data exists
   ##################################
@@ -200,9 +207,8 @@ trees_dbh <- function(
     }
 
     # read in treemap data
-    # downloaded from: https://www.fs.usda.gov/rds/archive/Catalog/RDS-2021-0074
     # read in treemap (no memory is taken)
-    treemap_rast <- terra::rast(file.path(find_ext_data_ans$treemap_dir, "treemap2016.tif"))
+    treemap_rast <- terra::rast(treemap_data_finder_ans$treemap_rast)
 
     # check study boundary against the raster
     # the resulting matrix will have a true value where an intersection exists
