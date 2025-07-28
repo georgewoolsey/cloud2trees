@@ -59,6 +59,7 @@ If training data is provided in \code{treels_dbh_locations} as returned from \co
 }
 \examples{
  \dontrun{
+ library(tidyverse)
  # example tree list
  tl <- dplyr::tibble(
      treeID = c(1:21)
@@ -66,18 +67,46 @@ If training data is provided in \code{treels_dbh_locations} as returned from \co
      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
      , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
    )
+ # save our output somewhere (not required)
+ outdir <- tempdir()
  # call the function
- tl_dbh <- trees_dbh(tree_list = tl, crs = "32613")
+ tl_dbh <- trees_dbh(tree_list = tl, crs = "32613", outfolder = outdir)
  # what?
  tl_dbh \%>\% class()
  tl_dbh \%>\% dplyr::select(tidyselect::contains("dbh_cm")) \%>\% dplyr::glimpse()
  tl_dbh \%>\% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=dbh_cm))
+ # what outputs did we get?
+ list.files(outdir)
+ # cloud2trees::trees_dbh() saved the FIA-measured trees used to train the allometric model
+ read.csv(file.path(outdir, "regional_dbh_height_model_training_data.csv")) \%>\%
+   summary()
+ # cloud2trees::trees_dbh() saved the actual model estimated using the Bayesian modelling package brms which we can load and review
+ dbh_mod_temp <- readRDS(file.path(outdir, "regional_dbh_height_model.rds"))
+ # what is this?
+ dbh_mod_temp \%>\% class()
+ # we can draw fit curves with probability bands using the tidybayes package
+ library(tidybayes)
+ # define our height range to predict over
+ dplyr::tibble(tree_height_m = seq(from = 0, to = 25, by = 1)) \%>\%
+   tidybayes::add_epred_draws(dbh_mod_temp, ndraws = 2000) \%>\%
+   ggplot2::ggplot(ggplot2::aes(x = tree_height_m)) +
+     tidybayes::stat_lineribbon(
+       ggplot2::aes(y = .epred, color = "estimate")
+       , .width = c(0.5,0.95)
+       , lwd = 0.6
+     ) +
+     ggplot2::scale_fill_brewer(palette = "Oranges") +
+     ggplot2::scale_color_manual(values = c("gray33")) +
+     ggplot2::labs(x = "tree ht. (m)", y = "est. tree DBH (cm)", color = "") +
+     ggplot2::scale_x_continuous(limits = c(0,NA), breaks = scales::extended_breaks(n=11)) +
+     ggplot2::scale_y_continuous(limits = c(0,NA), breaks = scales::extended_breaks(n=11)) +
+     ggplot2::theme_light()
  }
 }
 \references{
 \itemize{
-\item \url{https://doi.org/10.2737/RDS-2021-0074}
-Riley, Karin L.; Grenfell, Isaac C.; Finney, Mark A.; Shaw, John D. 2021. TreeMap 2016: A tree-level model of the forests of the conterminous United States circa 2016. Fort Collins, CO: Forest Service Research Data Archive.
+\item \url{https://doi.org/10.2737/RDS-2025-0032}
+Houtman, Rachel M.; Leatherman, Lila S. T.; Zimmer, Scott N.; Housman, Ian W.; Shrestha, Abhinav; Shaw, John D.; Riley, Karin L. 2025. TreeMap 2022 CONUS: A tree-level model of the forests of the conterminous United States circa 2022. Fort Collins, CO: Forest Service Research Data Archive.
 \item \url{https://doi.org/10.3390/f13122077}
 Tinkham et al. (2022). Modeling the missing DBHs: Influence of model form on UAV DBH characterization. Forests, 13(12), 2077.
 }
