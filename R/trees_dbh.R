@@ -30,8 +30,8 @@
 #' @param outfolder string. The path of a folder to write the model data to
 #'
 #' @references
-#' * [https://doi.org/10.2737/RDS-2021-0074](https://doi.org/10.2737/RDS-2021-0074)
-#' Riley, Karin L.; Grenfell, Isaac C.; Finney, Mark A.; Shaw, John D. 2021. TreeMap 2016: A tree-level model of the forests of the conterminous United States circa 2016. Fort Collins, CO: Forest Service Research Data Archive.
+#' * [https://doi.org/10.2737/RDS-2025-0032](https://doi.org/10.2737/RDS-2025-0032)
+#' Houtman, Rachel M.; Leatherman, Lila S. T.; Zimmer, Scott N.; Housman, Ian W.; Shrestha, Abhinav; Shaw, John D.; Riley, Karin L. 2025. TreeMap 2022 CONUS: A tree-level model of the forests of the conterminous United States circa 2022. Fort Collins, CO: Forest Service Research Data Archive.
 #'
 #' * [https://doi.org/10.3390/f13122077](https://doi.org/10.3390/f13122077)
 #' Tinkham et al. (2022). Modeling the missing DBHs: Influence of model form on UAV DBH characterization. Forests, 13(12), 2077.
@@ -40,6 +40,7 @@
 #'
 #' @examples
 #'  \dontrun{
+#'  library(tidyverse)
 #'  # example tree list
 #'  tl <- dplyr::tibble(
 #'      treeID = c(1:21)
@@ -47,12 +48,41 @@
 #'      , tree_y = rnorm(n=21, mean = 4450074, sd = 11)
 #'      , tree_height_m = exp(rgamma(n = 21, shape = (7/4)^2, rate = (4^2)/7))
 #'    )
+#'  # save our output somewhere (not required)
+#'  outdir <- tempdir()
 #'  # call the function
-#'  tl_dbh <- trees_dbh(tree_list = tl, crs = "32613")
+#'  tl_dbh <- trees_dbh(tree_list = tl, crs = "32613", outfolder = outdir)
 #'  # what?
 #'  tl_dbh %>% class()
 #'  tl_dbh %>% dplyr::select(tidyselect::contains("dbh_cm")) %>% dplyr::glimpse()
 #'  tl_dbh %>% ggplot2::ggplot() + ggplot2::geom_sf(ggplot2::aes(color=dbh_cm))
+#'  # what outputs did we get?
+#'  list.files(outdir)
+#'  # cloud2trees::trees_dbh() saved the FIA-measured trees used to train the allometric model
+#'  read.csv(file.path(outdir, "regional_dbh_height_model_training_data.csv")) %>%
+#'    summary()
+#'  # cloud2trees::trees_dbh() saved the actual allometric model
+#'  # let's load and review
+#'  dbh_mod_temp <- readRDS(file.path(outdir, "regional_dbh_height_model.rds"))
+#'  # what is this?
+#'  dbh_mod_temp %>% class()
+#'  # we can draw fit curves with probability bands using the tidybayes package
+#'  library(tidybayes)
+#'  # define our height range to predict over
+#'  dplyr::tibble(tree_height_m = seq(from = 0, to = 25, by = 1)) %>%
+#'    tidybayes::add_epred_draws(dbh_mod_temp, ndraws = 2000) %>%
+#'    ggplot2::ggplot(ggplot2::aes(x = tree_height_m)) +
+#'      tidybayes::stat_lineribbon(
+#'        ggplot2::aes(y = .epred, color = "estimate")
+#'        , .width = c(0.5,0.95)
+#'        , lwd = 0.6
+#'      ) +
+#'      ggplot2::scale_fill_brewer(palette = "Oranges") +
+#'      ggplot2::scale_color_manual(values = c("gray33")) +
+#'      ggplot2::labs(x = "tree ht. (m)", y = "est. tree DBH (cm)", color = "") +
+#'      ggplot2::scale_x_continuous(limits = c(0,NA), breaks = scales::extended_breaks(n=11)) +
+#'      ggplot2::scale_y_continuous(limits = c(0,NA), breaks = scales::extended_breaks(n=11)) +
+#'      ggplot2::theme_light()
 #'  }
 #' @export
 #'
@@ -80,6 +110,13 @@ trees_dbh <- function(
         , "\nIf you supplied a value to the `input_treemap_dir` parameter check that directory for data."
       ))
     }
+
+    #treemap files
+    treemap_data_finder_ans <- treemap_data_finder(find_ext_data_ans$treemap_dir)
+    # treemap_data_finder_ans$which_treemap
+    # treemap_data_finder_ans$treemap_trees
+    # treemap_data_finder_ans$treemap_rast
+
 
   ##################################
   # ensure that tree height data exists
@@ -161,7 +198,7 @@ trees_dbh <- function(
   ##################################
   # define study boundary
   ##################################
-  if(inherits(study_boundary, "sf") | inherits(study_boundary, "sfc")){
+  if(inherits(study_boundary, "sf") || inherits(study_boundary, "sfc")){
     buff <- study_boundary %>%
       sf::st_union() %>%
       sf::st_as_sf() %>%
@@ -172,6 +209,14 @@ trees_dbh <- function(
       sf::st_bbox() %>%
       sf::st_as_sfc() %>%
       sf::st_buffer(boundary_buffer)
+  }
+  #check trees vs boundary
+  nintersect <- tree_tops %>% sf::st_intersection(buff) %>% nrow() %>% dplyr::coalesce(0)
+  if(nintersect==0){
+    stop(paste0(
+      "No trees in `tree_list` are within the `study_boundary`. DBH not estimated.\n"
+      , " .... Check your data locations. If confident in tree locations, leave `study_boundary` as NA"
+    ))
   }
 
   ####################################################################
@@ -192,9 +237,27 @@ trees_dbh <- function(
     }
 
     # read in treemap data
-    # downloaded from: https://www.fs.usda.gov/rds/archive/Catalog/RDS-2021-0074
     # read in treemap (no memory is taken)
-    treemap_rast <- terra::rast(file.path(find_ext_data_ans$treemap_dir, "treemap2016.tif"))
+    treemap_rast <- terra::rast(treemap_data_finder_ans$treemap_rast)
+
+    # check study boundary against the raster
+    # the resulting matrix will have a true value where an intersection exists
+    intersection_result <- terra::relate(
+      x = buff %>%
+        sf::st_union() %>%
+        sf::st_transform(terra::crs(treemap_rast)) %>%
+        terra::vect()
+      , y = treemap_rast
+      , relation = "intersects"
+    )
+
+    if(!any(intersection_result)) {
+      stop(paste0(
+        "The search area does not overlap with an area within CONUS. Cannot estimate DBH."
+        , "\n.... If provided data in `study_boundary` ensure that it overlaps with CONUS"
+        , "\n.... If did not provide data in `study_boundary` ensure that the `tree_list` data overlaps with CONUS"
+      ))
+    }
 
     ### filter treemap based on las...rast now in memory
     treemap_rast <- treemap_rast %>%
@@ -203,50 +266,87 @@ trees_dbh <- function(
           sf::st_union() %>%
           sf::st_transform(terra::crs(treemap_rast)) %>%
           terra::vect()
-      )
+      ) %>%
+      terra::subset(1)
 
     # ggplot(treemap_rast %>% as.data.frame(xy=T) %>% rename(f=3)) +
     #   geom_tile(aes(x=x,y=y,fill=as.factor(f))) +
     #   scale_fill_viridis_d(option = "turbo") +
     #   theme_light() + theme(legend.position = "none")
 
+    # check for all NA's
+    na_cells <- terra::global(treemap_rast, fun="isNA") %>% as.numeric()
+    if(
+      terra::ncell(treemap_rast)==dplyr::coalesce(na_cells,0)
+    ){
+      stop(paste0(
+        "The search area does not overlap with a forested area within CONUS. Cannot estimate DBH."
+        , "\n ... try expanding the `boundary_buffer` ?"
+      ))
+    }
+
     ### get weights for weighting each tree in the population models
     # treemap id = tm_id for linking to tabular data
-    tm_id_weight_temp <- terra::freq(treemap_rast) %>%
-      dplyr::select(-layer) %>%
-      dplyr::rename(tm_id = value, tree_weight = count) %>%
+    tm_id_weight_temp <- treemap_rast %>% ## works
+      terra::values() %>%
+      table() %>%
+      dplyr::as_tibble() %>%
+      dplyr::rename(tm_id=1,tree_weight=n) %>%
       dplyr::mutate(tm_id = as_character_safe(tm_id))
     # str(tm_id_weight_temp)
 
+    ############################################################################
     ### get the TreeMap FIA tree list for only the plots included
-    treemap_trees_df <- readr::read_csv(
-        file.path(find_ext_data_ans$treemap_dir, "treemap2016_tree_table.csv")
-        , col_select = c(
-          tm_id
-          , CN
-          , SPECIES_SYMBOL
-          , STATUSCD
-          , DIA
-          , HT
-        )
+    ############################################################################
+    if(treemap_data_finder_ans$which_treemap==2022){
+      treemap_cols <- c(
+        "TM_ID"
+        , "PLT_CN"
+        , "SPECIES_SYMBOL"
+        , "STATUSCD"
+        , "DIA"
+        , "HT"
+        , "CR" # crown ratio
+      )
+    }else if(treemap_data_finder_ans$which_treemap==2016){
+      treemap_cols <- c(
+        "tm_id"
+        , "CN"
+        , "SPECIES_SYMBOL"
+        , "STATUSCD"
+        , "DIA"
+        , "HT"
+        , "CR" # crown ratio
+      )
+    }else{
+      stop("unknown TreeMap vintage")
+    }
+    ### read it
+    # treemap_data_finder_ans$treemap_trees
+    treemap_trees_df <-
+      readr::read_csv(
+        treemap_data_finder_ans$treemap_trees
+        , col_select = treemap_cols
         , progress = F
         , show_col_types = F
       ) %>%
-      dplyr::rename_with(tolower) %>%
+      dplyr::rename_with(tolower)
+    # rename cn to fit with original table str
+    if(treemap_data_finder_ans$which_treemap==2022){
+      treemap_trees_df <- treemap_trees_df %>% dplyr::rename(cn = plt_cn)
+    }
+    # clean it
+    treemap_trees_df <-
+      treemap_trees_df %>%
       dplyr::mutate(
         cn = as_character_safe(cn)
         , tm_id = as_character_safe(tm_id)
+        , cr = ifelse(cr>100|cr<0,NA,cr)*0.01
       ) %>%
-      dplyr::left_join(
+      dplyr::inner_join(
         tm_id_weight_temp
         , by = dplyr::join_by("tm_id")
       ) %>%
-      dplyr::left_join(
-        tm_id_weight_temp %>% dplyr::rename(cn = tm_id)
-        , by = dplyr::join_by("cn")
-      ) %>%
-      dplyr::mutate(tree_weight = dplyr::coalesce(tree_weight.x, tree_weight.y)) %>%
-      dplyr::select(-c(tree_weight.x, tree_weight.y)) %>%
       dplyr::filter(
         # keep live trees only: 1=live;2=dead
         statuscd == 1
@@ -256,9 +356,9 @@ trees_dbh <- function(
       ) %>%
       dplyr::mutate(
         dbh_cm = dia*2.54
-        , tree_height_m = ht/3.28084
+        , tree_height_m = ht*0.3048
       ) %>%
-      dplyr::select(-c(statuscd,dia,ht))
+      dplyr::select(-c(statuscd,dia,ht,cr)) # maybe we can use cr in a future version with and NSUR approach
 
     # check FIA model data
     if(dplyr::coalesce(nrow(treemap_trees_df),0)==0){
@@ -272,8 +372,8 @@ trees_dbh <- function(
     # save training data
     ### export tabular
       write.csv(
-          treemap_trees_df
-          , paste0(normalizePath(outfolder), "/regional_dbh_height_model_training_data.csv")
+          treemap_trees_df %>% dplyr::mutate(which_treemap=treemap_data_finder_ans$which_treemap)
+          , file.path(normalizePath(outfolder), "regional_dbh_height_model_training_data.csv")
           , row.names = F
         )
 
@@ -627,5 +727,11 @@ trees_dbh <- function(
       ) %>%
       dplyr::select(-c(stem_dbh_cm, predicted_dbh_cm))
   # return
+  if(treemap_data_finder_ans$which_treemap==2016){
+    warning(paste0(
+      "Treemap 2022 data has not been downloaded to package contents. You are currently using Treemap 2016."
+      , "\n ... Use `get_treemap(force = T)` to update data"
+    ))
+  }
   return(tree_tops)
 }
