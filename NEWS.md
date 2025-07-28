@@ -1,5 +1,15 @@
 # cloud2trees 0.7.2
 
+Updates to use TreeMap 2022 ([https://doi.org/10.2737/RDS-2025-0032](https://doi.org/10.2737/RDS-2025-0032)). New data enables possible future development to include species classification modeling and CBH allometric prediction.
+
+Users should update to this new data using: 
+
+```r
+get_treemap(force = T)
+```
+
+- Change: `trees_dbh()` uses whichever version of TreeMap is installed by detecting unique structure of data available. A warning is given if TreeMap 2022 is not downloaded. Also, improved error messages in function so that users can better diagnose issues.
+
 # cloud2trees 0.7.1
 
 Updates how `cloud2trees_to_lanl_trees()` writes data, includes unit tests for `cloud2trees_to_lanl_trees()` (by testing each processing step directly), adds description of file outputs and `cloud2trees_to_lanl_trees()` process to README, and more
