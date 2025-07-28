@@ -236,7 +236,8 @@ trees_dbh <- function(
           sf::st_union() %>%
           sf::st_transform(terra::crs(treemap_rast)) %>%
           terra::vect()
-      )
+      ) %>%
+      terra::subset(1)
 
     # ggplot(treemap_rast %>% as.data.frame(xy=T) %>% rename(f=3)) +
     #   geom_tile(aes(x=x,y=y,fill=as.factor(f))) +
@@ -245,41 +246,66 @@ trees_dbh <- function(
 
     ### get weights for weighting each tree in the population models
     # treemap id = tm_id for linking to tabular data
-    tm_id_weight_temp <- terra::freq(treemap_rast) %>%
-      dplyr::select(-layer) %>%
-      dplyr::rename(tm_id = value, tree_weight = count) %>%
+    tm_id_weight_temp <- treemap_rast %>% ## works
+      terra::values() %>%
+      table() %>%
+      dplyr::as_tibble() %>%
+      dplyr::rename(tm_id=1,tree_weight=n) %>%
       dplyr::mutate(tm_id = as_character_safe(tm_id))
     # str(tm_id_weight_temp)
 
+    ############################################################################
     ### get the TreeMap FIA tree list for only the plots included
-    treemap_trees_df <- readr::read_csv(
-        file.path(find_ext_data_ans$treemap_dir, "treemap2016_tree_table.csv")
-        , col_select = c(
-          tm_id
-          , CN
-          , SPECIES_SYMBOL
-          , STATUSCD
-          , DIA
-          , HT
-        )
+    ############################################################################
+    if(treemap_data_finder_ans$which_treemap==2022){
+      treemap_cols <- c(
+        "TM_ID"
+        , "PLT_CN"
+        , "SPECIES_SYMBOL"
+        , "STATUSCD"
+        , "DIA"
+        , "HT"
+        , "CR" # crown ratio
+      )
+    }else if(treemap_data_finder_ans$which_treemap==2016){
+      treemap_cols <- c(
+        "tm_id"
+        , "CN"
+        , "SPECIES_SYMBOL"
+        , "STATUSCD"
+        , "DIA"
+        , "HT"
+        , "CR" # crown ratio
+      )
+    }else{
+      stop("unknown TreeMap vintage")
+    }
+    ### read it
+    # treemap_data_finder_ans$treemap_trees
+    treemap_trees_df <-
+      readr::read_csv(
+        treemap_data_finder_ans$treemap_trees
+        , col_select = treemap_cols
         , progress = F
         , show_col_types = F
       ) %>%
-      dplyr::rename_with(tolower) %>%
+      dplyr::rename_with(tolower)
+    # rename cn to fit with original table str
+    if(treemap_data_finder_ans$which_treemap==2022){
+      treemap_trees_df <- treemap_trees_df %>% dplyr::rename(cn = plt_cn)
+    }
+    # clean it
+    treemap_trees_df <-
+      treemap_trees_df %>%
       dplyr::mutate(
         cn = as_character_safe(cn)
         , tm_id = as_character_safe(tm_id)
+        , cr = ifelse(cr>100|cr<0,NA,cr)*0.01
       ) %>%
-      dplyr::left_join(
+      dplyr::inner_join(
         tm_id_weight_temp
         , by = dplyr::join_by("tm_id")
       ) %>%
-      dplyr::left_join(
-        tm_id_weight_temp %>% dplyr::rename(cn = tm_id)
-        , by = dplyr::join_by("cn")
-      ) %>%
-      dplyr::mutate(tree_weight = dplyr::coalesce(tree_weight.x, tree_weight.y)) %>%
-      dplyr::select(-c(tree_weight.x, tree_weight.y)) %>%
       dplyr::filter(
         # keep live trees only: 1=live;2=dead
         statuscd == 1
@@ -289,9 +315,9 @@ trees_dbh <- function(
       ) %>%
       dplyr::mutate(
         dbh_cm = dia*2.54
-        , tree_height_m = ht/3.28084
+        , tree_height_m = ht*0.3048
       ) %>%
-      dplyr::select(-c(statuscd,dia,ht))
+      dplyr::select(-c(statuscd,dia,ht,cr)) # maybe we can use cr in a future version with and NSUR approach
 
     # check FIA model data
     if(dplyr::coalesce(nrow(treemap_trees_df),0)==0){
@@ -305,8 +331,8 @@ trees_dbh <- function(
     # save training data
     ### export tabular
       write.csv(
-          treemap_trees_df
-          , paste0(normalizePath(outfolder), "/regional_dbh_height_model_training_data.csv")
+          treemap_trees_df %>% dplyr::mutate(which_treemap=treemap_data_finder_ans$which_treemap)
+          , file.path(normalizePath(outfolder), "regional_dbh_height_model_training_data.csv")
           , row.names = F
         )
 
