@@ -61,7 +61,8 @@
 #'  # cloud2trees::trees_dbh() saved the FIA-measured trees used to train the allometric model
 #'  read.csv(file.path(outdir, "regional_dbh_height_model_training_data.csv")) %>%
 #'    summary()
-#'  # cloud2trees::trees_dbh() saved the actual model estimated using the Bayesian modelling package brms which we can load and review
+#'  # cloud2trees::trees_dbh() saved the actual allometric model
+#'  # let's load and review
 #'  dbh_mod_temp <- readRDS(file.path(outdir, "regional_dbh_height_model.rds"))
 #'  # what is this?
 #'  dbh_mod_temp %>% class()
@@ -272,6 +273,17 @@ trees_dbh <- function(
     #   geom_tile(aes(x=x,y=y,fill=as.factor(f))) +
     #   scale_fill_viridis_d(option = "turbo") +
     #   theme_light() + theme(legend.position = "none")
+
+    # check for all NA's
+    na_cells <- terra::global(treemap_rast, fun="isNA") %>% as.numeric()
+    if(
+      terra::ncell(treemap_rast)==dplyr::coalesce(na_cells,0)
+    ){
+      stop(paste0(
+        "The search area does not overlap with a forested area within CONUS. Cannot estimate DBH."
+        , "\n ... try expanding the `boundary_buffer` ?"
+      ))
+    }
 
     ### get weights for weighting each tree in the population models
     # treemap id = tm_id for linking to tabular data

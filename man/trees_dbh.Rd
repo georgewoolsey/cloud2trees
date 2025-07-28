@@ -80,7 +80,8 @@ If training data is provided in \code{treels_dbh_locations} as returned from \co
  # cloud2trees::trees_dbh() saved the FIA-measured trees used to train the allometric model
  read.csv(file.path(outdir, "regional_dbh_height_model_training_data.csv")) \%>\%
    summary()
- # cloud2trees::trees_dbh() saved the actual model estimated using the Bayesian modelling package brms which we can load and review
+ # cloud2trees::trees_dbh() saved the actual allometric model
+ # let's load and review
  dbh_mod_temp <- readRDS(file.path(outdir, "regional_dbh_height_model.rds"))
  # what is this?
  dbh_mod_temp \%>\% class()
