@@ -1,3 +1,5 @@
+# cloud2trees 0.7.2
+
 # cloud2trees 0.7.1
 
 Updates how `cloud2trees_to_lanl_trees()` writes data, includes unit tests for `cloud2trees_to_lanl_trees()` (by testing each processing step directly), adds description of file outputs and `cloud2trees_to_lanl_trees()` process to README, and more
