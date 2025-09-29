@@ -762,6 +762,7 @@ If we already have a list of trees with tree coordinate and tree height data, we
 We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m` to the `trees_dbh()` function.
 
 ```{r}
+set.seed(111)
 # a fake tree list
 tl <- dplyr::tibble(
     treeID = c(1:21)
