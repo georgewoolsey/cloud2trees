@@ -37,40 +37,53 @@ The goal of cloud2trees is to provide accessible routines for processing point c
 
 # Installation
 
-You must have Rtools to build packages in R. Check that you have it and install if not.
+A full demonstration script of the install and setup of `cloud2trees` including dependancies is available at: [https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R](https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R)
+
+It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed. 
+
+For users comfortable with installing and setting up packages in R, a quick setup demonstration follows below.
+
+**1) Install CRAN packages**
+
+install packages from CRAN using base `install.packages()`
 
 ``` r
-## pkgbuild helps us check for Rtools
-install.packages("pkgbuild")
-
-# check for Rtools which is required to build packages
-pkgbuild::check_build_tools(debug = TRUE)
-```
-
-The `cloud2trees` package relies on the following packages which *must be manually installed first*:
-
-* `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) helps us process point cloud data with speed
-* `TreeLS` package ([https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)) helps us extract DBH from the point cloud
-
-``` r
-## remotes helps us get packages hosted on github
+# install remotes package
 install.packages("remotes")
-
-## install lasR from the r-univers
-install.packages("lasR", repos = "https://r-lidar.r-universe.dev")
-
-## install TreeLS from github
-remotes::install_github(repo = "tiagodc/TreeLS", upgrade = F)
+# install tidyverse package
+install.packages("tidyverse")
+# install sf package
+install.packages("sf")
+# install terra package
+install.packages("terra")
+# install BH package
+install.packages("BH")
 ```
 
-Additionally, if you wish to estimate crown base height (CBH) as part of the point cloud processing the `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) and `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) *must be manually installed first*.
+**2) Install other packages**
+
+`cloud2trees` package relies on the following packages:
+
+* `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) enables large-scale point cloud processing with speed
+* `TreeLS` package ([https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)) helps us extract DBH from the point cloud
+* `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) computes leaf area density (LAD) profiles from the point cloud
+* `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) helps us extract CBH from the point cloud
 
 ``` r
-## install LadderFuelsR
-remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
-## install leafR
+# install lasR for point cloud processing
+install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
+
+# install github package from "tiagodc/TreeLS" for DBH extraction
+remotes::install_github(repo = "tiagodc/TreeLS", upgrade = F)
+
+# install github package from "DRAAlmeida/leafR"
 remotes::install_github(repo = "DRAAlmeida/leafR", upgrade = F)
+
+# install github package from "olgaviedma/LadderFuelsR"
+remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
 ```
+
+**3) Install `cloud2trees`**
 
 Finally, you can install the development version of `cloud2trees` from [GitHub](https://github.com/georgewoolsey/cloud2trees) with:
 
@@ -83,7 +96,7 @@ remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
 
 ## tl;dr
 
-The `cloud2trees` package relies on external data to estimate tree DBH, FIA forest type, and LANDFIRE fuel loading. If you plan to use this functionality, the data must be downloaded first using `get_data()` which only needs to be run the first time you use the `cloud2trees` package. All downloads combine to use ~6 GB of storage space.
+The `cloud2trees` package relies on external data to estimate tree DBH, FIA forest type, and LANDFIRE fuel loading. If you plan to use this functionality, the data must be downloaded first using `get_data()` which only needs to be run the first time you use the `cloud2trees` package. All downloads combine to use ~7 GB of storage space.
 
 ```{r, results = FALSE}
 library(cloud2trees)
@@ -115,7 +128,7 @@ To estimate tree DBH from extracted tree height data requires training data to m
 
 FIA plots are identified using [TreeMap 2016](https://scholar.google.com/scholar?cluster=10696389844245769168&hl=en&as_sdt=0,6), a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
 
-Unless you have already executed the `get_data()` function, you must first download the FIA data (~3 GB) using `get_treemap()` which only needs to be run the first time you use the `cloud2trees` package.
+Unless you have already executed the `get_data()` function, you must first download the FIA data (~4 GB) using `get_treemap()` which only needs to be run the first time you use the `cloud2trees` package.
 
 ```{r, results = FALSE}
 # download the TreeMap data
@@ -124,7 +137,7 @@ cloud2trees::get_treemap()
 
 ## Get Forest Type Group Data
 
-To estimate FIA forest type group for trees requires external data to spatially determine the type of a tree.
+To estimate FIA forest type group for trees requires external data to spatially determine the forest type that of a tree.
 
 Forest type groups are identified using the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program. This raster layer has 30-meter resolution and covers the forested extent of the continental US.
 
@@ -622,7 +635,7 @@ cloud2trees_to_lanl_trees(
 Let's check out the files that were delivered in the *lanl_trees_delivery* folder.
 
 ```{r}
-# append the "point_cloud_processing_delivery"  to our output_dir
+# append the "lanl_trees_delivery" to our cloud2trees_delivery_dir
 lanl_trees_delivery_dir <- file.path(cloud2trees_delivery_dir,"lanl_trees_delivery")
 # which files?
 list.files( lanl_trees_delivery_dir )
@@ -690,7 +703,7 @@ cloud2trees_to_lanl_trees(
 
 # Extract Raster Data from Point Cloud
 
-We can use the `cloud2raster()` function if we only want to create a DTM and CHM from our point cloud data. This function also creates a classified and height normalized point cloud in the process. If you wish to keep these point clouds ensure to turn on the `keep_intrmdt` parameter and see the `point_cloud_processing_temp` directory nested in the `output_dir`.
+We can use the `cloud2raster()` function if we only want to create a DTM and CHM from our point cloud data. This function also creates a classified and height normalized point cloud in the process. If you wish to keep these point clouds, ensure to turn on the `keep_intrmdt` parameter and see the `point_cloud_processing_temp` directory nested in the `output_dir`.
 
 ```{r, results = FALSE}
 cloud2raster_ans <- cloud2trees::cloud2raster(output_dir = tempdir(), input_las_dir = i)
@@ -749,6 +762,7 @@ If we already have a list of trees with tree coordinate and tree height data, we
 We just need to pass a data frame with the columns `treeID`, `tree_x`, `tree_y`, and `tree_height_m` to the `trees_dbh()` function.
 
 ```{r}
+set.seed(111)
 # a fake tree list
 tl <- dplyr::tibble(
     treeID = c(1:21)

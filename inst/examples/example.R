@@ -6,17 +6,35 @@
 # a fresh install of R version 4.4.2
 # that is, no packages had been installed or used in R prior
 
+####################################################################################
+# US Federal Government Computer only
+####################################################################################
+# in the "Software Center" from your desktop:
+# 1) install the "R for Windows" x.x.x (where x.x.x is the version) program
+# 2) install the RStudio program if desired
+# 3) install "RTools" x.x.xxx where the first "x.x" should match with the "R for Windows" version installed from step 1
+# 4) open example.R and proceed
+####################################################################################
+# end US Federal Government Computer only
+####################################################################################
+
 # install pkgbuild
 install.packages("pkgbuild")
 
 # check for Rtools which is required to build packages
 pkgbuild::check_build_tools(debug = TRUE)
+
+### US Federal Government Computer only
+### ... response should be: "Your system is ready to build packages!"
+
+### non-US Federal Government
 ### ... there will be a message:
 ### ... "building r package from source requires installation of additional build tools"
 ### ... select "yes"
 ### ... an error will be issued "Error: Could not find tools necessary to compile a package"
 ### ... but the build tools should begin installing (minimize R window to see if its back there)
 ### ... after the download completes, try again...
+
 # check for Rtools which is required to build packages
 pkgbuild::check_build_tools(debug = TRUE)
 ### ... response should be: "Your system is ready to build packages!"
@@ -26,6 +44,13 @@ install.packages("remotes")
 
 # install tidyverse package...not required but tidyverse is {insert fire emoji}
 install.packages("tidyverse")
+
+# install sf package...
+install.packages("sf")
+# install terra package...
+install.packages("terra")
+# install BH package...
+install.packages("BH")
 
 # install lasR for point cloud processing
 install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
@@ -54,7 +79,7 @@ library(cloud2trees)
 i <- system.file(package="lidR", "extdata", "MixedConifer.laz")
 # run it
 cloud2trees_ans <- cloud2trees::cloud2trees(
-  output_dir = "c:/Users/gwoolsey/Downloads/"
+  output_dir = "c:/YOU/NEED/TO/CUSTOMIZE/THIS"
   , input_las_dir = i
 )
 # did it do it?
@@ -97,7 +122,8 @@ cloud2trees_ans$chm_rast %>%
 
 # the message tells us to use get_treemap() first
 cloud2trees::get_treemap()
-# this took ~3 mins for me with a fast internet connection (900mbps+)
+# this took ~4 mins for me with a fast internet connection (900mbps+)
+# this took ~76 mins for me when using a US Federal Government computer with a VPN'd, Firewalled, DOGE-approved, RTO'd, Dial-up internet connection
 
 # try to estimate tree dbh now!
 add_dbh_crowns_sf <- cloud2trees::trees_dbh(tree_list = cloud2trees_ans$crowns_sf)
@@ -114,4 +140,17 @@ add_dbh_crowns_sf %>%
   ggplot2::scale_y_continuous(limits = c(0,NA)) +
   ggplot2::theme_light()
 
+# plot it spatially?
+add_dbh_crowns_sf %>%
+  ggplot2::ggplot(mapping = ggplot2::aes(color = dbh_cm)) +
+  ggplot2::geom_sf() +
+  ggplot2::labs(color = "tree DBH (cm)") +
+  ggplot2::theme_light()
+
 # works.
+
+# if we want to predict canopy fuels and forest type
+# we need to download more data
+cloud2trees::get_data() # gets all the data
+# cloud2trees::get_landfire() # gets landfire CBD independently
+# cloud2trees::get_foresttype() # gets forest type independently
