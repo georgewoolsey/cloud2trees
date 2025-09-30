@@ -495,6 +495,47 @@ check_horizontal_crs_is_feet <- function(las) {
 }
 
 ###___________________________________________###
+# calculate diameter of single polygon
+###___________________________________________###
+# function to calculate the diamater of an sf polygon that is potentially irregularly shaped
+# using the distance between the farthest points
+st_calculate_diameter_polygon <- function(polygon) {
+  # get the convex hull
+  ch <- sf::st_convex_hull(polygon)
+
+  # cast to multipoint then point to get individual vertices
+  ch_points <- sf::st_cast(ch, 'MULTIPOINT') %>% sf::st_cast('POINT')
+
+  # calculate the distances between all pairs of points
+  distances <- sf::st_distance(ch_points)
+
+  # find the maximum distance, which is the diameter
+  diameter <- as.numeric(max(distances,na.rm=T))
+  return(diameter)
+}
+# apply st to sf data
+st_calculate_diameter <- function(sf_data) {
+  if(!inherits(sf_data,"sf")){stop("st_calculate_diameter() requires polygon sf data")}
+  if(
+    !all( sf::st_is(sf_data, c("POLYGON","MULTIPOLYGON")) )
+  ){
+    stop("st_calculate_diameter() requires polygon sf data")
+  }
+
+  # get the geometry column name
+  geom_col_name <- attr(sf_data, "sf_column")
+
+  # calculate diameter
+  # !!rlang::sym() unquotes the geometry column
+  return_dta <- sf_data %>% 
+    dplyr::ungroup() %>% 
+    dplyr::rowwise() %>%
+    dplyr::mutate(diameter_m = st_calculate_diameter_polygon( !!rlang::sym(geom_col_name) )) %>%
+    dplyr::ungroup()
+  return(return_dta)
+}
+
+###___________________________________________###
 # THIS IS OLD AND MAY NOT WORK
 # Function to reproject las data using `lidR` but be careful!
 # This is inefficient and potentially causes inaccuracies due to transformations (see reference).
