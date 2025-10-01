@@ -464,7 +464,7 @@ logarithmic (concave down) functions. We’ll run `itd_tuning()` with all
 default options to start.
 
 ``` r
-itd_tuning_ans <- itd_tuning(input_las_dir = i)
+itd_tuning_ans <- itd_tuning(input_las_dir = i, n_samples = 2)
 ```
 
 Let’s check out what is included in the return from the `itd_tuning()`
@@ -473,11 +473,11 @@ function.
 ``` r
 # what is it?
 itd_tuning_ans %>% names()
-#> [1] "plot_samples" "ws_fn_list"
+#> [1] "plot_samples"        "ws_fn_list"          "plot_sample_summary"
 ```
 
-there is a plot of the different window size functions tested (plot
-columns) over the different 0.1 ha sample plots (plot rows) and the
+There is a plot of the different ITD window size functions tested
+(columns) over the different 0.1 ha sample plots (plot rows) and the
 number of individual trees extracted shown outlined in gray overlaid on
 the canopy height model (CHM).
 
@@ -486,6 +486,29 @@ itd_tuning_ans$plot_samples
 ```
 
 <img src="man/figures/README-unnamed-chunk-19-1.png" width="100%" />
+
+There is a plot that summarizes the trees detected based on the
+different ITD window search functions tested for each sample plot area.
+The first view provides aggregated plot summary metrics including trees
+per hectare (TPH), mean tree height in meters, and mean crown diameter
+in meters. The second view shows the tree size-class distribution
+showing the proportion of trees (bar label) and count of trees (y-axis)
+using five equally spaced height bins to enhance insight into the effect
+of the search function. For example, this distribution can help diagnose
+issues such as the over-segmentation of small trees, which can inflate
+TPH estimates, or, conversely, the failure to detect a targeted
+height-class range. The third view shows the tree height-to-crown
+diameter relationship. The goal of the window search function is to
+accurately model this relationship, and a positive correlation is
+expected across most forest types with any deviations from the general
+trend suggesting a need for further tuning (e.g. small trees with
+unrealistically wide crowns).
+
+``` r
+itd_tuning_ans$plot_sample_summary
+```
+
+<img src="man/figures/README-unnamed-chunk-20-1.png" width="100%" />
 
 if we think that the “lin_fn” was the most appropriate for our area, we
 can access the function from the returned list of window size functions
@@ -506,7 +529,7 @@ ggplot2::ggplot() +
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-21-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-22-1.png" width="100%" />
 
 ## Custom ITD window size functions
 
@@ -531,8 +554,8 @@ windows size is linearly related to the point height
   )
 ```
 
-run `itd_tuning()` with our custom window size definitions and this time
-we’ll only try on two sample plots of 0.1 ha
+run `itd_tuning()` with our custom window size definitions and try on
+two sample plots of 0.1 ha
 
 ``` r
 # run it with custom functions
@@ -550,7 +573,7 @@ let’s check out that tuning plot
 itd_tuning_ans2$plot_samples
 ```
 
-<img src="man/figures/README-unnamed-chunk-24-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-25-1.png" width="100%" />
 
 we can also check out what our custom “my_linear” function looks like
 
@@ -567,7 +590,7 @@ ggplot2::ggplot() +
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-25-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-26-1.png" width="100%" />
 
 # Extract Trees from Point Cloud: Custom
 
@@ -645,18 +668,18 @@ cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> $ tree_y                    <dbl> 3813011, 3813011, 3813011, 3813011, 3813011,…
 #> $ crown_area_m2             <dbl> 10.3750, 10.8125, 1.1875, 4.5625, 6.3750, 10…
 #> $ geometry                  <GEOMETRY [m]> MULTIPOLYGON (((481280.5 38..., POL…
-#> $ fia_est_dbh_cm            <dbl> 49.359462, 31.323656, 17.325304, 24.919300, …
-#> $ fia_est_dbh_cm_lower      <dbl> 28.335399, 17.831741, 9.862856, 14.189812, 2…
-#> $ fia_est_dbh_cm_upper      <dbl> 75.639535, 47.536979, 26.714089, 37.712892, …
-#> $ dbh_cm                    <dbl> 49.359462, 31.323656, 17.325304, 24.919300, …
+#> $ fia_est_dbh_cm            <dbl> 49.485524, 31.237196, 17.292009, 24.851976, …
+#> $ fia_est_dbh_cm_lower      <dbl> 28.081874, 18.000099, 9.803367, 14.219211, 2…
+#> $ fia_est_dbh_cm_upper      <dbl> 75.214373, 47.561066, 26.697953, 37.738515, …
+#> $ dbh_cm                    <dbl> 49.485524, 31.237196, 17.292009, 24.851976, …
 #> $ is_training_data          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…
-#> $ dbh_m                     <dbl> 0.49359462, 0.31323656, 0.17325304, 0.249193…
-#> $ radius_m                  <dbl> 0.24679731, 0.15661828, 0.08662652, 0.124596…
-#> $ basal_area_m2             <dbl> 0.191350989, 0.077061025, 0.023574994, 0.048…
-#> $ basal_area_ft2            <dbl> 2.05970204, 0.82948487, 0.25376123, 0.524970…
+#> $ dbh_m                     <dbl> 0.49485524, 0.31237196, 0.17292009, 0.248519…
+#> $ radius_m                  <dbl> 0.24742762, 0.15618598, 0.08646004, 0.124259…
+#> $ basal_area_m2             <dbl> 0.192329646, 0.076636201, 0.023484470, 0.048…
+#> $ basal_area_ft2            <dbl> 2.07023631, 0.82491207, 0.25278683, 0.522138…
 #> $ ptcld_extracted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ ptcld_predicted_dbh_cm    <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-#> $ tree_cbh_m                <dbl> 15.500000, 8.500000, 7.717833, 11.797820, 20…
+#> $ tree_cbh_m                <dbl> 15.500000, 8.500000, 7.226300, 11.797820, 20…
 #> $ is_training_cbh           <lgl> TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE, …
 #> $ forest_type_group_code    <chr> "220", "220", "220", "220", "220", "220", "2…
 #> $ forest_type_group         <chr> "Ponderosa pine group", "Ponderosa pine grou…
@@ -664,15 +687,15 @@ cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> $ comp_trees_per_ha         <dbl> 495.0296, 742.5445, 742.5445, 990.0593, 742.…
 #> $ comp_relative_tree_height <dbl> 0.9099468, 1.0000000, 0.5804963, 1.0000000, …
 #> $ comp_dist_to_nearest_m    <dbl> 3.010399, 2.549510, 1.677051, 1.414214, 3.60…
-#> $ max_crown_diam_height_m   <dbl> 11.815363, 8.778071, 5.540000, 8.557101, 16.…
-#> $ is_training_hmd           <lgl> FALSE, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE,…
+#> $ max_crown_diam_height_m   <dbl> 9.190000, 10.660000, 5.540000, 8.499001, 16.…
+#> $ is_training_hmd           <lgl> TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE,…
 #> $ landfire_stand_id         <dbl> 49, 50, 50, 50, 51, 51, 51, 49, 50, 50, 51, …
 #> $ crown_dia_m               <dbl> 3.6345371, 3.7103777, 1.2296227, 2.4102190, …
-#> $ crown_length_m            <dbl> 6.7299995, 7.3500004, 2.3421671, 1.6421791, …
-#> $ crown_volume_m3           <dbl> 46.5491635, 52.9812527, 1.8542156, 4.9949614…
-#> $ landfire_tree_kg_per_m3   <dbl> 0.2166195, 0.1635716, 0.1635716, 0.1635716, …
+#> $ crown_length_m            <dbl> 6.7299995, 7.3500004, 2.8337004, 1.6421791, …
+#> $ crown_volume_m3           <dbl> 46.5491635, 52.9812527, 2.2433462, 4.9949614…
+#> $ landfire_tree_kg_per_m3   <dbl> 0.2165285, 0.1638469, 0.1638469, 0.1638469, …
 #> $ landfire_stand_kg_per_m3  <dbl> 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.…
-#> $ landfire_crown_biomass_kg <dbl> 10.08345732, 8.66622958, 0.30329706, 0.81703…
+#> $ landfire_crown_biomass_kg <dbl> 10.07922267, 8.68081378, 0.36756530, 0.81840…
 ```
 
 Remember, we also changed the `ws` parameter used to detect the local
@@ -702,7 +725,7 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-30-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-31-1.png" width="100%" />
 
 Let’s look at the relationship between tree height and tree CBH as
 extracted from the point cloud. Note, that we do not expect a perfect
@@ -722,7 +745,7 @@ cloud2trees_ans_c$crowns_sf %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-31-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-32-1.png" width="100%" />
 
 We can also plot height, diameter, and CBH of trees spatially and we’ll
 use the `patchwork` package to combine our plots.
@@ -761,7 +784,7 @@ plt_ht + plt_dbh + plt_cbh + patchwork::plot_layout(ncol = 2) &
   )
 ```
 
-<img src="man/figures/README-unnamed-chunk-32-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-33-1.png" width="100%" />
 
 Let’s plot the distance to the nearest tree that we obtained by turning
 on the `estimate_tree_competition` parameter in the `cloud2trees()`
@@ -777,7 +800,7 @@ cloud2trees_ans_c$treetops_sf %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-33-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-34-1.png" width="100%" />
 
 Let’s look at the FIA Forest Type Group data we extracted for the tree
 list.
@@ -1009,7 +1032,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 cloud2raster_ans$dtm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-43-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-44-1.png" width="100%" />
 
 There is a canopy height model (CHM) raster which we can plot using
 `terra::plot()`
@@ -1019,7 +1042,7 @@ There is a canopy height model (CHM) raster which we can plot using
 cloud2raster_ans$chm_rast %>% terra::plot()
 ```
 
-<img src="man/figures/README-unnamed-chunk-44-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-45-1.png" width="100%" />
 
 # Extract Trees from Raster Data
 
@@ -1063,7 +1086,7 @@ raster2trees_ans %>%
   ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
 ```
 
-<img src="man/figures/README-unnamed-chunk-47-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-48-1.png" width="100%" />
 
 # Estimate Tree DBH for a Tree List
 
@@ -1104,15 +1127,15 @@ tl_dbh %>% dplyr::glimpse()
 #> $ tree_y                 <dbl> 4450078, 4450076, 4450072, 4450078, 4450081, 44…
 #> $ tree_height_m          <dbl> 1.447969, 4.970239, 3.549897, 7.216735, 3.54328…
 #> $ geometry               <POINT [m]> POINT (458066.6 4450078), POINT (458060.4…
-#> $ fia_est_dbh_cm         <dbl> 3.229798, 8.450614, 6.091345, 12.561266, 6.0913…
-#> $ fia_est_dbh_cm_lower   <dbl> 1.942479, 5.033573, 3.622468, 7.546268, 3.62246…
-#> $ fia_est_dbh_cm_upper   <dbl> 4.805845, 12.685004, 9.074854, 18.697421, 9.074…
-#> $ dbh_cm                 <dbl> 3.229798, 8.450614, 6.091345, 12.561266, 6.0913…
+#> $ fia_est_dbh_cm         <dbl> 3.231223, 8.446096, 6.094638, 12.553818, 6.0946…
+#> $ fia_est_dbh_cm_lower   <dbl> 1.934282, 5.033263, 3.637860, 7.504184, 3.63786…
+#> $ fia_est_dbh_cm_upper   <dbl> 4.814063, 12.663866, 9.085156, 18.752550, 9.085…
+#> $ dbh_cm                 <dbl> 3.231223, 8.446096, 6.094638, 12.553818, 6.0946…
 #> $ is_training_data       <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…
-#> $ dbh_m                  <dbl> 0.03229798, 0.08450614, 0.06091345, 0.12561266,…
-#> $ radius_m               <dbl> 0.01614899, 0.04225307, 0.03045673, 0.06280633,…
-#> $ basal_area_m2          <dbl> 0.0008192955, 0.0056087545, 0.0029141794, 0.012…
-#> $ basal_area_ft2         <dbl> 0.008818896, 0.060372633, 0.031368227, 0.133392…
+#> $ dbh_m                  <dbl> 0.03231223, 0.08446096, 0.06094638, 0.12553818,…
+#> $ radius_m               <dbl> 0.01615611, 0.04223048, 0.03047319, 0.06276909,…
+#> $ basal_area_m2          <dbl> 0.0008200186, 0.0056027591, 0.0029173310, 0.012…
+#> $ basal_area_ft2         <dbl> 0.00882668, 0.06030810, 0.03140215, 0.13323405,…
 #> $ ptcld_extracted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 #> $ ptcld_predicted_dbh_cm <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
 ```
@@ -1130,7 +1153,7 @@ tl_dbh %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-51-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-52-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -1161,7 +1184,7 @@ plt_dbh2 <-
 plt_ht2 + plt_dbh2
 ```
 
-<img src="man/figures/README-unnamed-chunk-52-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-53-1.png" width="100%" />
 
 # Estimate Tree Forest Type for a Tree List
 
@@ -1216,11 +1239,11 @@ tl_type$tree_list %>% dplyr::glimpse()
 #> Rows: 66
 #> Columns: 7
 #> $ treeID                 <chr> "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…
-#> $ tree_x                 <dbl> 457972.0, 457948.8, 458012.4, 458062.5, 457956.…
-#> $ tree_y                 <dbl> 4449951, 4449935, 4449941, 4450058, 4449986, 44…
-#> $ geometry               <POINT [m]> POINT (457972 4449951), POINT (457948.8 4…
-#> $ forest_type_group_code <chr> "200", "200", "280", "200", "200", "200", "200"…
-#> $ forest_type_group      <chr> "Douglas-fir group", "Douglas-fir group", "Lodg…
+#> $ tree_x                 <dbl> 457975.5, 458106.6, 458039.3, 457971.8, 457871.…
+#> $ tree_y                 <dbl> 4450055, 4450073, 4449906, 4450019, 4449925, 44…
+#> $ geometry               <POINT [m]> POINT (457975.5 4450055), POINT (458106.6…
+#> $ forest_type_group_code <chr> "200", "200", "220", "200", "200", "280", "200"…
+#> $ forest_type_group      <chr> "Douglas-fir group", "Douglas-fir group", "Pond…
 #> $ hardwood_softwood      <chr> "Softwood", "Softwood", "Softwood", "Softwood",…
 ```
 
@@ -1234,10 +1257,10 @@ tl_type$tree_list %>%
 #> # A tibble: 4 × 3
 #>   forest_type_group_code forest_type_group                         n
 #>   <chr>                  <chr>                                 <int>
-#> 1 200                    Douglas-fir group                        41
-#> 2 220                    Ponderosa pine group                      3
-#> 3 260                    Fir / spruce / mountain hemlock group     1
-#> 4 280                    Lodgepole pine group                     21
+#> 1 200                    Douglas-fir group                        39
+#> 2 220                    Ponderosa pine group                      1
+#> 3 260                    Fir / spruce / mountain hemlock group     2
+#> 4 280                    Lodgepole pine group                     24
 ```
 
 We can plot our spatial tree list
@@ -1253,7 +1276,7 @@ tl_type$tree_list %>%
   ggplot2::theme(panel.border = ggplot2::element_rect(color = "black", fill = NA))
 ```
 
-<img src="man/figures/README-unnamed-chunk-58-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-59-1.png" width="100%" />
 
 Let’s check out the FIA Forest Types Group raster (`foresttype_rast`) of
 the area we searched
@@ -1272,7 +1295,7 @@ r_plt <-
 r_plt
 ```
 
-<img src="man/figures/README-unnamed-chunk-59-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-60-1.png" width="100%" />
 
 See the [Forest Type Groups of the Continental United
 States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d)
@@ -1300,7 +1323,7 @@ r_plt +
   ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 3, color = "black")))
 ```
 
-<img src="man/figures/README-unnamed-chunk-60-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-61-1.png" width="100%" />
 
 # Estimate Tree CBH for a Tree List
 
@@ -1358,8 +1381,8 @@ trees_cbh_ans %>%
 #> Columns: 5
 #> $ treeID          <chr> "1_458054.1_4450092.9", "2_458055.9_4450092.9", "3_458…
 #> $ tree_height_m   <dbl> 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.310, 4.6…
-#> $ tree_cbh_m      <dbl> 4.026838, 4.500000, 8.500000, 2.500000, 4.026838, 3.50…
-#> $ is_training_cbh <lgl> FALSE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FAL…
+#> $ tree_cbh_m      <dbl> 4.026838, 4.500000, 8.500000, 2.500000, 4.026838, 4.44…
+#> $ is_training_cbh <lgl> FALSE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE, FA…
 #> $ geom            <MULTIPOLYGON [m]> MULTIPOLYGON (((458054 4450..., MULTIPOLY…
 ```
 
@@ -1381,7 +1404,7 @@ trees_cbh_ans %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-63-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-64-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -1402,7 +1425,7 @@ trees_cbh_ans %>%
   )
 ```
 
-<img src="man/figures/README-unnamed-chunk-64-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-65-1.png" width="100%" />
 
 # Estimate Tree HMD for a Tree List
 
@@ -1443,7 +1466,7 @@ trees_hmd_ans %>%
 #> Columns: 5
 #> $ treeID                  <chr> "1_458054.1_4450092.9", "2_458055.9_4450092.9"…
 #> $ tree_height_m           <dbl> 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.…
-#> $ max_crown_diam_height_m <dbl> 3.618772, 4.681000, 8.943000, 3.151000, 3.2190…
+#> $ max_crown_diam_height_m <dbl> 3.563148, 4.681000, 8.943000, 3.151000, 3.2190…
 #> $ is_training_hmd         <lgl> FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…
 #> $ geom                    <MULTIPOLYGON [m]> MULTIPOLYGON (((458054 4450..., M…
 ```
@@ -1468,7 +1491,7 @@ trees_hmd_ans %>%
   ggplot2::theme_light()
 ```
 
-<img src="man/figures/README-unnamed-chunk-67-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-68-1.png" width="100%" />
 
 We can look at this data spatially too.
 
@@ -1489,7 +1512,7 @@ trees_hmd_ans %>%
   )
 ```
 
-<img src="man/figures/README-unnamed-chunk-68-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-69-1.png" width="100%" />
 
 # Estimate Tree Biomass for a Tree List
 
@@ -1647,7 +1670,7 @@ p2 <- trees_biomass_ans$tree_list %>%
 p1/p2
 ```
 
-<img src="man/figures/README-unnamed-chunk-73-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-74-1.png" width="100%" />
 
 the estimates look similar but not exactly the same. let’s plot them
 against each other
@@ -1672,7 +1695,7 @@ trees_biomass_ans$tree_list %>%
   ggplot2::scale_y_continuous(limits = c(0, ul))
 ```
 
-<img src="man/figures/README-unnamed-chunk-74-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-75-1.png" width="100%" />
 
 let’s check out the LANDFIRE stand data
 
@@ -1726,4 +1749,4 @@ trees_biomass_ans$stand_cell_data_landfire %>%
   ggplot2::theme_void()
 ```
 
-<img src="man/figures/README-unnamed-chunk-76-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-77-1.png" width="100%" />

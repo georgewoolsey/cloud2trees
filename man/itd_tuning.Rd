@@ -54,8 +54,10 @@ parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=clo
    itd_tuning_ans <- itd_tuning(input_las_dir = i)
    # what's in it?
    names(itd_tuning_ans)
-   # look at the tuning plot
+   # look at the tuning plot showing the tree crowns on the CHM
    itd_tuning_ans$plot_samples
+   # look at the summary of the trees detected by each ITD function
+   itd_tuning_ans$plot_sample_summary
    # the "exp_fn" looks pretty good, let's store it
    best_default <- itd_tuning_ans$ws_fn_list$exp_fn
    # we can see what this function looks like for window size
@@ -105,8 +107,10 @@ parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=clo
         )
        , n_samples = 2
       )
-    # look at the tuning plot
-     itd_tuning_ans2$plot_samples
+    # look at the tuning plot showing the tree crowns on the CHM
+     itd_tuning_ans$plot_samples
+    # look at the summary of the trees detected by each ITD function
+     itd_tuning_ans$plot_sample_summary
     # we can see what our custom "my_linear" function looks like
      ggplot2::ggplot() +
        ggplot2::geom_function(fun = itd_tuning_ans2$ws_fn_list$my_linear) +
