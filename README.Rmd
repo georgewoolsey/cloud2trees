@@ -267,7 +267,7 @@ It is generally recommended that a different window size function is defined for
 We'll continue to use the `MixedConifer.laz` that ships with the `lidR` package for our example. `itd_tuning()` enables users to sample from up to five 0.1 ha plots (`n_samples` parameter) that are randomly selected from within the bounding box of the point cloud data coverage. A function or a named list of functions can be tested using the `ws_fn_list` parameter which can also be left at the default value (`NULL`) to test default exponential (concave up), linear, and logarithmic (concave down) functions. We'll run `itd_tuning()` with all default options to start.
 
 ```{r, results=F}
-itd_tuning_ans <- itd_tuning(input_las_dir = i)
+itd_tuning_ans <- itd_tuning(input_las_dir = i, n_samples = 2)
 ```
 
 Let's check out what is included in the return from the `itd_tuning()` function.
@@ -277,10 +277,16 @@ Let's check out what is included in the return from the `itd_tuning()` function.
 itd_tuning_ans %>% names()
 ```
 
-there is a plot of the different window size functions tested (plot columns) over the different 0.1 ha sample plots (plot rows) and the number of individual trees extracted shown outlined in gray overlaid on the canopy height model (CHM).
+There is a plot of the different ITD window size functions tested (columns) over the different 0.1 ha sample plots (plot rows) and the number of individual trees extracted shown outlined in gray overlaid on the canopy height model (CHM).
 
-```{r, fig.height=7.7}
+```{r, fig.height=6.0, fig.width=7}
 itd_tuning_ans$plot_samples
+```
+
+There is a plot that summarizes the trees detected based on the different ITD window search functions tested for each sample plot area. The first view provides aggregated plot summary metrics including trees per hectare (TPH), mean tree height in meters, and mean crown diameter in meters. The second view shows the tree size-class distribution showing the proportion of trees (bar label) and count of trees (y-axis) using five equally spaced height bins to enhance insight into the effect of the search function. For example, this distribution can help diagnose issues such as the over-segmentation of small trees, which can inflate TPH estimates, or, conversely, the failure to detect a targeted height-class range. The third view shows the tree height-to-crown diameter relationship. The goal of the window search function is to accurately model this relationship, and a positive correlation is expected across most forest types with any deviations from the general trend suggesting a need for further tuning (e.g. small trees with unrealistically wide crowns).
+
+```{r, fig.height=7, fig.width=8.3}
+itd_tuning_ans$plot_sample_summary
 ```
 
 if we think that the "lin_fn" was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in `raster2trees()` and `cloud2trees()`
@@ -321,7 +327,7 @@ Let's work through how to test some custom window size functions. We'll test a c
   )
 ```
 
-run `itd_tuning()` with our custom window size definitions and this time we'll only try on two sample plots of 0.1 ha
+run `itd_tuning()` with our custom window size definitions and try on two sample plots of 0.1 ha
 
 ```{r}
 # run it with custom functions
@@ -334,7 +340,7 @@ itd_tuning_ans2 <- itd_tuning(
 
 let's check out that tuning plot
 
-```{r}
+```{r, fig.height=6.0, fig.width=7}
 # look at the tuning plot
 itd_tuning_ans2$plot_samples
 ```

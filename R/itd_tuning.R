@@ -40,8 +40,10 @@
 #'    itd_tuning_ans <- itd_tuning(input_las_dir = i)
 #'    # what's in it?
 #'    names(itd_tuning_ans)
-#'    # look at the tuning plot
+#'    # look at the tuning plot showing the tree crowns on the CHM
 #'    itd_tuning_ans$plot_samples
+#'    # look at the summary of the trees detected by each ITD function
+#'    itd_tuning_ans$plot_sample_summary
 #'    # the "exp_fn" looks pretty good, let's store it
 #'    best_default <- itd_tuning_ans$ws_fn_list$exp_fn
 #'    # we can see what this function looks like for window size
@@ -91,8 +93,10 @@
 #'         )
 #'        , n_samples = 2
 #'       )
-#'     # look at the tuning plot
-#'      itd_tuning_ans2$plot_samples
+#'     # look at the tuning plot showing the tree crowns on the CHM
+#'      itd_tuning_ans$plot_samples
+#'     # look at the summary of the trees detected by each ITD function
+#'      itd_tuning_ans$plot_sample_summary
 #'     # we can see what our custom "my_linear" function looks like
 #'      ggplot2::ggplot() +
 #'        ggplot2::geom_function(fun = itd_tuning_ans2$ws_fn_list$my_linear) +
@@ -205,6 +209,8 @@ if(is.null(big_ans_list) || dplyr::coalesce(length(big_ans_list), 0)<1){
     stop("failed to extract trees in any sample. try increasing `n_samples` or using different window functions.")
   }
 # pull out the plots and combine them
+  # define patchwork annotation settings for each subplot (i.e. samples in this application)
+
   plt_list <- the_ans_list %>% purrr::map(purrr::pluck("plt"))
   if(any(is.null(plt_list))){
     plt <- NULL
@@ -212,11 +218,49 @@ if(is.null(big_ans_list) || dplyr::coalesce(length(big_ans_list), 0)<1){
     # the_ans_list %>% purrr::map(names)
     plt <- patchwork::wrap_plots(
         plt_list
-        , nrow = length(the_ans_list)
+        , nrow = length(plt_list)
         , ncol = 1
       ) +
-      patchwork::plot_annotation(tag_levels = "1", tag_prefix = "sample #")
+      patchwork::plot_annotation(
+        tag_levels = "1"
+        , tag_prefix = "sample #"
+        , theme = ggplot2::theme(
+          plot.title = ggplot2::element_text(size = 10, face = "bold")
+        )
+      ) & # use & to apply the theme to all plots in the patchwork
+      ggplot2::theme(
+        plot.tag = ggplot2::element_text(size = 10, hjust = 0.05, face = "bold")
+        , plot.tag.position = "top"
+        , plot.margin = ggplot2::margin(t = 0, b = 0, unit = "pt")
+      )
   }
+
+# pull out the other plots and combine them
+  plt_list <- the_ans_list %>% purrr::map(purrr::pluck("plt_sum"))
+  if(any(is.null(plt_list))){
+    plt_summary <- NULL
+  }else{
+    plt_list <- plt_list %>% purrr::map(patchwork::wrap_elements) # this is so the tagging works as intended
+    # the_ans_list %>% purrr::map(names)
+    plt_summary <- patchwork::wrap_plots(
+        plt_list
+        , nrow = length(plt_list)
+        , ncol = 1
+      ) +
+      patchwork::plot_annotation(
+        tag_levels = "1"
+        , tag_prefix = "sample #"
+        , theme = ggplot2::theme(
+          plot.title = ggplot2::element_text(size = 10, face = "bold")
+        )
+      ) & # use & to apply the theme to all plots in the patchwork
+      ggplot2::theme(
+        plot.tag = ggplot2::element_text(size = 10, hjust = 0.05, face = "bold")
+        , plot.tag.position = "top"
+        , plot.margin = ggplot2::margin(t = 0, b = 0, unit = "pt")
+      )
+  }
+  # plt_summary
 
 # pull out the ws fn...will be the same for each list so just need to get one
   if(any(is.null(plt_list))){
@@ -230,6 +274,7 @@ if(is.null(big_ans_list) || dplyr::coalesce(length(big_ans_list), 0)<1){
   return(list(
     plot_samples = plt
     , ws_fn_list = ws_fn_list
+    , plot_sample_summary = plt_summary
   ))
 }
 
@@ -385,6 +430,14 @@ sample_las_point_extract_trees <- function(
     }
     # cloud2raster_ans$chm_rast %>% terra::plot()
 
+    # check for NA
+    # make sure there are plenty filled cells
+    if(
+      as.numeric(terra::global(cloud2raster_ans$chm_rast, fun = "isNA")) == terra::ncell(cloud2raster_ans$chm_rast) ||
+      as.numeric(terra::global(cloud2raster_ans$chm_rast, fun = "isNA")) >= round(terra::ncell(cloud2raster_ans$chm_rast)*0.98)
+    ){
+      return(empty_return)
+    }
 
     # map cloud2trees over each ws function
     safe_raster2trees <- purrr::safely(raster2trees)
@@ -408,7 +461,7 @@ sample_las_point_extract_trees <- function(
 
     if(is.null(crowns) || !inherits(crowns,"data.frame")){return(empty_return)}
   #####################################################
-  # plot it
+  # plot it spatially on CHM
   #####################################################
     # crowns %>% dplyr::glimpse()
     # crowns %>% sf::st_drop_geometry() %>% dplyr::count(ws_fn)
@@ -455,13 +508,165 @@ sample_las_point_extract_trees <- function(
         , fill = NA, color = "gray33", lwd = 0.8
       ) +
       ggplot2::facet_grid(cols = dplyr::vars(lab)) +
-      ggplot2::theme(strip.text = ggplot2::element_text(color = "black"))
+      ggplot2::theme(strip.text = ggplot2::element_text(size=7,color = "black"))
+
+  #####################################################
+  # plot distribution of it
+  #####################################################
+    # make bins and get crown diameter
+    crowns <- crowns %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(
+        ht_bin = ggplot2::cut_interval(x = tree_height_m, n = 5) %>% ordered()
+        , crwn_bin = ggplot2::cut_interval(x = crown_area_m2, n = 5) %>% ordered()
+      ) %>%
+      st_calculate_diameter() %>%
+      dplyr::rename(crown_diameter_m = diameter_m)
+
+    # crowns %>% dplyr::glimpse()
+
+    ###########################
+    # height distribution
+    ###########################
+    bar_dodge <- ggplot2::position_dodge(width = 0.6) # dodge bars in ggplot
+    plt_ht <- tidyr::crossing(
+        crowns %>% sf::st_drop_geometry() %>% dplyr::distinct(ht_bin)
+        , crowns %>% sf::st_drop_geometry() %>% dplyr::distinct(ws_fn)
+      ) %>%
+      dplyr::left_join(
+        crowns %>%
+          sf::st_drop_geometry() %>%
+          dplyr::group_by(ws_fn,ht_bin) %>%
+          dplyr::summarize(
+            n = dplyr::n()
+          )
+        , by = dplyr::join_by(ws_fn,ht_bin)
+      ) %>%
+      dplyr::mutate(
+        n = dplyr::coalesce(n,0)
+      ) %>%
+      dplyr::group_by(ws_fn) %>%
+      dplyr::mutate(
+        pct = n/sum(n,na.rm=T)
+        , lab = paste0(scales::comma(n,accuracy=1),"\n",scales::percent(pct,accuracy=1))
+        , facet = "Tree Height Distribution" # fake one
+      ) %>%
+      dplyr::ungroup() %>%
+      ggplot2::ggplot(mapping = ggplot2::aes(x = ht_bin, y = n, fill = ws_fn, group = ws_fn)) +
+        ggplot2::geom_col(width = 0.5, position = bar_dodge) +
+        ggplot2::geom_text(mapping=ggplot2::aes(label=scales::comma(n,accuracy=1)), position = bar_dodge, vjust = -1.5, size = 0) +
+        ggplot2::geom_text(mapping=ggplot2::aes(label=scales::percent(pct,accuracy=1)), position = bar_dodge, vjust = -0.5, size = 1.5) +
+        ggplot2::facet_grid(cols = dplyr::vars(facet)) +
+        ggplot2::scale_color_viridis_d(option="viridis") +
+        ggplot2::scale_fill_viridis_d(option="viridis") +
+        ggplot2::scale_y_continuous(labels = scales::comma, expand = ggplot2::expansion(mult = c(0,0.2))) +
+        ggplot2::labs(
+          x = "height bin (m)"
+          , y = "# trees", fill = "", color = ""
+          # , subtitle = "Tree Height Distribution"
+        ) +
+        ggplot2::theme_light() +
+        ggplot2::theme(
+          legend.position = "top"
+          , axis.text.y = ggplot2::element_text(size=6)
+          , axis.text.x = ggplot2::element_text(size=5)
+          , strip.text = ggplot2::element_text(size=7,color = "black")
+        )
+        # ggplot2::guides(
+        #   color = ggplot2::guide_legend(override.aes = list(shape = 15, lwd = 8, alpha = 1, fill = NA))
+        #   # , color = "none"
+        # )
+
+    ###########################
+    # height vs crown diam
+    ###########################
+    plt_ht_dia <- crowns %>%
+      sf::st_drop_geometry() %>%
+      dplyr::mutate(facet = "Tree Height vs. Crown Diameter") %>%
+      ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = crown_diameter_m, color = ws_fn, fill = ws_fn)) +
+        ggplot2::geom_jitter(alpha = 0.8, size = 2, width = 0.05, height = 0.05) +
+        ggplot2::facet_grid(cols = dplyr::vars(facet)) +
+        ggplot2::scale_color_viridis_d(option="viridis") +
+        ggplot2::scale_fill_viridis_d(option="viridis") +
+        ggplot2::scale_x_continuous(labels = scales::comma) +
+        ggplot2::scale_y_continuous(labels = scales::comma) +
+        ggplot2::labs(
+          x = "height (m)"
+          , y = "crown diameter (m)"
+          , fill = "", color = ""
+        ) +
+        ggplot2::theme_light() +
+        ggplot2::theme(
+          legend.position = "top"
+          , axis.text = ggplot2::element_text(size=6)
+          , strip.text = ggplot2::element_text(size=7,color = "black")
+        )
+
+    ###########################
+    # summary
+    ###########################
+    plt_agg <-
+      crowns %>%
+      sf::st_drop_geometry() %>%
+      dplyr::group_by(ws_fn) %>%
+      dplyr::summarise(
+        n = dplyr::n()
+        , ht = mean(tree_height_m,na.rm=T)
+        , dia = mean(crown_diameter_m,na.rm=T)
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(tpha = n/(plot_area_m2/10000)) %>%
+      dplyr::select(-n) %>%
+      tidyr::pivot_longer(cols = -c(ws_fn)) %>%
+      dplyr::mutate(
+        name = factor(
+          name
+          , levels = c("tpha","ht","dia")
+          , labels = c("TPH","mean\nHeight (m)","mean\nCr.Dia. (m)")
+          , ordered = T
+        )
+      ) %>%
+      dplyr::mutate(facet = "Summary") %>%
+      ggplot2::ggplot(mapping = ggplot2::aes(x = value, y = ws_fn, fill = ws_fn)) +
+        ggplot2::geom_col(width=0.3) +
+        ggplot2::geom_text(
+          mapping=ggplot2::aes(label=scales::comma(value,accuracy=0.1),fontface="bold")
+          , hjust = 1.15, vjust = 0.5, size = 2.5, color = "white"
+        ) +
+        ggplot2::facet_grid(cols = dplyr::vars(name), scales = "free_x") +
+        ggplot2::scale_color_viridis_d(option="viridis") +
+        ggplot2::scale_fill_viridis_d(option="viridis") +
+        ggplot2::scale_x_continuous(labels = scales::comma, expand = ggplot2::expansion(mult = c(0,0.05))) +
+        ggplot2::labs(
+          x = ""
+          , y = ""
+          , fill = "", color = ""
+        ) +
+        ggplot2::theme_light() +
+        ggplot2::theme(
+          legend.position = "top"
+          , axis.text.y = ggplot2::element_text(size = 10, face = "bold")
+          , axis.text.x = ggplot2::element_blank()
+          , axis.ticks.x = ggplot2::element_blank()
+          , panel.grid.major.x = ggplot2::element_blank()
+          , panel.grid.minor.x = ggplot2::element_blank()
+          , strip.text = ggplot2::element_text(size=6,color = "black")
+        )
+
+    # combine
+    plt_sum <-
+      patchwork::wrap_plots(
+        list(plt_agg,plt_ht,plt_ht_dia)
+        , nrow = 1
+        , ncol = 3
+      ) & ggplot2::theme(legend.position = "none",axis.title = ggplot2::element_text(size=7))
 
     # return it
     return(list(
       crowns = crowns
       , chm_rast = cloud2raster_ans$chm_rast
       , plt = plt
+      , plt_sum = plt_sum
       , ws_fn_list = ws_fn_list
     ))
 
