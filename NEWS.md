@@ -1,5 +1,8 @@
 # cloud2trees 0.7.3
 
+- Fix: `itd_tuning()` no longer fails if sample plots have no trees and either returns results from a backup plot or a more detailed error message.
+- Change: `itd_tuning()` now also includes `plot_sample_summary` as an object in its named list return which includes figures summarizing the trees extracted from the ITD window functions tested.
+
 # cloud2trees 0.7.2
 
 Updates to use TreeMap 2022 ([https://doi.org/10.2737/RDS-2025-0032](https://doi.org/10.2737/RDS-2025-0032)). New data enables possible future development to include species classification modeling and CBH allometric prediction.
