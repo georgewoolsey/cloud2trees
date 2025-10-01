@@ -1,3 +1,5 @@
+# cloud2trees 0.7.3
+
 # cloud2trees 0.7.2
 
 Updates to use TreeMap 2022 ([https://doi.org/10.2737/RDS-2025-0032](https://doi.org/10.2737/RDS-2025-0032)). New data enables possible future development to include species classification modeling and CBH allometric prediction.
