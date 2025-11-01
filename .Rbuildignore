@@ -3,3 +3,8 @@
 ^LICENSE\.md$
 ^extdata$
 ^README\.Rmd$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
+^vignettes/articles$
