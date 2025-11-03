@@ -91,11 +91,13 @@ Finally, we will install our `cloud2trees` package, which integrates all these o
 remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
 ```
 
-let's load the `cloud2trees` package into our current session and we'll also load the `tidyverse`
+let's load the `cloud2trees` package into our current session and we'll also load some of the `tidyverse` and `terra` for working with raster data
 
 ```{r}
 library(cloud2trees)
-library(tidyverse)
+library(ggplot2)
+library(magrittr)
+library(terra)
 ```
 
 ## Get External Data
@@ -189,7 +191,7 @@ cloud2trees_ans$chm_rast %>%
     data = cloud2trees_ans$crowns_sf
     , color = "gray33"
     , fill = NA
-    , lwd = 1
+    , lwd = 0.8
   ) +
   ggplot2::scale_fill_viridis_c(option = "plasma") +
   ggplot2::labs(fill="CHM ht. (m)") +
