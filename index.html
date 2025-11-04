@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Point Cloud Data to Forest Inventory Tree List • cloud2trees</title>
+<title>Aerial point cloud data to forest inventory tree lists • cloud2trees</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Point Cloud Data to Forest Inventory Tree List">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Aerial point cloud data to forest inventory tree lists">
 <meta name="description" content="Extract a tree list, CHM, DTM, and more from .las|.laz point cloud data. Point cloud data can be from a LiDAR sensor or photogrammetry (i.e. structure from motion).">
 <meta property="og:description" content="Extract a tree list, CHM, DTM, and more from .las|.laz point cloud data. Point cloud data can be from a LiDAR sensor or photogrammetry (i.e. structure from motion).">
 </head>
@@ -31,6 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/cloud2trees-setup.html">Setup</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -41,9 +42,7 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><form class="form-inline" role="search">
- <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
-</form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/georgewoolsey/cloud2trees/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -55,9 +54,9 @@
 <div class="page-header"><h1 id="cloud2trees">cloud2trees<a class="anchor" aria-label="anchor" href="#cloud2trees"></a>
 </h1></div>
 <ul>
+<li><a href="#cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists">cloud2trees: Aerial point cloud data to forest inventory tree lists</a></li>
 <li><a href="#introduction">Introduction</a></li>
-<li><a href="#installation">Installation</a></li>
-<li><a href="#preliminaries">Preliminaries</a></li>
+<li><a href="#installation-and-setup">Installation and Setup</a></li>
 <li><a href="#extract-trees-from-point-cloud-default">Extract Trees from Point Cloud: Default</a></li>
 <li><a href="#individual-tree-detection-itd-tuning">Individual Tree Detection (ITD) Tuning</a></li>
 <li><a href="#extract-trees-from-point-cloud-custom">Extract Trees from Point Cloud: Custom</a></li>
@@ -73,153 +72,81 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 </div>
 <div class="section level1">
-<h1 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h1 id="cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists">cloud2trees: Aerial point cloud data to forest inventory tree lists<a class="anchor" aria-label="anchor" href="#cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists"></a>
 </h1>
 <!-- badges: start -->
 <!-- badges: end -->
+<p><img src="reference/figures/Graphical_Abstract.jpg" alt="cloud2trees graphical abstract"></p>
+</div>
+<div class="section level1">
+<h1 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+</h1>
 <p>The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify <em>conifer</em> forest structure and may not be appropriate for other uses.</p>
 <ul>
 <li>Swayze, Neal C., and Wade T. Tinkham. <a href="https://scholar.google.com/scholar?oi=bibs&amp;hl=en&amp;cluster=10655866445299954513" class="external-link">“Application of unmanned aerial system structure from motion point cloud detected tree heights and stem diameters to model missing stem diameters.”</a> MethodsX 9 (2022): 101729.</li>
 <li>Tinkham, Wade T., Neal C. Swayze, Chad M. Hoffman, Lauren E. Lad, and Mike A. Battaglia. <a href="https://scholar.google.com/scholar?oi=bibs&amp;hl=en&amp;cluster=14807895789640069059" class="external-link">“Modeling the missing DBHs: Influence of model form on UAV DBH characterization.”</a> Forests 13, no. 12 (2022): 2077.</li>
 <li>Creasy, Matthew B., Wade T. Tinkham, Chad M. Hoffman, and Jody C. Vogeler. <a href="https://scholar.google.com/scholar?oi=bibs&amp;hl=en&amp;cluster=10356932785437169630" class="external-link">“Potential for individual tree monitoring in ponderosa pine dominated forests using unmanned aerial system structure from motion point clouds.”</a> Canadian Journal of Forest Research 51, no. 8 (2021): 1093-1105.</li>
-<li>Kane, Van R., Bryce N. Bartl-Geller, Gina R. Cova, Caden P. Chamberlain, Liz van Wagtendonk, and Malcolm P. North. <a href="https://scholar.google.com/scholar?cluster=18100846251549158494&amp;hl=en&amp;as_sdt=0,6" class="external-link">“Where are the large trees? A census of Sierra Nevada large trees to determine their frequency and spatial distribution across three large landscapes.”</a> Forest Ecology and Management 546 (2023): 121351.</li>
 <li>Almeida, Danilo Roberti Alves de, Scott C. Stark, Gang Shao, Juliana Schietti, Bruce Walker Nelson, Carlos Alberto Silva, Eric Bastos Gorgens, Ruben Valbuena, Daniel de Almeida Papa, and Pedro Henrique Santin Brancalion. <a href="https://scholar.google.com/scholar?cluster=5085674356305592014&amp;hl=en&amp;as_sdt=0,6" class="external-link">“Optimizing the remote detection of tropical rainforest structure with airborne lidar: Leaf area profile sensitivity to pulse density and spatial sampling.”</a> Remote Sensing 11, no. 1 (2019): 92.</li>
 <li>Viedma, O., C. A. Silva, J. M. Moreno, and A. T. Hudak. <a href="https://scholar.google.com/scholar?cluster=14042621889986838235&amp;oi=gsb&amp;hl=en&amp;as_sdt=0,6" class="external-link">“LadderFuelsR: A new automated tool for vertical fuel continuity analysis and crown base height detection using light detection and ranging.”</a> Methods in Ecology and Evolution (2024).</li>
 </ul>
-</div>
-<div class="section level1">
-<h1 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
-</h1>
-<p>A full demonstration script of the install and setup of <code>cloud2trees</code> including dependancies is available at: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R" class="external-link uri">https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R</a></p>
-<p>It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed.</p>
-<p>For users comfortable with installing and setting up packages in R, a quick setup demonstration follows below.</p>
-<p><strong>1) Install CRAN packages</strong></p>
-<p>install packages from CRAN using base <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code></p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install remotes package</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="co"># install tidyverse package</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"tidyverse"</span><span class="op">)</span></span>
-<span><span class="co"># install sf package</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sf"</span><span class="op">)</span></span>
-<span><span class="co"># install terra package</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"terra"</span><span class="op">)</span></span>
-<span><span class="co"># install BH package</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BH"</span><span class="op">)</span></span></code></pre></div>
-<p><strong>2) Install other packages</strong></p>
-<p><code>cloud2trees</code> package relies on the following packages:</p>
+<p>The development and functionality of the <code>cloud2trees</code> package relies extensively on the groundbreaking work of others. We gratefully acknowledge and encourage users to properly cite the authors and contributors behind the following essential R packages:</p>
 <ul>
 <li>
-<code>lasR</code> package (<a href="https://r-lidar.github.io/lasR/" class="external-link uri">https://r-lidar.github.io/lasR/</a>) enables large-scale point cloud processing with speed</li>
+<code>lidR</code> package (<a href="https://github.com/r-lidar/lidR" class="external-link uri">https://github.com/r-lidar/lidR</a>) for fundamental point cloud processing capabilities and routines</li>
 <li>
-<code>TreeLS</code> package (<a href="https://github.com/tiagodc/TreeLS" class="external-link uri">https://github.com/tiagodc/TreeLS</a>) helps us extract DBH from the point cloud</li>
+<code>lasR</code> package (<a href="https://r-lidar.github.io/lasR" class="external-link uri">https://r-lidar.github.io/lasR</a>) enables large-scale point cloud processing with speed</li>
+<li>
+<code>TreeLS</code> package (<a href="https://github.com/tiagodc/TreeLS" class="external-link uri">https://github.com/tiagodc/TreeLS</a>) helps us extract DBH directly from the point cloud</li>
 <li>
 <code>leafR</code> package (<a href="https://github.com/DRAAlmeida/leafR" class="external-link uri">https://github.com/DRAAlmeida/leafR</a>) computes leaf area density (LAD) profiles from the point cloud</li>
 <li>
 <code>LadderFuelsR</code> package (<a href="https://github.com/olgaviedma/LadderFuelsR" class="external-link uri">https://github.com/olgaviedma/LadderFuelsR</a>) helps us extract CBH from the point cloud</li>
 </ul>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install lasR for point cloud processing</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"lasR"</span>, repos <span class="op">=</span> <span class="st">'https://r-lidar.r-universe.dev'</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># install github package from "tiagodc/TreeLS" for DBH extraction</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"tiagodc/TreeLS"</span>, upgrade <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># install github package from "DRAAlmeida/leafR"</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"DRAAlmeida/leafR"</span>, upgrade <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># install github package from "olgaviedma/LadderFuelsR"</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"olgaviedma/LadderFuelsR"</span>, upgrade <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span></code></pre></div>
-<p><strong>3) Install <code>cloud2trees</code></strong></p>
-<p>Finally, you can install the development version of <code>cloud2trees</code> from <a href="https://github.com/georgewoolsey/cloud2trees" class="external-link">GitHub</a> with:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## get cloud2trees</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"georgewoolsey/cloud2trees"</span>, upgrade <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level1">
-<h1 id="preliminaries">Preliminaries<a class="anchor" aria-label="anchor" href="#preliminaries"></a>
+<h1 id="installation-and-setup">Installation and Setup<a class="anchor" aria-label="anchor" href="#installation-and-setup"></a>
 </h1>
-<div class="section level2">
-<h2 id="tldr">tl;dr<a class="anchor" aria-label="anchor" href="#tldr"></a>
-</h2>
-<p>The <code>cloud2trees</code> package relies on external data to estimate tree DBH, FIA forest type, and LANDFIRE fuel loading. If you plan to use this functionality, the data must be downloaded first using <code><a href="reference/get_data.html">get_data()</a></code> which only needs to be run the first time you use the <code>cloud2trees</code> package. All downloads combine to use ~7 GB of storage space.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p>A full demonstration script of the install and setup of <code>cloud2trees</code> including dependencies is available at: <code>article("cloud2trees-setup")</code></p>
+<p>It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed.</p>
+</div>
+<div class="section level1">
+<h1 id="extract-trees-from-point-cloud-default">Extract Trees from Point Cloud: Default<a class="anchor" aria-label="anchor" href="#extract-trees-from-point-cloud-default"></a>
+</h1>
+<p>In addition to <code>cloud2trees</code>, we’ll be using the <code>tidyverse</code>, <code>sf</code>, and <code>terra</code> in the examples below.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://georgewoolsey.github.io/cloud2trees/">cloud2trees</a></span><span class="op">)</span></span>
-<span><span class="co"># download the external data</span></span>
-<span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/get_data.html">get_data</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>Some machines, US Federal Government computers especially, might prevent you from writing directly to the package contents. If you get an error about “access” or “writing to” from the <code><a href="reference/get_data.html">get_data()</a></code> function, try to set the <code>savedir</code> parameter to a directory that you know you can write to.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># download the external data with a custom directory</span></span>
-<span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/get_data.html">get_data</a></span><span class="op">(</span>savedir <span class="op">=</span> <span class="st">"C:/ican/access/this"</span><span class="op">)</span></span></code></pre></div>
-<p>We’ll be using the <code>tidyverse</code>, <code>sf</code>, and <code>terra</code> in the examples below.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("tidyverse")</span></span>
+<span><span class="co"># install.packages("tidyverse")</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org" class="external-link">tidyverse</a></span><span class="op">)</span></span>
 <span><span class="co"># install.packages("sf")</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span><span class="co"># install.packages("terra")</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="get-treemap-data">Get TreeMap Data<a class="anchor" aria-label="anchor" href="#get-treemap-data"></a>
-</h2>
-<p>To estimate tree DBH from extracted tree height data requires training data to model diameter using height. Site-specific allometric equations using data from the USDA Forest Service’s Forest Inventory Analysis (FIA) program are used to estimate individual tree DBH based on the point cloud-detected tree height.</p>
-<p>FIA plots are identified using <a href="https://scholar.google.com/scholar?cluster=10696389844245769168&amp;hl=en&amp;as_sdt=0,6" class="external-link">TreeMap 2016</a>, a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.</p>
-<p>Unless you have already executed the <code><a href="reference/get_data.html">get_data()</a></code> function, you must first download the FIA data (~4 GB) using <code><a href="reference/get_treemap.html">get_treemap()</a></code> which only needs to be run the first time you use the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># download the TreeMap data</span></span>
-<span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/get_treemap.html">get_treemap</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="get-forest-type-group-data">Get Forest Type Group Data<a class="anchor" aria-label="anchor" href="#get-forest-type-group-data"></a>
-</h2>
-<p>To estimate FIA forest type group for trees requires external data to spatially determine the forest type that of a tree.</p>
-<p>Forest type groups are identified using the <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a> data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program. This raster layer has 30-meter resolution and covers the forested extent of the continental US.</p>
-<p>Unless you have already executed the <code><a href="reference/get_data.html">get_data()</a></code> function, you must first download the FIA data (~2 GB) using <code><a href="reference/get_foresttype.html">get_foresttype()</a></code> which only needs to be run the first time you use the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># download the forest type data</span></span>
-<span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/get_foresttype.html">get_foresttype</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="get-landfire-data">Get LANDFIRE Data<a class="anchor" aria-label="anchor" href="#get-landfire-data"></a>
-</h2>
-<p>To estimate tree crown biomass for trees using <a href="https://landfire.gov/fuel/cbd" class="external-link">LANDFIRE’s Forest Canopy Bulk Density (CBD)</a> estimates requires external data to spatially determine the fuel loading of the area.</p>
-<p>The <code>cloud2trees</code> package currently uses <a href="https://landfire.gov/fuel/cbd" class="external-link">LANDFIRE’s Forest Canopy Bulk Density (CBD)</a> 2023 estimates (“CONUS LF 2023”) at 30-meter resolution over the entire continental US.</p>
-<p>Unless you have already executed the <code><a href="reference/get_data.html">get_data()</a></code> function, you must first download the FIA data (~2.5 GB) using <code><a href="reference/get_landfire.html">get_landfire()</a></code> which only needs to be run the first time you use the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># download the landfire cbd data</span></span>
-<span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/get_landfire.html">get_landfire</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level1">
-<h1 id="extract-trees-from-point-cloud-default">Extract Trees from Point Cloud: Default<a class="anchor" aria-label="anchor" href="#extract-trees-from-point-cloud-default"></a>
-</h1>
 <p>The <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> function is an all-in-one function to process raw .las|.laz files to generate a CHM raster (.tif), a DTM raster (.tif), and a tree list with tree location, height, and DBH.</p>
 <p>For our example we’ll use the <code>MixedConifer.laz</code> that ships with the <code>lidR</code> package (<a href="https://r-lidar.github.io/lidRbook/" class="external-link uri">https://r-lidar.github.io/lidRbook/</a>).</p>
 <p>A most basic example using all <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> function defaults with a single .laz file and writing the output to a temporary directory is:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># a test las file but this could also be a directory path with &gt;1 .las|.laz files</span></span>
 <span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"MixedConifer.laz"</span>, package<span class="op">=</span><span class="st">"lidR"</span><span class="op">)</span></span>
 <span><span class="co"># run it</span></span>
 <span><span class="va">cloud2trees_ans</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/cloud2trees.html">cloud2trees</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, input_las_dir <span class="op">=</span> <span class="va">i</span><span class="op">)</span></span></code></pre></div>
 <p>Let’s check out what is included in the return from the <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> function.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># what is it?</span></span>
 <span><span class="va">cloud2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "crowns_sf"       "treetops_sf"     "dtm_rast"        "chm_rast"       </span></span>
 <span><span class="co">#&gt; [5] "foresttype_rast"</span></span></code></pre></div>
 <p>There is a digital terrain model (DTM) raster which we can plot using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a DTM</span></span>
 <span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">dtm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-10-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-5-1.png" width="100%"></p>
 <p>There is a canopy height model (CHM) raster which we can plot using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a CHM</span></span>
 <span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-11-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-6-1.png" width="100%"></p>
 <p>A spatial data frame with tree crown polygons is returned.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there are tree crowns</span></span>
 <span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 340</span></span>
@@ -265,16 +192,16 @@
 <code>estimate_tree_competition=TRUE</code> for competition (see also <code><a href="reference/trees_competition.html">trees_competition()</a></code>)</li>
 </ul>
 <p>Let’s plot these tree crown polygons using <code><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot2::ggplot()</a></code> with some custom plot settings.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Oranges"</span>, name <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-13-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-8-1.png" width="100%"></p>
 <p>A spatial data frame with tree top points is returned.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there are tree top points</span></span>
 <span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">treetops_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 340</span></span>
@@ -306,23 +233,23 @@
 <span><span class="co">#&gt; $ geometry                  &lt;POINT [m]&gt; POINT (481294.4 3813011), POINT (48131…</span></span></code></pre></div>
 <p>Notice that <code>cloud2trees_ans$crowns_sf</code> and <code>cloud2trees_ans$treetops_sf</code> have the <em>exact same structure</em> but one is spatial polygons and the other is spatial points.</p>
 <p>Let’s plot these tree top points using <code><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot2::ggplot()</a></code> with some custom plot settings.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">treetops_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_color_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Oranges"</span>, name <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-15-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-10-1.png" width="100%"></p>
 <p>It is also the case that the points in <code>cloud2trees_ans$treetops_sf</code> will match to exactly one crown polygon in <code>cloud2trees_ans$crowns_sf</code>.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">crowns_sf</span>, mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">treetops_sf</span>, shape <span class="op">=</span> <span class="fl">20</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Oranges"</span>, name <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-16-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-11-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="individual-tree-detection-itd-tuning">Individual Tree Detection (ITD) Tuning<a class="anchor" aria-label="anchor" href="#individual-tree-detection-itd-tuning"></a>
@@ -334,39 +261,39 @@
 <h2 id="default-itd-window-size-functions">Default ITD window size functions<a class="anchor" aria-label="anchor" href="#default-itd-window-size-functions"></a>
 </h2>
 <p>We’ll continue to use the <code>MixedConifer.laz</code> that ships with the <code>lidR</code> package for our example. <code><a href="reference/itd_tuning.html">itd_tuning()</a></code> enables users to sample from up to five 0.1 ha plots (<code>n_samples</code> parameter) that are randomly selected from within the bounding box of the point cloud data coverage. A function or a named list of functions can be tested using the <code>ws_fn_list</code> parameter which can also be left at the default value (<code>NULL</code>) to test default exponential (concave up), linear, and logarithmic (concave down) functions. We’ll run <code><a href="reference/itd_tuning.html">itd_tuning()</a></code> with all default options to start.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">itd_tuning_ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/itd_tuning.html">itd_tuning</a></span><span class="op">(</span>input_las_dir <span class="op">=</span> <span class="va">i</span>, n_samples <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>Let’s check out what is included in the return from the <code><a href="reference/itd_tuning.html">itd_tuning()</a></code> function.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># what is it?</span></span>
 <span><span class="va">itd_tuning_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "plot_samples"        "ws_fn_list"          "plot_sample_summary"</span></span></code></pre></div>
 <p>There is a plot of the different ITD window size functions tested (columns) over the different 0.1 ha sample plots (plot rows) and the number of individual trees extracted shown outlined in gray overlaid on the canopy height model (CHM).</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">itd_tuning_ans</span><span class="op">$</span><span class="va">plot_samples</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-19-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-14-1.png" width="100%"></p>
 <p>There is a plot that summarizes the trees detected based on the different ITD window search functions tested for each sample plot area. The first view provides aggregated plot summary metrics including trees per hectare (TPH), mean tree height in meters, and mean crown diameter in meters. The second view shows the tree size-class distribution showing the proportion of trees (bar label) and count of trees (y-axis) using five equally spaced height bins to enhance insight into the effect of the search function. For example, this distribution can help diagnose issues such as the over-segmentation of small trees, which can inflate TPH estimates, or, conversely, the failure to detect a targeted height-class range. The third view shows the tree height-to-crown diameter relationship. The goal of the window search function is to accurately model this relationship, and a positive correlation is expected across most forest types with any deviations from the general trend suggesting a need for further tuning (e.g. small trees with unrealistically wide crowns).</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">itd_tuning_ans</span><span class="op">$</span><span class="va">plot_sample_summary</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-20-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-15-1.png" width="100%"></p>
 <p>if we think that the “lin_fn” was the most appropriate for our area, we can access the function from the returned list of window size functions and store it for use in <code><a href="reference/raster2trees.html">raster2trees()</a></code> and <code><a href="reference/cloud2trees.html">cloud2trees()</a></code></p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># get the best function</span></span>
 <span><span class="va">best_ws</span> <span class="op">&lt;-</span> <span class="va">itd_tuning_ans</span><span class="op">$</span><span class="va">ws_fn_list</span><span class="op">$</span><span class="va">lin_fn</span></span></code></pre></div>
 <p>we can plot what the function looks like</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_function.html" class="external-link">geom_function</a></span><span class="op">(</span>fun <span class="op">=</span> <span class="va">best_ws</span>, color <span class="op">=</span> <span class="st">"brown"</span>, lwd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="op">-</span><span class="fl">5</span>,<span class="fl">60</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"heights"</span>, y <span class="op">=</span> <span class="st">"ws"</span>, color <span class="op">=</span> <span class="st">""</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-22-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-17-1.png" width="100%"></p>
 </div>
 <div class="section level2">
 <h2 id="custom-itd-window-size-functions">Custom ITD window size functions<a class="anchor" aria-label="anchor" href="#custom-itd-window-size-functions"></a>
 </h2>
 <p>Let’s work through how to test some custom window size functions. We’ll test a constant window size of 3 m and a custom function where the windows size is linearly related to the point height</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># a constant window size has to be defined as:</span></span>
 <span> <span class="co">## rep(constant, times = length(x))</span></span>
 <span> <span class="co">## x*0 + constant</span></span>
@@ -382,7 +309,7 @@
 <span>    , best_default_ws <span class="op">=</span> <span class="va">best_ws</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>run <code><a href="reference/itd_tuning.html">itd_tuning()</a></code> with our custom window size definitions and try on two sample plots of 0.1 ha</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># run it with custom functions</span></span>
 <span><span class="va">itd_tuning_ans2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/itd_tuning.html">itd_tuning</a></span><span class="op">(</span></span>
 <span> input_las_dir <span class="op">=</span> <span class="va">i</span></span>
@@ -390,12 +317,12 @@
 <span> , n_samples <span class="op">=</span> <span class="fl">2</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>let’s check out that tuning plot</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># look at the tuning plot</span></span>
 <span><span class="va">itd_tuning_ans2</span><span class="op">$</span><span class="va">plot_samples</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-25-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-20-1.png" width="100%"></p>
 <p>we can also check out what our custom “my_linear” function looks like</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_function.html" class="external-link">geom_function</a></span><span class="op">(</span></span>
 <span>    fun <span class="op">=</span> <span class="va">itd_tuning_ans2</span><span class="op">$</span><span class="va">ws_fn_list</span><span class="op">$</span><span class="va">my_linear</span></span>
@@ -406,7 +333,7 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span>,<span class="cn">NA</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"heights"</span>, y <span class="op">=</span> <span class="st">"ws"</span>, color <span class="op">=</span> <span class="st">""</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-26-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-21-1.png" width="100%"></p>
 </div>
 </div>
 <div class="section level1">
@@ -433,7 +360,7 @@
 <li>Estimate tree crown biomass using the LANDFIRE CBD product with <code>estimate_biomass_method</code>
 </li>
 </ul>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># make sure we know where the results are going</span></span>
 <span><span class="va">my_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># run it</span></span>
@@ -454,7 +381,7 @@
 <span>  , estimate_biomass_method <span class="op">=</span> <span class="st">"landfire"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Check how the digital terrain model (DTM) raster has changed</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
 <span>  <span class="st">"Default DTM resolution:"</span></span>
 <span>  , <span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">dtm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">res</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span>collapse <span class="op">=</span> <span class="st">","</span><span class="op">)</span></span>
@@ -463,7 +390,7 @@
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Default DTM resolution: 1,1 || Custom DTM resolution: 0.5,0.5"</span></span></code></pre></div>
 <p>Check that our spatial data frame with tree crown polygons has data on DBH (<code>dbh_*</code>), CBH (<code>tree_cbh_m</code>), HMD (<code>max_crown_diam_height_m</code>), <code>forest_type_*</code>, competition (<code>comp_*</code>), and crown biomass using the LANDFIRE data (<code>landfire_*</code>).</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 343</span></span>
 <span><span class="co">#&gt; Columns: 34</span></span>
@@ -473,18 +400,18 @@
 <span><span class="co">#&gt; $ tree_y                    &lt;dbl&gt; 3813011, 3813011, 3813011, 3813011, 3813011,…</span></span>
 <span><span class="co">#&gt; $ crown_area_m2             &lt;dbl&gt; 10.3750, 10.8125, 1.1875, 4.5625, 6.3750, 10…</span></span>
 <span><span class="co">#&gt; $ geometry                  &lt;GEOMETRY [m]&gt; MULTIPOLYGON (((481280.5 38..., POL…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm            &lt;dbl&gt; 49.485524, 31.237196, 17.292009, 24.851976, …</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_lower      &lt;dbl&gt; 28.081874, 18.000099, 9.803367, 14.219211, 2…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_upper      &lt;dbl&gt; 75.214373, 47.561066, 26.697953, 37.738515, …</span></span>
-<span><span class="co">#&gt; $ dbh_cm                    &lt;dbl&gt; 49.485524, 31.237196, 17.292009, 24.851976, …</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm            &lt;dbl&gt; 49.460173, 31.076269, 17.276917, 24.794791, …</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_lower      &lt;dbl&gt; 28.181649, 18.037104, 9.804718, 14.038148, 2…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_upper      &lt;dbl&gt; 75.229031, 47.018240, 26.586560, 37.930657, …</span></span>
+<span><span class="co">#&gt; $ dbh_cm                    &lt;dbl&gt; 49.460173, 31.076269, 17.276917, 24.794791, …</span></span>
 <span><span class="co">#&gt; $ is_training_data          &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…</span></span>
-<span><span class="co">#&gt; $ dbh_m                     &lt;dbl&gt; 0.49485524, 0.31237196, 0.17292009, 0.248519…</span></span>
-<span><span class="co">#&gt; $ radius_m                  &lt;dbl&gt; 0.24742762, 0.15618598, 0.08646004, 0.124259…</span></span>
-<span><span class="co">#&gt; $ basal_area_m2             &lt;dbl&gt; 0.192329646, 0.076636201, 0.023484470, 0.048…</span></span>
-<span><span class="co">#&gt; $ basal_area_ft2            &lt;dbl&gt; 2.07023631, 0.82491207, 0.25278683, 0.522138…</span></span>
+<span><span class="co">#&gt; $ dbh_m                     &lt;dbl&gt; 0.49460173, 0.31076269, 0.17276917, 0.247947…</span></span>
+<span><span class="co">#&gt; $ radius_m                  &lt;dbl&gt; 0.24730086, 0.15538134, 0.08638459, 0.123973…</span></span>
+<span><span class="co">#&gt; $ basal_area_m2             &lt;dbl&gt; 0.192132634, 0.075848608, 0.023443496, 0.048…</span></span>
+<span><span class="co">#&gt; $ basal_area_ft2            &lt;dbl&gt; 2.06811567, 0.81643441, 0.25234579, 0.519737…</span></span>
 <span><span class="co">#&gt; $ ptcld_extracted_dbh_cm    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …</span></span>
 <span><span class="co">#&gt; $ ptcld_predicted_dbh_cm    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …</span></span>
-<span><span class="co">#&gt; $ tree_cbh_m                &lt;dbl&gt; 15.500000, 8.500000, 7.226300, 11.797820, 20…</span></span>
+<span><span class="co">#&gt; $ tree_cbh_m                &lt;dbl&gt; 15.500000, 8.500000, 7.239267, 11.797820, 20…</span></span>
 <span><span class="co">#&gt; $ is_training_cbh           &lt;lgl&gt; TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE, …</span></span>
 <span><span class="co">#&gt; $ forest_type_group_code    &lt;chr&gt; "220", "220", "220", "220", "220", "220", "2…</span></span>
 <span><span class="co">#&gt; $ forest_type_group         &lt;chr&gt; "Ponderosa pine group", "Ponderosa pine grou…</span></span>
@@ -492,17 +419,17 @@
 <span><span class="co">#&gt; $ comp_trees_per_ha         &lt;dbl&gt; 495.0296, 742.5445, 742.5445, 990.0593, 742.…</span></span>
 <span><span class="co">#&gt; $ comp_relative_tree_height &lt;dbl&gt; 0.9099468, 1.0000000, 0.5804963, 1.0000000, …</span></span>
 <span><span class="co">#&gt; $ comp_dist_to_nearest_m    &lt;dbl&gt; 3.010399, 2.549510, 1.677051, 1.414214, 3.60…</span></span>
-<span><span class="co">#&gt; $ max_crown_diam_height_m   &lt;dbl&gt; 9.190000, 10.660000, 5.540000, 8.499001, 16.…</span></span>
-<span><span class="co">#&gt; $ is_training_hmd           &lt;lgl&gt; TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE,…</span></span>
+<span><span class="co">#&gt; $ max_crown_diam_height_m   &lt;dbl&gt; 10.030708, 10.522636, 5.540000, 1.670000, 12…</span></span>
+<span><span class="co">#&gt; $ is_training_hmd           &lt;lgl&gt; FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE…</span></span>
 <span><span class="co">#&gt; $ landfire_stand_id         &lt;dbl&gt; 49, 50, 50, 50, 51, 51, 51, 49, 50, 50, 51, …</span></span>
 <span><span class="co">#&gt; $ crown_dia_m               &lt;dbl&gt; 3.6345371, 3.7103777, 1.2296227, 2.4102190, …</span></span>
-<span><span class="co">#&gt; $ crown_length_m            &lt;dbl&gt; 6.7299995, 7.3500004, 2.8337004, 1.6421791, …</span></span>
-<span><span class="co">#&gt; $ crown_volume_m3           &lt;dbl&gt; 46.5491635, 52.9812527, 2.2433462, 4.9949614…</span></span>
-<span><span class="co">#&gt; $ landfire_tree_kg_per_m3   &lt;dbl&gt; 0.2165285, 0.1638469, 0.1638469, 0.1638469, …</span></span>
+<span><span class="co">#&gt; $ crown_length_m            &lt;dbl&gt; 6.7299995, 7.3500004, 2.8207338, 1.6421791, …</span></span>
+<span><span class="co">#&gt; $ crown_volume_m3           &lt;dbl&gt; 46.5491635, 52.9812527, 2.2330809, 4.9949614…</span></span>
+<span><span class="co">#&gt; $ landfire_tree_kg_per_m3   &lt;dbl&gt; 0.2168266, 0.1643176, 0.1643176, 0.1643176, …</span></span>
 <span><span class="co">#&gt; $ landfire_stand_kg_per_m3  &lt;dbl&gt; 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.…</span></span>
-<span><span class="co">#&gt; $ landfire_crown_biomass_kg &lt;dbl&gt; 10.07922267, 8.68081378, 0.36756530, 0.81840…</span></span></code></pre></div>
+<span><span class="co">#&gt; $ landfire_crown_biomass_kg &lt;dbl&gt; 10.09309722, 8.70575146, 0.36693446, 0.82075…</span></span></code></pre></div>
 <p>Remember, we also changed the <code>ws</code> parameter used to detect the local maxima for identifying tree tops so we got a few more trees compared to the default settings.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
 <span>  <span class="st">"Default trees extracted:"</span></span>
 <span>  , <span class="va">cloud2trees_ans</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -511,7 +438,7 @@
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Default trees extracted: 340 || Custom trees extracted: 343"</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree DBH estimated from the FIA plot data.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">dbh_cm</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"navy"</span>, alpha <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
@@ -519,9 +446,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-31-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-26-1.png" width="100%"></p>
 <p>Let’s look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">crowns_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">is_training_cbh</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">tree_cbh_m</span>, color<span class="op">=</span><span class="va">is_training_cbh</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -531,9 +458,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/breaks_extended.html" class="external-link">extended_breaks</a></span><span class="op">(</span>n<span class="op">=</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.8</span>, name <span class="op">=</span> <span class="st">"is CBH\nfrom cloud?"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-32-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-27-1.png" width="100%"></p>
 <p>We can also plot height, diameter, and CBH of trees spatially and we’ll use the <code>patchwork</code> package to combine our plots.</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
 <span><span class="co"># height plot</span></span>
 <span><span class="va">plt_ht</span> <span class="op">&lt;-</span></span>
@@ -565,18 +492,18 @@
 <span>    legend.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
 <span>    , legend.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-33-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-28-1.png" width="100%"></p>
 <p>Let’s plot the distance to the nearest tree that we obtained by turning on the <code>estimate_tree_competition</code> parameter in the <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> function call to quantify tree competition metrics. We’ll use the spatial tree points data in <code>cloud2trees_ans_c$treetops_sf</code>.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">treetops_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">comp_dist_to_nearest_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_color_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Greys"</span>, name <span class="op">=</span> <span class="st">"distance to\nnearest tree"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-34-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-29-1.png" width="100%"></p>
 <p>Let’s look at the FIA Forest Type Group data we extracted for the tree list.</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">treetops_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">forest_type_group_code</span>, <span class="va">forest_type_group</span><span class="op">)</span></span>
@@ -590,7 +517,7 @@
 </h2>
 <p>The <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> process generates a list of outputs which are written to the disk in a delivery directory titled <em>point_cloud_processing_delivery</em> in the <code>output_dir</code> argument defined by the user in the function call.</p>
 <p>The astute reader will have noticed that we saved our outputs to a temporary directory (<code>my_dir</code>) but this could have been any directory on our local machine (e.g. “C:”). Let’s check out the files that were delivered in the <em>point_cloud_processing_delivery</em> folder.</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># append the "point_cloud_processing_delivery"  to our output_dir</span></span>
 <span><span class="va">cloud2trees_delivery_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">my_dir</span>,<span class="st">"point_cloud_processing_delivery"</span><span class="op">)</span></span>
 <span><span class="co"># which files?</span></span>
@@ -702,7 +629,7 @@
 </h1>
 <p>We developed the <code><a href="reference/cloud2trees_to_lanl_trees.html">cloud2trees_to_lanl_trees()</a></code> function to use the output from <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> to generate inputs for the <a href="https://github.com/lanl/Trees/" class="external-link">LANL TREES</a> program as a pathway to fire modeling with <a href="https://doi.org/10.1016/j.envsoft.2019.104616" class="external-link">Quic-Fire</a></p>
 <p>If you want to use the <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> framework to generate all of the required fire modeling input variables, the minimum required settings are:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/cloud2trees.html">cloud2trees</a></span><span class="op">(</span></span>
 <span>  <span class="va">...</span></span>
 <span>  , estimate_tree_dbh <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -715,7 +642,7 @@
 <span><span class="op">)</span></span></code></pre></div>
 <p>The primary input of <code><a href="reference/cloud2trees_to_lanl_trees.html">cloud2trees_to_lanl_trees()</a></code> is a directory with outputs from <code><a href="reference/cloud2trees.html">cloud2trees()</a></code>. As a reminder, the default directory written by <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> is <em>point_cloud_processing_delivery</em>. Also required is a spatial file defining the boundary of our area of interest.</p>
 <p>We’ll pretend our area of interest is the central 2,000 m<sup>2</sup> of our point cloud data</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">my_aoi</span> <span class="op">&lt;-</span></span>
 <span>  <span class="va">cloud2trees_ans_c</span><span class="op">$</span><span class="va">treetops_sf</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>    <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_combine.html" class="external-link">st_union</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
@@ -727,7 +654,7 @@
 <span><span class="co">#&gt;  $ : num [1:5, 1:2] 481328 481328 481283 481283 481328 ...</span></span>
 <span><span class="co">#&gt;  - attr(*, "class")= chr [1:3] "XY" "POLYGON" "sfg"</span></span></code></pre></div>
 <p>Now, we’ll call the function and tell it where our <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> outputs are located and what our study area is. We’ll also tell it just to write the inputs for the <a href="https://github.com/lanl/Trees/" class="external-link">LANL TREES</a> program to the same directory and the program will automatically create a new folder titled <em>lanl_trees_delivery</em></p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># run it with no customization</span></span>
 <span><span class="fu"><a href="reference/cloud2trees_to_lanl_trees.html">cloud2trees_to_lanl_trees</a></span><span class="op">(</span></span>
 <span>  input_dir <span class="op">=</span> <span class="va">cloud2trees_delivery_dir</span></span>
@@ -735,7 +662,7 @@
 <span>  , output_dir <span class="op">=</span> <span class="va">cloud2trees_delivery_dir</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Let’s check out the files that were delivered in the <em>lanl_trees_delivery</em> folder.</p>
-<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># append the "lanl_trees_delivery" to our cloud2trees_delivery_dir</span></span>
 <span><span class="va">lanl_trees_delivery_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">cloud2trees_delivery_dir</span>,<span class="st">"lanl_trees_delivery"</span><span class="op">)</span></span>
 <span><span class="co"># which files?</span></span>
@@ -814,7 +741,7 @@
 <em>gdepth</em> : grass depth (m)</li>
 </ul>
 <p>here is what customizing these fuel loads would look like in the <code><a href="reference/cloud2trees_to_lanl_trees.html">cloud2trees_to_lanl_trees()</a></code> call</p>
-<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># fuel_litter</span></span>
 <span><span class="va">my_fuel_litter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  ilitter <span class="op">=</span> <span class="fl">1</span></span>
@@ -846,32 +773,32 @@
 <h1 id="extract-raster-data-from-point-cloud">Extract Raster Data from Point Cloud<a class="anchor" aria-label="anchor" href="#extract-raster-data-from-point-cloud"></a>
 </h1>
 <p>We can use the <code><a href="reference/cloud2raster.html">cloud2raster()</a></code> function if we only want to create a DTM and CHM from our point cloud data. This function also creates a classified and height normalized point cloud in the process. If you wish to keep these point clouds, ensure to turn on the <code>keep_intrmdt</code> parameter and see the <code>point_cloud_processing_temp</code> directory nested in the <code>output_dir</code>.</p>
-<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cloud2raster_ans</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/cloud2raster.html">cloud2raster</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, input_las_dir <span class="op">=</span> <span class="va">i</span><span class="op">)</span></span></code></pre></div>
 <p>There is a digital terrain model (DTM) raster which we can plot using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
-<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a DTM</span></span>
 <span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">dtm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-44-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-39-1.png" width="100%"></p>
 <p>There is a canopy height model (CHM) raster which we can plot using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
-<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a CHM</span></span>
 <span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-45-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-40-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="extract-trees-from-raster-data">Extract Trees from Raster Data<a class="anchor" aria-label="anchor" href="#extract-trees-from-raster-data"></a>
 </h1>
 <p>We can use the <code><a href="reference/raster2trees.html">raster2trees()</a></code> function if we already have a CHM raster and want to extract a tree list.</p>
 <p>We’ll use the CHM example that ships with the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># read example CHM raster</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"cloud2trees"</span><span class="op">)</span>,<span class="st">"/extdata/chm.tif"</span><span class="op">)</span></span>
 <span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/rast.html" class="external-link">rast</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
 <span><span class="co"># extract trees from raster</span></span>
 <span><span class="va">raster2trees_ans</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/raster2trees.html">raster2trees</a></span><span class="op">(</span>chm_rast <span class="op">=</span> <span class="va">r</span>, outfolder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>A spatial data frame with tree crown polygons is returned.</p>
-<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there are tree crowns</span></span>
 <span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 147</span></span>
@@ -883,21 +810,21 @@
 <span><span class="co">#&gt; $ crown_area_m2 &lt;dbl&gt; 0.5625, 0.3750, 0.6250, 3.2500, 5.0000, 0.3750, 0.9375, …</span></span>
 <span><span class="co">#&gt; $ geometry      &lt;GEOMETRY [m]&gt; POLYGON ((458054 4450093, 4..., POLYGON ((45805…</span></span></code></pre></div>
 <p>Let’s plot these tree crown polygons using <code><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot2::ggplot()</a></code> with some custom plot settings.</p>
-<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Oranges"</span>, name <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-48-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-43-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="estimate-tree-dbh-for-a-tree-list">Estimate Tree DBH for a Tree List<a class="anchor" aria-label="anchor" href="#estimate-tree-dbh-for-a-tree-list"></a>
 </h1>
 <p>If we already have a list of trees with tree coordinate and tree height data, we can estimate tree DBH using a site-specific allometric equation based on FIA data with the <code><a href="reference/trees_dbh.html">trees_dbh()</a></code> function.</p>
 <p>We just need to pass a data frame with the columns <code>treeID</code>, <code>tree_x</code>, <code>tree_y</code>, and <code>tree_height_m</code> to the <code><a href="reference/trees_dbh.html">trees_dbh()</a></code> function.</p>
-<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">111</span><span class="op">)</span></span>
 <span><span class="co"># a fake tree list</span></span>
 <span><span class="va">tl</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
@@ -907,11 +834,11 @@
 <span>    , tree_height_m <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">21</span>, shape <span class="op">=</span> <span class="op">(</span><span class="fl">7</span><span class="op">/</span><span class="fl">4</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span>, rate <span class="op">=</span> <span class="op">(</span><span class="fl">4</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">/</span><span class="fl">7</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>Use the <code><a href="reference/trees_dbh.html">trees_dbh()</a></code> function to estimate DBH based on tree height and tree location.</p>
-<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># call the function</span></span>
 <span><span class="va">tl_dbh</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/trees_dbh.html">trees_dbh</a></span><span class="op">(</span>tree_list <span class="op">=</span> <span class="va">tl</span>, crs <span class="op">=</span> <span class="st">"32613"</span><span class="op">)</span></span></code></pre></div>
 <p>What is this data?</p>
-<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_dbh</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 21</span></span>
 <span><span class="co">#&gt; Columns: 16</span></span>
@@ -920,19 +847,19 @@
 <span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4450078, 4450076, 4450072, 4450078, 4450081, 44…</span></span>
 <span><span class="co">#&gt; $ tree_height_m          &lt;dbl&gt; 1.447969, 4.970239, 3.549897, 7.216735, 3.54328…</span></span>
 <span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (458066.6 4450078), POINT (458060.4…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm         &lt;dbl&gt; 3.231223, 8.446096, 6.094638, 12.553818, 6.0946…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_lower   &lt;dbl&gt; 1.934282, 5.033263, 3.637860, 7.504184, 3.63786…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_upper   &lt;dbl&gt; 4.814063, 12.663866, 9.085156, 18.752550, 9.085…</span></span>
-<span><span class="co">#&gt; $ dbh_cm                 &lt;dbl&gt; 3.231223, 8.446096, 6.094638, 12.553818, 6.0946…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm         &lt;dbl&gt; 3.231616, 8.445900, 6.090368, 12.561439, 6.0903…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_lower   &lt;dbl&gt; 1.938536, 5.031832, 3.631305, 7.489301, 3.63130…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_upper   &lt;dbl&gt; 4.809553, 12.673982, 9.100955, 18.732703, 9.100…</span></span>
+<span><span class="co">#&gt; $ dbh_cm                 &lt;dbl&gt; 3.231616, 8.445900, 6.090368, 12.561439, 6.0903…</span></span>
 <span><span class="co">#&gt; $ is_training_data       &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…</span></span>
-<span><span class="co">#&gt; $ dbh_m                  &lt;dbl&gt; 0.03231223, 0.08446096, 0.06094638, 0.12553818,…</span></span>
-<span><span class="co">#&gt; $ radius_m               &lt;dbl&gt; 0.01615611, 0.04223048, 0.03047319, 0.06276909,…</span></span>
-<span><span class="co">#&gt; $ basal_area_m2          &lt;dbl&gt; 0.0008200186, 0.0056027591, 0.0029173310, 0.012…</span></span>
-<span><span class="co">#&gt; $ basal_area_ft2         &lt;dbl&gt; 0.00882668, 0.06030810, 0.03140215, 0.13323405,…</span></span>
+<span><span class="co">#&gt; $ dbh_m                  &lt;dbl&gt; 0.03231616, 0.08445900, 0.06090368, 0.12561439,…</span></span>
+<span><span class="co">#&gt; $ radius_m               &lt;dbl&gt; 0.01615808, 0.04222950, 0.03045184, 0.06280720,…</span></span>
+<span><span class="co">#&gt; $ basal_area_m2          &lt;dbl&gt; 0.000820218, 0.005602499, 0.002913245, 0.012392…</span></span>
+<span><span class="co">#&gt; $ basal_area_ft2         &lt;dbl&gt; 0.008828826, 0.060305296, 0.031358169, 0.133395…</span></span>
 <span><span class="co">#&gt; $ ptcld_extracted_dbh_cm &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</span></span>
 <span><span class="co">#&gt; $ ptcld_predicted_dbh_cm &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree DBH estimated from the FIA plot data.</p>
-<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_dbh</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">dbh_cm</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"navy"</span>, alpha <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
@@ -940,9 +867,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-52-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-47-1.png" width="100%"></p>
 <p>We can look at this data spatially too.</p>
-<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># height plot</span></span>
 <span><span class="va">plt_ht2</span> <span class="op">&lt;-</span></span>
 <span>  <span class="va">tl_dbh</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
@@ -967,14 +894,14 @@
 <span>  <span class="op">)</span></span>
 <span><span class="co"># combine with patchwork</span></span>
 <span><span class="va">plt_ht2</span> <span class="op">+</span> <span class="va">plt_dbh2</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-53-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-48-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="estimate-tree-forest-type-for-a-tree-list">Estimate Tree Forest Type for a Tree List<a class="anchor" aria-label="anchor" href="#estimate-tree-forest-type-for-a-tree-list"></a>
 </h1>
 <p>If we already have a list of trees with tree coordinate, we can use the <code><a href="reference/trees_type.html">trees_type()</a></code> function attach the tree forest type based on the spatial overlap with the <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a> data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program at 30-meter resolution covering the forested extent of the continental US.</p>
 <p>We just need to pass a data frame with the columns <code>treeID</code>, <code>tree_x</code>, <code>tree_y</code> to the <code><a href="reference/trees_type.html">trees_type()</a></code> function. We can also use an <code>sf</code> class object with POINT or POLYGON geometry (see <code><a href="https://r-spatial.github.io/sf/reference/st_geometry_type.html" class="external-link">sf::st_geometry_type()</a></code>) and the program will use the data “as-is” and only require the <code>treeID</code> column.</p>
-<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># a fake tree list</span></span>
 <span><span class="va">tl</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
 <span>    treeID <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">66</span><span class="op">)</span></span>
@@ -982,39 +909,40 @@
 <span>    , tree_y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span>n<span class="op">=</span><span class="fl">66</span>, mean <span class="op">=</span> <span class="fl">4450000</span>, sd <span class="op">=</span> <span class="fl">75</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>Use the <code><a href="reference/trees_type.html">trees_type()</a></code> function to extract the FIA forest type group based on tree location. If a tree overlaps with an area that is classified as “non-forest”, the program will search for the nearest forest type to impute a value; we’ll limit the search radius by setting the <code>max_search_dist_m</code> parameter to 88 meters.</p>
-<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># call the function</span></span>
 <span><span class="va">tl_type</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="reference/trees_type.html">trees_type</a></span><span class="op">(</span>tree_list <span class="op">=</span> <span class="va">tl</span>, crs <span class="op">=</span> <span class="st">"32613"</span>, max_search_dist_m <span class="op">=</span> <span class="fl">88</span><span class="op">)</span></span></code></pre></div>
 <p>The return includes our tree list with forest type data (<code>tree_list</code>) as well as the FIA Forest Types Group raster (<code>foresttype_rast</code>) of the area we searched.</p>
-<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_type</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "tree_list"       "foresttype_rast"</span></span></code></pre></div>
 <p>What is in the tree list data?</p>
-<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_type</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 66</span></span>
 <span><span class="co">#&gt; Columns: 7</span></span>
 <span><span class="co">#&gt; $ treeID                 &lt;chr&gt; "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…</span></span>
-<span><span class="co">#&gt; $ tree_x                 &lt;dbl&gt; 457975.5, 458106.6, 458039.3, 457971.8, 457871.…</span></span>
-<span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4450055, 4450073, 4449906, 4450019, 4449925, 44…</span></span>
-<span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (457975.5 4450055), POINT (458106.6…</span></span>
-<span><span class="co">#&gt; $ forest_type_group_code &lt;chr&gt; "200", "200", "220", "200", "200", "280", "200"…</span></span>
-<span><span class="co">#&gt; $ forest_type_group      &lt;chr&gt; "Douglas-fir group", "Douglas-fir group", "Pond…</span></span>
+<span><span class="co">#&gt; $ tree_x                 &lt;dbl&gt; 458167.9, 457934.7, 458032.4, 458009.7, 458041.…</span></span>
+<span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4450086, 4450005, 4450000, 4449870, 4449936, 44…</span></span>
+<span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (458167.9 4450086), POINT (457934.7…</span></span>
+<span><span class="co">#&gt; $ forest_type_group_code &lt;chr&gt; "200", "200", "280", "280", "280", "200", "200"…</span></span>
+<span><span class="co">#&gt; $ forest_type_group      &lt;chr&gt; "Douglas-fir group", "Douglas-fir group", "Lodg…</span></span>
 <span><span class="co">#&gt; $ hardwood_softwood      &lt;chr&gt; "Softwood", "Softwood", "Softwood", "Softwood",…</span></span></code></pre></div>
 <p>Let’s look at the FIA Forest Type Group data we extracted for the tree list.</p>
-<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_type</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">forest_type_group_code</span>, <span class="va">forest_type_group</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 4 × 3</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 3</span></span>
 <span><span class="co">#&gt;   forest_type_group_code forest_type_group                         n</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;                  &lt;chr&gt;                                 &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 200                    Douglas-fir group                        39</span></span>
-<span><span class="co">#&gt; 2 220                    Ponderosa pine group                      1</span></span>
-<span><span class="co">#&gt; 3 260                    Fir / spruce / mountain hemlock group     2</span></span>
-<span><span class="co">#&gt; 4 280                    Lodgepole pine group                     24</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 200                    Douglas-fir group                        45</span></span>
+<span><span class="co">#&gt; 2 220                    Ponderosa pine group                      4</span></span>
+<span><span class="co">#&gt; 3 260                    Fir / spruce / mountain hemlock group     1</span></span>
+<span><span class="co">#&gt; 4 280                    Lodgepole pine group                     15</span></span>
+<span><span class="co">#&gt; 5 900                    Aspen / birch group                       1</span></span></code></pre></div>
 <p>We can plot our spatial tree list</p>
-<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># now plot</span></span>
 <span><span class="va">tl_type</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -1023,9 +951,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_color_brewer</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Dark2"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>panel.border <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_rect</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span>, fill <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-59-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-54-1.png" width="100%"></p>
 <p>Let’s check out the FIA Forest Types Group raster (<code>foresttype_rast</code>) of the area we searched</p>
-<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r_plt</span> <span class="op">&lt;-</span> </span>
 <span>  <span class="va">tl_type</span><span class="op">$</span><span class="va">foresttype_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>    <span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span>xy<span class="op">=</span><span class="cn">T</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
@@ -1037,10 +965,10 @@
 <span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_d</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"turbo"</span>, alpha <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">r_plt</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-60-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-55-1.png" width="100%"></p>
 <p>See the <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a> data (Wilson 2023) for a list of possible forest type group codes</p>
 <p>Let’s overlay our tree points on the raster data</p>
-<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r_plt</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span></span>
 <span>    data <span class="op">=</span> <span class="va">tl_type</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>  </span>
@@ -1058,13 +986,13 @@
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="st">"FIA forest\ntype group"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">3</span>, color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-61-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-56-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="estimate-tree-cbh-for-a-tree-list">Estimate Tree CBH for a Tree List<a class="anchor" aria-label="anchor" href="#estimate-tree-cbh-for-a-tree-list"></a>
 </h1>
 <p>If you wish to estimate crown base height (CBH) as part of the point cloud processing the <code>LadderFuelsR</code> package (<a href="https://github.com/olgaviedma/LadderFuelsR" class="external-link uri">https://github.com/olgaviedma/LadderFuelsR</a>) and <code>leafR</code> package (<a href="https://github.com/DRAAlmeida/leafR" class="external-link uri">https://github.com/DRAAlmeida/leafR</a>) must be manually installed first.</p>
-<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="co">## install LadderFuelsR</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"olgaviedma/LadderFuelsR"</span>, upgrade <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
@@ -1073,7 +1001,7 @@
 <p>After installing these packages, if we already have spatial polygons of tree crowns and height normalized point cloud data, we can attempt to extract tree CBH from the point cloud using the <code><a href="reference/trees_cbh.html">trees_cbh()</a></code> function.</p>
 <p>We just need to pass a <code>sf</code> class object with POLYGON geometry and the columns <code>treeID</code> and <code>tree_height_m</code> and the height normalized point cloud data to the <code><a href="reference/trees_cbh.html">trees_cbh()</a></code> function.</p>
 <p>We’ll use the tree crown polygons and normalized point cloud data examples that ship with the <code>cloud2trees</code> package. We will turn on the <code>force_same_crs</code> parameter to force the same projection between the point cloud and polygon since we are confident that data were generated with the same projection. Data generated by a <code>cloud2trees</code> pipeline (e.g. <code><a href="reference/cloud2raster.html">cloud2raster()</a></code>) will always have the same projection.</p>
-<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># read example crown polygons</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"cloud2trees"</span>,<span class="st">"extdata"</span>, <span class="st">"crowns_poly.gpkg"</span><span class="op">)</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span><span class="va">f</span>, quiet <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
@@ -1087,7 +1015,7 @@
 <span>  , estimate_missing_cbh <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>What is this data?</p>
-<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_cbh_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">treeID</span>, <span class="va">tree_height_m</span>, <span class="va">tree_cbh_m</span>, <span class="va">is_training_cbh</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -1095,11 +1023,11 @@
 <span><span class="co">#&gt; Columns: 5</span></span>
 <span><span class="co">#&gt; $ treeID          &lt;chr&gt; "1_458054.1_4450092.9", "2_458055.9_4450092.9", "3_458…</span></span>
 <span><span class="co">#&gt; $ tree_height_m   &lt;dbl&gt; 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.310, 4.6…</span></span>
-<span><span class="co">#&gt; $ tree_cbh_m      &lt;dbl&gt; 4.026838, 4.500000, 8.500000, 2.500000, 4.026838, 4.44…</span></span>
-<span><span class="co">#&gt; $ is_training_cbh &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE, FA…</span></span>
+<span><span class="co">#&gt; $ tree_cbh_m      &lt;dbl&gt; 4.108416, 4.483700, 8.500000, 2.500000, 4.108416, 3.50…</span></span>
+<span><span class="co">#&gt; $ is_training_cbh &lt;lgl&gt; FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, F…</span></span>
 <span><span class="co">#&gt; $ geom            &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((458054 4450..., MULTIPOLY…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).</p>
-<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_cbh_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">is_training_cbh</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">tree_cbh_m</span>, color<span class="op">=</span><span class="va">is_training_cbh</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -1109,9 +1037,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/breaks_extended.html" class="external-link">extended_breaks</a></span><span class="op">(</span>n<span class="op">=</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.8</span>, name <span class="op">=</span> <span class="st">"is CBH\nfrom cloud?"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-64-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-59-1.png" width="100%"></p>
 <p>We can look at this data spatially too.</p>
-<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_cbh_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">is_training_cbh</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">tree_cbh_m</span>, color<span class="op">=</span><span class="va">is_training_cbh</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -1126,7 +1054,7 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span></span>
 <span>    color <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lwd <span class="op">=</span> <span class="fl">3</span>, fill <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-65-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-60-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="estimate-tree-hmd-for-a-tree-list">Estimate Tree HMD for a Tree List<a class="anchor" aria-label="anchor" href="#estimate-tree-hmd-for-a-tree-list"></a>
@@ -1134,7 +1062,7 @@
 <p>If you wish to extract the height of the maximum crown diameter (HMD) using height normalized point cloud data (e.g. as exported by <code><a href="reference/cloud2raster.html">cloud2raster()</a></code>) the <code><a href="reference/trees_hmd.html">trees_hmd()</a></code> function and the <code>estimate_tree_hmd</code> in the <code><a href="reference/cloud2trees.html">cloud2trees()</a></code> function may be relevant to your interests.</p>
 <p>We just need to pass a <code>sf</code> class object with POLYGON geometry and the columns <code>treeID</code> and <code>tree_height_m</code> and the height normalized point cloud data to the <code><a href="reference/trees_hmd.html">trees_hmd()</a></code> function. The function returns the data with the added columns: <code>max_crown_diam_height_m</code>, <code>is_training_hmd</code>.</p>
 <p>We’ll use the tree crown polygons and normalized point cloud data examples that ship with the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># read example crown polygons</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"cloud2trees"</span>,<span class="st">"extdata"</span>, <span class="st">"crowns_poly.gpkg"</span><span class="op">)</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span><span class="va">f</span>, quiet <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
@@ -1147,7 +1075,7 @@
 <span>  , estimate_missing_hmd <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>What is this data?</p>
-<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_hmd_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">treeID</span>, <span class="va">tree_height_m</span>, <span class="va">max_crown_diam_height_m</span>, <span class="va">is_training_hmd</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -1155,11 +1083,11 @@
 <span><span class="co">#&gt; Columns: 5</span></span>
 <span><span class="co">#&gt; $ treeID                  &lt;chr&gt; "1_458054.1_4450092.9", "2_458055.9_4450092.9"…</span></span>
 <span><span class="co">#&gt; $ tree_height_m           &lt;dbl&gt; 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.…</span></span>
-<span><span class="co">#&gt; $ max_crown_diam_height_m &lt;dbl&gt; 3.563148, 4.681000, 8.943000, 3.151000, 3.2190…</span></span>
+<span><span class="co">#&gt; $ max_crown_diam_height_m &lt;dbl&gt; 3.635119, 4.681000, 8.943000, 3.151000, 3.2190…</span></span>
 <span><span class="co">#&gt; $ is_training_hmd         &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…</span></span>
 <span><span class="co">#&gt; $ geom                    &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((458054 4450..., M…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree HMD as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and HMD throughout the entire height range because HMD is also determined spatially (e.g. as a fire moves through a stand).</p>
-<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_hmd_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">is_training_cbh</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
@@ -1171,9 +1099,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/breaks_extended.html" class="external-link">extended_breaks</a></span><span class="op">(</span>n<span class="op">=</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"turbo"</span>, begin <span class="op">=</span> <span class="fl">0.2</span>, alpha <span class="op">=</span> <span class="fl">0.8</span>, name <span class="op">=</span> <span class="st">"is HMD\nfrom cloud?"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-68-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-63-1.png" width="100%"></p>
 <p>We can look at this data spatially too.</p>
-<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_hmd_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">is_training_hmd</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">max_crown_diam_height_m</span>, color<span class="op">=</span><span class="va">is_training_hmd</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -1188,7 +1116,7 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span></span>
 <span>    color <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lwd <span class="op">=</span> <span class="fl">3</span>, fill <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-69-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-64-1.png" width="100%"></p>
 </div>
 <div class="section level1">
 <h1 id="estimate-tree-biomass-for-a-tree-list">Estimate Tree Biomass for a Tree List<a class="anchor" aria-label="anchor" href="#estimate-tree-biomass-for-a-tree-list"></a>
@@ -1214,7 +1142,7 @@
 <li>and one of <code>dbh_cm</code>, <code>dbh_m</code>, or <code>basal_area_m2</code> (e.g. as exported by <code><a href="reference/trees_dbh.html">trees_dbh()</a></code>)</li>
 </ul>
 <p>We’ll use the tree crown polygons that ship with the <code>cloud2trees</code> package.</p>
-<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># read example crown polygons</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"cloud2trees"</span>,<span class="st">"extdata"</span>, <span class="st">"crowns_poly.gpkg"</span><span class="op">)</span></span>
 <span><span class="va">tl</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span><span class="va">f</span>, quiet <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span></code></pre></div>
@@ -1223,22 +1151,22 @@
 <code>trees_biomass()</code><a class="anchor" aria-label="anchor" href="#trees_biomass"></a>
 </h2>
 <p>The <code><a href="reference/trees_biomass.html">trees_biomass()</a></code> function streamlines the process for estimating individual tree biomass in kilograms, or the component biomass of the tree crown in kilograms. Users can select one, some, or all of the methods available in the package for estimating biomass. The following function calls are equivalent:</p>
-<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># trees_biomass with method = "landfire"</span></span>
 <span><span class="fu"><a href="reference/trees_biomass.html">trees_biomass</a></span><span class="op">(</span><span class="va">tree_list</span>, method <span class="op">=</span> <span class="st">"landfire"</span><span class="op">)</span></span>
 <span><span class="co"># is equivalent to</span></span>
 <span><span class="fu"><a href="reference/trees_biomass_landfire.html">trees_biomass_landfire</a></span><span class="op">(</span><span class="va">tree_list</span><span class="op">)</span></span></code></pre></div>
 <p>We’ll use the <code><a href="reference/trees_biomass.html">trees_biomass()</a></code> function and ask for both the LANDFIRE and the Cruz et al. (2003) estimates of tree crown biomass in kilograms with the argument <code>method = c("landfire","cruz")</code></p>
-<div class="sourceCode" id="cb74"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># call trees_biomass and get multiple biomass estimates</span></span>
 <span><span class="va">trees_biomass_ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/trees_biomass.html">trees_biomass</a></span><span class="op">(</span>tree_list <span class="op">=</span> <span class="va">tl</span>, method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"landfire"</span>,<span class="st">"cruz"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>what did we get back?</p>
-<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_biomass_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "tree_list"                "stand_cell_data_landfire"</span></span>
 <span><span class="co">#&gt; [3] "stand_cell_data_cruz"</span></span></code></pre></div>
 <p>check out the tree list data</p>
-<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_biomass_ans</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 196</span></span>
 <span><span class="co">#&gt; Columns: 36</span></span>
@@ -1280,7 +1208,7 @@
 <span><span class="co">#&gt; $ geometry                  &lt;POINT [m]&gt; POINT (458054.1 4450093), POINT (45805…</span></span></code></pre></div>
 <p>that’s a lot of extra information…the <code>cruz_crown_biomass_kg</code> and <code>landfire_crown_biomass_kg</code> columns include estimates of tree crown biomass in kilograms that we are after</p>
 <p>plot tree LANDFIRE and Cruz crown biomass estimate</p>
-<div class="sourceCode" id="cb77"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
 <span><span class="co"># plot tree landfire crown biomass estimate</span></span>
 <span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="va">trees_biomass_ans</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
@@ -1304,9 +1232,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># patchwork it</span></span>
 <span><span class="va">p1</span><span class="op">/</span><span class="va">p2</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-74-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-69-1.png" width="100%"></p>
 <p>the estimates look similar but not exactly the same. let’s plot them against each other</p>
-<div class="sourceCode" id="cb78"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># get the max for the upper limit scale</span></span>
 <span><span class="va">ul</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span></span>
 <span>  <span class="va">trees_biomass_ans</span><span class="op">$</span><span class="va">tree_list</span><span class="op">$</span><span class="va">cruz_crown_biomass_kg</span></span>
@@ -1324,9 +1252,9 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ul</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ul</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-75-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-70-1.png" width="100%"></p>
 <p>let’s check out the LANDFIRE stand data</p>
-<div class="sourceCode" id="cb79"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trees_biomass_ans</span><span class="op">$</span><span class="va">stand_cell_data_landfire</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">trees</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 4</span></span>
 <span><span class="co">#&gt; Columns: 19</span></span>
@@ -1351,7 +1279,7 @@
 <span><span class="co">#&gt; $ landfire_tree_kg_per_m3  &lt;dbl&gt; 0.5285632, 1.1615116, 0.6498119, 1.3264021</span></span></code></pre></div>
 <p>this data includes the cell data (where, a “stand” is represented by a raster cell) from the LANDFIRE Forest Canopy Bulk Density (CBD) data</p>
 <p>we can use this stand/cell data as raster data and overlay the tree points…let’s do this for the LANDFIRE data</p>
-<div class="sourceCode" id="cb80"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># get the projection for the stand cell data</span></span>
 <span><span class="va">epsg_code</span> <span class="op">&lt;-</span> <span class="va">trees_biomass_ans</span><span class="op">$</span><span class="va">stand_cell_data_landfire</span><span class="op">$</span><span class="va">rast_epsg_code</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># plot the stand cell data with trees overlaid</span></span>
@@ -1368,11 +1296,19 @@
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"rocket"</span>, na.value <span class="op">=</span> <span class="st">"gray"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"viridis"</span>, na.value <span class="op">=</span> <span class="st">"gray22"</span>, begin <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-77-1.png" width="100%"></p>
+<p><img src="reference/figures/README-unnamed-chunk-72-1.png" width="100%"></p>
 </div>
 </div>
 
-  </main><aside class="col-md-3"><div class="license">
+  </main><aside class="col-md-3"><div class="links">
+<h2 data-toc-skip>Links</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/georgewoolsey/cloud2trees/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/georgewoolsey/cloud2trees/issues" class="external-link">Report a bug</a></li>
+</ul>
+</div>
+
+<div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>
@@ -1391,7 +1327,7 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li> <br><small class="roles"> Maintainer </small>   </li>
+<li>George Woolsey <br><small class="roles"> Author, maintainer </small>   </li>
 </ul>
 </div>
 
@@ -1402,7 +1338,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by .</p>
+  <p>Developed by George Woolsey.</p>
 </div>
 
 <div class="pkgdown-footer-right">

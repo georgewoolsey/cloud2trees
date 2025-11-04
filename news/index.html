@@ -15,14 +15,14 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/cloud2trees-setup.html">Setup</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/cloud2trees-setup.html">Setup</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
-      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
- <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/georgewoolsey/cloud2trees/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -32,7 +32,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-
+      <small>Source: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
@@ -183,7 +183,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.1" id="cloud2trees-051">cloud2trees 0.5.1<a class="anchor" aria-label="anchor" href="#cloud2trees-051"></a></h2>
-<p>Updates the process to extract tree CBH by implementing a re-creation of some of the steps needed that were initially developed in other packages. Improves performance of extraction of CBH from the point cloud to possibly allow users to increase the <code>tree_sample_n</code> and/or <code>tree_sample_prop</code> parameters in the <code><a href="../reference/trees_cbh.html">trees_cbh()</a></code> function. See (#10, @georgewoolsey).</p>
+<p>Updates the process to extract tree CBH by implementing a re-creation of some of the steps needed that were initially developed in other packages. Improves performance of extraction of CBH from the point cloud to possibly allow users to increase the <code>tree_sample_n</code> and/or <code>tree_sample_prop</code> parameters in the <code><a href="../reference/trees_cbh.html">trees_cbh()</a></code> function. See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/10" class="external-link">#10</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>New: Adds the <code><a href="../reference/leafr_for_ladderfuelsr.html">leafr_for_ladderfuelsr()</a></code> which re-writes <code>leafR</code> package steps (<a href="https://github.com/DRAAlmeida/leafR" class="external-link">https://github.com/DRAAlmeida/leafR</a>) to allow for an attribute input (e.g. “treeID”) and removes the need to write individual tree point clouds to disk to extract LAD. The output of this function is used as input for the <code>ladderfuelsR</code> (<a href="https://github.com/olgaviedma/LadderFuelsR" class="external-link">https://github.com/olgaviedma/LadderFuelsR</a>) steps as implemented in <code><a href="../reference/ladderfuelsr_cbh.html">ladderfuelsr_cbh()</a></code> in the present package.</li>
 <li>New: Adds the <code><a href="../reference/polygon_attribute_to_las.html">polygon_attribute_to_las()</a></code> function to attach polygon attribute to point cloud</li>
 <li>Change: <code><a href="../reference/ladderfuelsr_cbh.html">ladderfuelsr_cbh()</a></code> now accepts input generated from <code><a href="../reference/leafr_for_ladderfuelsr.html">leafr_for_ladderfuelsr()</a></code> in addition to maintaining backwards capability</li>
@@ -192,7 +192,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="cloud2trees-050">cloud2trees 0.5.0<a class="anchor" aria-label="anchor" href="#cloud2trees-050"></a></h2>
-<p>Implements methods to estimate tree biomass (or crown biomass) using stand-level estimates (e.g. LANDFIRE raster estimates) distributed across the individual trees in the stand. See (#9, @georgewoolsey).</p>
+<p>Implements methods to estimate tree biomass (or crown biomass) using stand-level estimates (e.g. LANDFIRE raster estimates) distributed across the individual trees in the stand. See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/9" class="external-link">#9</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>New: Adds the function <code><a href="../reference/trees_biomass.html">trees_biomass()</a></code> to use an input tree list (e.g. as exported by <code><a href="../reference/raster2trees.html">raster2trees()</a></code>) to estimate tree (or crown) biomass using one or many of the methods made available as listed in the documentation</li>
 <li>New: Adds the function <code><a href="../reference/trees_biomass_cruz.html">trees_biomass_cruz()</a></code> to use an input tree list (e.g. as exported by <code><a href="../reference/raster2trees.html">raster2trees()</a></code>) to estimate tree crown biomass based on <a href="(https://scholar.google.com/scholar?cluster=316241498622221569&amp;oi=gsb&amp;hl=en&amp;as_sdt=0,5)" class="external-link">Cruz et al. (2003)</a>
 </li>
@@ -209,7 +209,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.2" id="cloud2trees-042">cloud2trees 0.4.2<a class="anchor" aria-label="anchor" href="#cloud2trees-042"></a></h2>
-<p>Updates point to raster matching functionality to allow for broader application and updates FIA Forest Type data to 30m resolution. See (#8, @georgewoolsey).</p>
+<p>Updates point to raster matching functionality to allow for broader application and updates FIA Forest Type data to 30m resolution. See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/8" class="external-link">#8</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>Change: <code><a href="../reference/get_foresttype.html">get_foresttype()</a></code> now defaults to download 30m resolution data. If you previously ran <code><a href="../reference/get_foresttype.html">get_foresttype()</a></code> or <code><a href="../reference/get_data.html">get_data()</a></code> and you want to use 30m data you will need to manually download the data again. See example below to update your local copy.</li>
 <li>New: Internal utility functions (see “utils_*.R”) created to make point to raster data matching extendable to other data (e.g. LANDFIRE)</li>
 <li>Change: <code><a href="../reference/trees_type.html">trees_type()</a></code> implements new internal point to raster functions</li>
@@ -224,7 +224,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="cloud2trees-040">cloud2trees 0.4.0<a class="anchor" aria-label="anchor" href="#cloud2trees-040"></a></h2>
-<p>Implements a process to extract the height of the maximum crown diameter (HMD). See (#4, @georgewoolsey).</p>
+<p>Implements a process to extract the height of the maximum crown diameter (HMD). See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/4" class="external-link">#4</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>New: Adds the function <code><a href="../reference/trees_hmd.html">trees_hmd()</a></code> to use input tree crown polygons (e.g. as exported by <code><a href="../reference/raster2trees.html">raster2trees()</a></code>) to estimate tree HMD based on an input normalized point cloud</li>
 <li>New: Adds <code><a href="../reference/simplify_multipolygon_crowns.html">simplify_multipolygon_crowns()</a></code> to simplify MULTIPOLYGON to POLYGON geometry in an <code>sf</code> class object</li>
 <li>Change: <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> incorporates the HMD process via <code><a href="../reference/trees_hmd.html">trees_hmd()</a></code>
@@ -232,7 +232,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.1" id="cloud2trees-031">cloud2trees 0.3.1<a class="anchor" aria-label="anchor" href="#cloud2trees-031"></a></h2>
-<p>Updates the processes that rely on the <code>lasR</code> package which implemented major revisions with breaking changes in <a href="https://r-lidar.github.io/lasR/news/index.html#lasr-0130" class="external-link"><code>lasR 0.13.0</code></a>. The package <code>cloud2trees</code> now requires <code>lasR &gt;= 0.13.1</code>. Even with these updates, users may continue to encounter some bugs in the near future. See (#3, @georgewoolsey).</p>
+<p>Updates the processes that rely on the <code>lasR</code> package which implemented major revisions with breaking changes in <a href="https://r-lidar.github.io/lasR/news/index.html#lasr-0130" class="external-link"><code>lasR 0.13.0</code></a>. The package <code>cloud2trees</code> now requires <code>lasR &gt;= 0.13.1</code>. Even with these updates, users may continue to encounter some bugs in the near future. See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/3" class="external-link">#3</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <p>To update execute:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># update lasR</span></span>
@@ -244,7 +244,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="cloud2trees-030">cloud2trees 0.3.0<a class="anchor" aria-label="anchor" href="#cloud2trees-030"></a></h2>
-<p>Implements a process to extract the USDA Forest Inventory and Analysis (FIA) forest type group based on the <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a> data (Wilson 2023). See (#2, @georgewoolsey).</p>
+<p>Implements a process to extract the USDA Forest Inventory and Analysis (FIA) forest type group based on the <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a> data (Wilson 2023). See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/2" class="external-link">#2</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>New: Adds the function <code><a href="../reference/trees_type.html">trees_type()</a></code> to use the input tree list (e.g. as exported by <code><a href="../reference/raster2trees.html">raster2trees()</a></code>) to attach species information using FIA codes</li>
 <li>New: Adds <code><a href="../reference/get_data.html">get_data()</a></code> as all-in-one function that downloads all of the external data used by the package</li>
 <li>New: Adds <code><a href="../reference/get_foresttype.html">get_foresttype()</a></code> downloads the external data <a href="https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d" class="external-link">Forest Type Groups of the Continental United States</a>
@@ -255,7 +255,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="cloud2trees-020">cloud2trees 0.2.0<a class="anchor" aria-label="anchor" href="#cloud2trees-020"></a></h2>
-<p>Integrates a process to extract the crown base height (CBH) using the workflow outlined in <a href="https://doi.org/10.1111/2041-210X.14427" class="external-link">Viedma et al. (2024)</a> and using their package <code>LadderFuelsR</code> (<a href="https://github.com/olgaviedma/LadderFuelsR" class="external-link">https://github.com/olgaviedma/LadderFuelsR</a>). See (#1, @georgewoolsey).</p>
+<p>Integrates a process to extract the crown base height (CBH) using the workflow outlined in <a href="https://doi.org/10.1111/2041-210X.14427" class="external-link">Viedma et al. (2024)</a> and using their package <code>LadderFuelsR</code> (<a href="https://github.com/olgaviedma/LadderFuelsR" class="external-link">https://github.com/olgaviedma/LadderFuelsR</a>). See (<a href="https://github.com/georgewoolsey/cloud2trees/issues/1" class="external-link">#1</a>, <a href="https://github.com/georgewoolsey" class="external-link">@georgewoolsey</a>).</p>
 <ul><li>New: Adds the function <code><a href="../reference/trees_cbh.html">trees_cbh()</a></code> to use input tree crown polygons (e.g. as exported by <code><a href="../reference/raster2trees.html">raster2trees()</a></code>) to estimate tree CBH based on an input normalized point cloud</li>
 <li>New: Adds <code><a href="../reference/ladderfuelsr_cbh.html">ladderfuelsr_cbh()</a></code> as all-in-one function to extract CBH from a single tree, height normalized cloud using the functionality of the <code>LadderFuelsR</code> package</li>
 <li>Change: <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> incorporates the CBH process via <code><a href="../reference/trees_cbh.html">trees_cbh()</a></code>
@@ -271,7 +271,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by .</p>
+  <p>Developed by George Woolsey.</p>
 </div>
 
 <div class="pkgdown-footer-right">
