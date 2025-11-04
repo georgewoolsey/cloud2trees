@@ -1,13 +1,16 @@
 Type: Package
 Package: cloud2trees
-Title: Point Cloud Data to Forest Inventory Tree List
+Title: Aerial point cloud data to forest inventory tree lists
 Version: 0.7.3
-Author: George Woolsey, Colorado State University
-Maintainer: <george.woolsey@colostate.edu>
+Authors@R: 
+    person("George", "Woolsey", , "george.woolsey@colostate.edu", role = c("aut", "cre"))
 Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
     cloud data. Point cloud data can be from a LiDAR sensor or
     photogrammetry (i.e. structure from motion).
 License: GPL (>= 3)
+URL: https://georgewoolsey.github.io/cloud2trees/,
+    https://github.com/georgewoolsey/cloud2trees
+BugReports: https://github.com/georgewoolsey/cloud2trees/issues
 Depends: 
     R (>= 4.0)
 Imports: 
@@ -50,9 +53,8 @@ Remotes:
     github::olgaviedma/LadderFuelsR,
     github::r-lidar/lasR,
     github::tiagodc/TreeLS
+Config/Needs/website: rmarkdown
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-URL: https://georgewoolsey.github.io/cloud2trees/
-Config/Needs/website: rmarkdown

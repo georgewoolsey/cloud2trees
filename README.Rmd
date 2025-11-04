@@ -21,99 +21,43 @@ knitr::opts_chunk$set(
 library(magrittr)
 ```
 
-# Introduction
+# cloud2trees: Aerial point cloud data to forest inventory tree lists
 
 <!-- badges: start -->
 <!-- badges: end -->
+
+<img src="man/figures/Graphical_Abstract.jpg" alt="cloud2trees graphical abstract">
+
+# Introduction
 
 The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify *conifer* forest structure and may not be appropriate for other uses.
 
 * Swayze, Neal C., and Wade T. Tinkham. ["Application of unmanned aerial system structure from motion point cloud detected tree heights and stem diameters to model missing stem diameters."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10655866445299954513) MethodsX 9 (2022): 101729.
 * Tinkham, Wade T., Neal C. Swayze, Chad M. Hoffman, Lauren E. Lad, and Mike A. Battaglia. ["Modeling the missing DBHs: Influence of model form on UAV DBH characterization."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=14807895789640069059) Forests 13, no. 12 (2022): 2077.
 * Creasy, Matthew B., Wade T. Tinkham, Chad M. Hoffman, and Jody C. Vogeler. ["Potential for individual tree monitoring in ponderosa pine dominated forests using unmanned aerial system structure from motion point clouds."](https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=10356932785437169630) Canadian Journal of Forest Research 51, no. 8 (2021): 1093-1105.
-* Kane, Van R., Bryce N. Bartl-Geller, Gina R. Cova, Caden P. Chamberlain, Liz van Wagtendonk, and Malcolm P. North. ["Where are the large trees? A census of Sierra Nevada large trees to determine their frequency and spatial distribution across three large landscapes."](https://scholar.google.com/scholar?cluster=18100846251549158494&hl=en&as_sdt=0,6) Forest Ecology and Management 546 (2023): 121351.
 * Almeida, Danilo Roberti Alves de, Scott C. Stark, Gang Shao, Juliana Schietti, Bruce Walker Nelson, Carlos Alberto Silva, Eric Bastos Gorgens, Ruben Valbuena, Daniel de Almeida Papa, and Pedro Henrique Santin Brancalion. ["Optimizing the remote detection of tropical rainforest structure with airborne lidar: Leaf area profile sensitivity to pulse density and spatial sampling."](https://scholar.google.com/scholar?cluster=5085674356305592014&hl=en&as_sdt=0,6) Remote Sensing 11, no. 1 (2019): 92.
 * Viedma, O., C. A. Silva, J. M. Moreno, and A. T. Hudak. ["LadderFuelsR: A new automated tool for vertical fuel continuity analysis and crown base height detection using light detection and ranging."](https://scholar.google.com/scholar?cluster=14042621889986838235&oi=gsb&hl=en&as_sdt=0,6) Methods in Ecology and Evolution (2024).
 
-# Installation
+The development and functionality of the `cloud2trees` package relies extensively on the groundbreaking work of others. We gratefully acknowledge and encourage users to properly cite the authors and contributors behind the following essential R packages:
 
-A full demonstration script of the install and setup of `cloud2trees` including dependancies is available at: [https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R](https://github.com/georgewoolsey/cloud2trees/blob/main/inst/examples/example.R)
-
-It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed. 
-
-For users comfortable with installing and setting up packages in R, a quick setup demonstration follows below.
-
-**1) Install CRAN packages**
-
-install packages from CRAN using base `install.packages()`
-
-``` r
-# install remotes package
-install.packages("remotes")
-# install tidyverse package
-install.packages("tidyverse")
-# install sf package
-install.packages("sf")
-# install terra package
-install.packages("terra")
-# install BH package
-install.packages("BH")
-```
-
-**2) Install other packages**
-
-`cloud2trees` package relies on the following packages:
-
-* `lasR` package ([https://r-lidar.github.io/lasR/](https://r-lidar.github.io/lasR/)) enables large-scale point cloud processing with speed
-* `TreeLS` package ([https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)) helps us extract DBH from the point cloud
+* `lidR` package ([https://github.com/r-lidar/lidR](https://github.com/r-lidar/lidR)) for fundamental point cloud processing capabilities and routines
+* `lasR` package ([https://r-lidar.github.io/lasR](https://r-lidar.github.io/lasR)) enables large-scale point cloud processing with speed
+* `TreeLS` package ([https://github.com/tiagodc/TreeLS](https://github.com/tiagodc/TreeLS)) helps us extract DBH directly from the point cloud
 * `leafR` package ([https://github.com/DRAAlmeida/leafR](https://github.com/DRAAlmeida/leafR)) computes leaf area density (LAD) profiles from the point cloud
 * `LadderFuelsR` package ([https://github.com/olgaviedma/LadderFuelsR](https://github.com/olgaviedma/LadderFuelsR)) helps us extract CBH from the point cloud
 
-``` r
-# install lasR for point cloud processing
-install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
+# Installation and Setup
 
-# install github package from "tiagodc/TreeLS" for DBH extraction
-remotes::install_github(repo = "tiagodc/TreeLS", upgrade = F)
+A full demonstration script of the install and setup of `cloud2trees` including dependencies is available at: `article("cloud2trees-setup")`
 
-# install github package from "DRAAlmeida/leafR"
-remotes::install_github(repo = "DRAAlmeida/leafR", upgrade = F)
+It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed. 
 
-# install github package from "olgaviedma/LadderFuelsR"
-remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
-```
+# Extract Trees from Point Cloud: Default
 
-**3) Install `cloud2trees`**
-
-Finally, you can install the development version of `cloud2trees` from [GitHub](https://github.com/georgewoolsey/cloud2trees) with:
-
-```r
-## get cloud2trees
-remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
-```
-
-# Preliminaries
-
-## tl;dr
-
-The `cloud2trees` package relies on external data to estimate tree DBH, FIA forest type, and LANDFIRE fuel loading. If you plan to use this functionality, the data must be downloaded first using `get_data()` which only needs to be run the first time you use the `cloud2trees` package. All downloads combine to use ~7 GB of storage space.
-
-```{r, results = FALSE}
-library(cloud2trees)
-# download the external data
-cloud2trees::get_data()
-```
-
-Some machines, US Federal Government computers especially, might prevent you from writing directly to the package contents. If you get an error about "access" or "writing to" from the `get_data()` function, try to set the `savedir` parameter to a directory that you know you can write to.
-
-```{r, eval=FALSE}
-# download the external data with a custom directory
-cloud2trees::get_data(savedir = "C:/ican/access/this")
-```
-
-We'll be using the `tidyverse`, `sf`, and `terra` in the examples below.
+In addition to `cloud2trees`, we'll be using the `tidyverse`, `sf`, and `terra` in the examples below.
 
 ```{r}
+library(cloud2trees)
 # install.packages("tidyverse")
 library(tidyverse)
 # install.packages("sf")
@@ -121,47 +65,6 @@ library(sf)
 # install.packages("terra")
 library(terra)
 ```
-
-## Get TreeMap Data
-
-To estimate tree DBH from extracted tree height data requires training data to model diameter using height. Site-specific allometric equations using data from the USDA Forest Service’s Forest Inventory Analysis (FIA) program are used to estimate individual tree DBH based on the point cloud-detected tree height.
-
-FIA plots are identified using [TreeMap 2016](https://scholar.google.com/scholar?cluster=10696389844245769168&hl=en&as_sdt=0,6), a model of FIA plot locations imputed throughout forested areas of the conterminous United States at 30 m spatial resolution.
-
-Unless you have already executed the `get_data()` function, you must first download the FIA data (~4 GB) using `get_treemap()` which only needs to be run the first time you use the `cloud2trees` package.
-
-```{r, results = FALSE}
-# download the TreeMap data
-cloud2trees::get_treemap()
-```
-
-## Get Forest Type Group Data
-
-To estimate FIA forest type group for trees requires external data to spatially determine the forest type that of a tree.
-
-Forest type groups are identified using the [Forest Type Groups of the Continental United States](https://www.arcgis.com/home/item.html?id=10760c83b9e44923bd3c18efdaa7319d) data (Wilson 2023). This forest type group layer was developed using data from over 213,000 national forest inventory plots measured during the period 2014-2018 from the FIA program. This raster layer has 30-meter resolution and covers the forested extent of the continental US.
-
-Unless you have already executed the `get_data()` function, you must first download the FIA data (~2 GB) using `get_foresttype()` which only needs to be run the first time you use the `cloud2trees` package.
-
-```{r, results = FALSE}
-# download the forest type data
-cloud2trees::get_foresttype()
-```
-
-## Get LANDFIRE Data
-
-To estimate tree crown biomass for trees using [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) estimates requires external data to spatially determine the fuel loading of the area.
-
-The `cloud2trees` package currently uses [LANDFIRE's Forest Canopy Bulk Density (CBD)](https://landfire.gov/fuel/cbd) 2023 estimates ("CONUS LF 2023") at 30-meter resolution over the entire continental US.
-
-Unless you have already executed the `get_data()` function, you must first download the FIA data (~2.5 GB) using `get_landfire()` which only needs to be run the first time you use the `cloud2trees` package.
-
-```{r, results = FALSE}
-# download the landfire cbd data
-cloud2trees::get_landfire()
-```
-
-# Extract Trees from Point Cloud: Default
 
 The `cloud2trees()` function is an all-in-one function to process raw .las|.laz files to generate a CHM raster (.tif), a DTM raster (.tif), and a tree list with tree location, height, and DBH.
 

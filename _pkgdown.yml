@@ -2,3 +2,11 @@ url: https://georgewoolsey.github.io/cloud2trees/
 template:
   bootstrap: 5
 
+navbar:
+  structure:
+    left: [setup, reference, articles, news]
+    right: [github]
+  components:
+    setup:
+      text: Setup
+      href: articles/cloud2trees-setup.html
