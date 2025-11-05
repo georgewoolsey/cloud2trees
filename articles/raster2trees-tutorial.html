@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>cloud2trees Pipeline • cloud2trees</title>
+<title>Generating a tree list from a CHM • cloud2trees</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="cloud2trees Pipeline">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Generating a tree list from a CHM">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -63,40 +63,28 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>cloud2trees Pipeline</h1>
+      <h1>Generating a tree list from a CHM</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/vignettes/articles/cloud2trees-pipeline.Rmd" class="external-link"><code>vignettes/articles/cloud2trees-pipeline.Rmd</code></a></small>
-      <div class="d-none name"><code>cloud2trees-pipeline.Rmd</code></div>
+      <small class="dont-index">Source: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/vignettes/articles/raster2trees-tutorial.Rmd" class="external-link"><code>vignettes/articles/raster2trees-tutorial.Rmd</code></a></small>
+      <div class="d-none name"><code>raster2trees-tutorial.Rmd</code></div>
     </div>
 
     
     
-<div class="section level2">
-<h2 id="introduction-the-cloud2trees-processing-pipeline">Introduction: The <code>cloud2trees()</code> Processing
-Pipeline<a class="anchor" aria-label="anchor" href="#introduction-the-cloud2trees-processing-pipeline"></a>
-</h2>
-<p>The cloud2trees package was developed to streamline the complex
-process of generating consistent, scalable, and spatially explicit
-forest and fuels inventories from all types of aerial point cloud data,
-including both lidar and Digital Aerial Photogrammetry (DAP) products.
-DAP utilizes techniques, such as Structure-from-Motion (SfM), on
-overlapping aerial imagery to generate 3D point clouds.</p>
-<p>The development of the package was largely spurred by the need among
-researchers and managers to efficiently integrate detailed forest
-spatial arrangements into modern silviculture and fire management
-practices. The core of our package is the all-in-one processing routine:
-the <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> pipeline. Taking raw point cloud data,
-this function handles every step of the process, including terrain
-modeling, Individual Tree Detection (ITD), and generating a
-comprehensive spatial tree list attributed with key biophysical metrics
-(e.g., height, diameter, crown bulk density). This guide will walk you
-through the function’s essential setup, detail its output files, and
-provide a quick demonstration of how to use those outputs to visualize
-or further analyze forest structure.</p>
+<p>This script will familiarize users with the raster2trees function and
+how it can be used to customize how trees are detected from a CHM.
+Before using the raster2trees function, we recommend using the
+<code><a href="../reference/itd_tuning.html">itd_tuning()</a></code> function to identify the most logical tree
+detection to use with the crown architecture for the trees at your site.
+See the xxxx tutorial to learn more on how to do this</p>
+<p>Let’s load the libraries we’ll use</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://georgewoolsey.github.io/cloud2trees/">cloud2trees</a></span><span class="op">)</span></span></code></pre></div>
-</div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://georgewoolsey.github.io/cloud2trees/">cloud2trees</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span></code></pre></div>
   </main>
 </div>
 

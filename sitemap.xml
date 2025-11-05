@@ -1,10 +1,12 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/404.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/LICENSE.html</loc></url>
+<url><loc>https://georgewoolsey.github.io/cloud2trees/articles/cloud2raster-tutorial.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/articles/cloud2trees-overview.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/articles/cloud2trees-pipeline.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/articles/cloud2trees-setup.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/articles/index.html</loc></url>
+<url><loc>https://georgewoolsey.github.io/cloud2trees/articles/raster2trees-tutorial.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/authors.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/index.html</loc></url>
 <url><loc>https://georgewoolsey.github.io/cloud2trees/news/index.html</loc></url>
