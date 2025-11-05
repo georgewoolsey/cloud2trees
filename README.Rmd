@@ -21,14 +21,12 @@ knitr::opts_chunk$set(
 library(magrittr)
 ```
 
-# cloud2trees: Aerial point cloud data to forest inventory tree lists
-
 <!-- badges: start -->
 <!-- badges: end -->
 
 <img src="man/figures/Graphical_Abstract.jpg" alt="cloud2trees graphical abstract">
 
-# Introduction
+# cloud2trees: Aerial point cloud data to forest inventory tree lists
 
 The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify *conifer* forest structure and may not be appropriate for other uses.
 
@@ -48,9 +46,9 @@ The development and functionality of the `cloud2trees` package relies extensivel
 
 # Installation and Setup
 
-A full demonstration script of the install and setup of `cloud2trees` including dependencies is available at: `article("cloud2trees-setup")`
+A full demonstration of the install and setup of `cloud2trees` including dependencies is available at the [Setup demonstration](articles/cloud2trees-setup.html) 
 
-It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed. 
+It is recommended that users follow this full install demonstration which includes program functionality checks after the installation steps are completed.
 
 # Extract Trees from Point Cloud: Default
 

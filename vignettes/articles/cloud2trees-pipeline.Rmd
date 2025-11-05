@@ -1,0 +1,20 @@
+---
+title: "cloud2trees Pipeline"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction: The `cloud2trees()` Processing Pipeline
+
+The cloud2trees package was developed to streamline the complex process of generating consistent, scalable, and spatially explicit forest and fuels inventories from all types of aerial point cloud data, including both lidar and Digital Aerial Photogrammetry (DAP) products. DAP utilizes techniques, such as Structure-from-Motion (SfM), on overlapping aerial imagery to generate 3D point clouds. 
+
+The development of the package was largely spurred by the need among researchers and managers to efficiently integrate detailed forest spatial arrangements into modern silviculture and fire management practices. The core of our package is the all-in-one processing routine: the `cloud2trees()` pipeline. Taking raw point cloud data, this function handles every step of the process, including terrain modeling, Individual Tree Detection (ITD), and generating a comprehensive spatial tree list attributed with key biophysical metrics (e.g., height, diameter, crown bulk density). This guide will walk you through the function's essential setup, detail its output files, and provide a quick demonstration of how to use those outputs to visualize or further analyze forest structure.
+
+```{r setup}
+library(cloud2trees)
+```

@@ -14,3 +14,4 @@ point_cloud_processing_delivery/
 point_cloud_processing_temp/
 point_cloud_processing.R
 docs
+inst/doc

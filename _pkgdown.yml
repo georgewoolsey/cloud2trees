@@ -10,3 +10,15 @@ navbar:
     setup:
       text: Setup
       href: articles/cloud2trees-setup.html
+
+articles:
+- title: Setup
+  navbar:
+  contents:
+  - articles/cloud2trees-setup
+
+- title: Overview
+  navbar: Overview
+  contents:
+  - articles/cloud2trees-overview
+  - articles/cloud2trees-pipeline
