@@ -43,6 +43,7 @@ Imports:
     utils,
     viridis
 Suggests: 
+    forcats,
     knitr,
     rgl,
     rmarkdown,
