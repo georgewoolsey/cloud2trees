@@ -13,7 +13,6 @@ navbar:
 
 articles:
 - title: Setup
-  navbar:
   contents:
   - articles/cloud2trees-setup
 
@@ -22,3 +21,10 @@ articles:
   contents:
   - articles/cloud2trees-overview
   - articles/cloud2trees-pipeline
+
+- title: Tutorials
+  navbar: Tutorials
+  desc: Tutorials for customizing cloud2trees processing subprocesses
+  contents:
+  - articles/cloud2raster-tutorial
+  - articles/raster2trees-tutorial

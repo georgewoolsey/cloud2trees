@@ -1,0 +1,26 @@
+---
+title: "Generating a tree list from a CHM"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+collapse = TRUE
+, comment = "#>"
+, out.width = "100%"
+, echo = TRUE
+, warning = FALSE
+, message = FALSE
+)
+```
+
+This script will familiarize users with the raster2trees function and how it can be used to customize how trees are detected from a CHM. Before using the raster2trees function, we recommend using the `itd_tuning()` function to identify the most logical tree detection to use with the crown architecture for the trees at your site. See the xxxx tutorial to learn more on how to do this
+
+Let's load the libraries we'll use
+
+```{r}
+library(cloud2trees)
+library(ggplot2)
+library(magrittr)
+library(terra)
+library(sf)
+```

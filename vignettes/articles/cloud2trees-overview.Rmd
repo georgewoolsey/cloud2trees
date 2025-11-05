@@ -84,7 +84,10 @@ now that we've covered the foundational concepts of point cloud data, we're read
 The heart of the package is the `cloud2trees()` function, which runs the entire Individual Tree Detection (ITD) and attribute extraction workflow based on settings defined by the user. To illustrate its immediate simplicity, we will first demonstrate the execution of this all-in-one pipeline using the default settings, specifying just the input location of the example point cloud and where we want to save the results (a temporary directory for this example). While we strongly recommend that users customize the function parameters to meet their specific study objectives, this demonstration will illustrate how simply cloud2trees can process raw point cloud data to produce a spatial forest inventory tree list as well as intermediate products like the Digital Terrain Model (DTM) and Canopy Height Model (CHM).
 
 ```{r, results=F, warning=F, message=F}
-cloud2trees_ans <- cloud2trees::cloud2trees(input_las_dir = las_fpath, output_dir = tempdir())
+cloud2trees_ans <- cloud2trees::cloud2trees(
+  input_las_dir = las_fpath
+  , output_dir = tempdir()
+)
 ```
 
 That single `cloud2trees()` function call is all that is needed to produce a spatial forest inventory tree list, DTM, and CHM from raw point cloud data
@@ -353,4 +356,4 @@ cloud2trees_ans$treetops_sf %>%
   ggplot2::guides(color = ggplot2::guide_legend(override.aes = list(size = 5)))
 ```
 
-since we have the X and Y coordinates of those trees, we can easily load those onto a tablet or GPS device to navigate to those important trees in the field
+since we have the X and Y coordinates of all trees, we can easily load them onto a tablet or GPS device to navigate to those important trees in the field
