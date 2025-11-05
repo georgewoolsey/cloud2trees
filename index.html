@@ -37,6 +37,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/cloud2trees-setup.html">Setup</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
+    <li><a class="dropdown-item" href="articles/cloud2trees-overview.html">Overview</a></li>
+    <li><a class="dropdown-item" href="articles/cloud2trees-pipeline.html">cloud2trees Pipeline</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -55,7 +59,6 @@
 </h1></div>
 <ul>
 <li><a href="#cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists">cloud2trees: Aerial point cloud data to forest inventory tree lists</a></li>
-<li><a href="#introduction">Introduction</a></li>
 <li><a href="#installation-and-setup">Installation and Setup</a></li>
 <li><a href="#extract-trees-from-point-cloud-default">Extract Trees from Point Cloud: Default</a></li>
 <li><a href="#individual-tree-detection-itd-tuning">Individual Tree Detection (ITD) Tuning</a></li>
@@ -69,17 +72,10 @@
 <li><a href="#estimate-tree-hmd-for-a-tree-list">Estimate Tree HMD for a Tree List</a></li>
 <li><a href="#estimate-tree-biomass-for-a-tree-list">Estimate Tree Biomass for a Tree List</a></li>
 </ul>
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is generated from README.Rmd. Please edit that file --><!-- badges: start --><!-- badges: end --><p><img src="reference/figures/Graphical_Abstract.jpg" alt="cloud2trees graphical abstract"></p>
 </div>
 <div class="section level1">
 <h1 id="cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists">cloud2trees: Aerial point cloud data to forest inventory tree lists<a class="anchor" aria-label="anchor" href="#cloud2trees-aerial-point-cloud-data-to-forest-inventory-tree-lists"></a>
-</h1>
-<!-- badges: start -->
-<!-- badges: end -->
-<p><img src="reference/figures/Graphical_Abstract.jpg" alt="cloud2trees graphical abstract"></p>
-</div>
-<div class="section level1">
-<h1 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h1>
 <p>The goal of cloud2trees is to provide accessible routines for processing point cloud data collected by airborne lidar or developed using UAS imagery and photogrammetry (e.g. structure from motion). The cloud2trees package implements some of the methods outlined in the literature below. Some of the methodologies implemented in the cloud2trees package have been developed specifically to quantify <em>conifer</em> forest structure and may not be appropriate for other uses.</p>
 <ul>
@@ -106,8 +102,8 @@
 <div class="section level1">
 <h1 id="installation-and-setup">Installation and Setup<a class="anchor" aria-label="anchor" href="#installation-and-setup"></a>
 </h1>
-<p>A full demonstration script of the install and setup of <code>cloud2trees</code> including dependencies is available at: <code>article("cloud2trees-setup")</code></p>
-<p>It is recommended that users follow this full install demonstration which includes program functionality checks after the intallation steps are completed.</p>
+<p>A full demonstration of the install and setup of <code>cloud2trees</code> including dependencies is available at the <a href="articles/cloud2trees-setup.html">Setup demonstration</a></p>
+<p>It is recommended that users follow this full install demonstration which includes program functionality checks after the installation steps are completed.</p>
 </div>
 <div class="section level1">
 <h1 id="extract-trees-from-point-cloud-default">Extract Trees from Point Cloud: Default<a class="anchor" aria-label="anchor" href="#extract-trees-from-point-cloud-default"></a>
@@ -400,18 +396,18 @@
 <span><span class="co">#&gt; $ tree_y                    &lt;dbl&gt; 3813011, 3813011, 3813011, 3813011, 3813011,…</span></span>
 <span><span class="co">#&gt; $ crown_area_m2             &lt;dbl&gt; 10.3750, 10.8125, 1.1875, 4.5625, 6.3750, 10…</span></span>
 <span><span class="co">#&gt; $ geometry                  &lt;GEOMETRY [m]&gt; MULTIPOLYGON (((481280.5 38..., POL…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm            &lt;dbl&gt; 49.460173, 31.076269, 17.276917, 24.794791, …</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_lower      &lt;dbl&gt; 28.181649, 18.037104, 9.804718, 14.038148, 2…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_upper      &lt;dbl&gt; 75.229031, 47.018240, 26.586560, 37.930657, …</span></span>
-<span><span class="co">#&gt; $ dbh_cm                    &lt;dbl&gt; 49.460173, 31.076269, 17.276917, 24.794791, …</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm            &lt;dbl&gt; 49.489231, 31.309071, 17.135796, 24.843153, …</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_lower      &lt;dbl&gt; 27.746832, 17.725274, 9.644044, 14.225778, 2…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_upper      &lt;dbl&gt; 75.479259, 48.115126, 26.246084, 38.082835, …</span></span>
+<span><span class="co">#&gt; $ dbh_cm                    &lt;dbl&gt; 49.489231, 31.309071, 17.135796, 24.843153, …</span></span>
 <span><span class="co">#&gt; $ is_training_data          &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FA…</span></span>
-<span><span class="co">#&gt; $ dbh_m                     &lt;dbl&gt; 0.49460173, 0.31076269, 0.17276917, 0.247947…</span></span>
-<span><span class="co">#&gt; $ radius_m                  &lt;dbl&gt; 0.24730086, 0.15538134, 0.08638459, 0.123973…</span></span>
-<span><span class="co">#&gt; $ basal_area_m2             &lt;dbl&gt; 0.192132634, 0.075848608, 0.023443496, 0.048…</span></span>
-<span><span class="co">#&gt; $ basal_area_ft2            &lt;dbl&gt; 2.06811567, 0.81643441, 0.25234579, 0.519737…</span></span>
+<span><span class="co">#&gt; $ dbh_m                     &lt;dbl&gt; 0.49489231, 0.31309071, 0.17135796, 0.248431…</span></span>
+<span><span class="co">#&gt; $ radius_m                  &lt;dbl&gt; 0.24744616, 0.15654536, 0.08567898, 0.124215…</span></span>
+<span><span class="co">#&gt; $ basal_area_m2             &lt;dbl&gt; 0.192358462, 0.076989280, 0.023062080, 0.048…</span></span>
+<span><span class="co">#&gt; $ basal_area_ft2            &lt;dbl&gt; 2.07054648, 0.82871261, 0.24824023, 0.521767…</span></span>
 <span><span class="co">#&gt; $ ptcld_extracted_dbh_cm    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …</span></span>
 <span><span class="co">#&gt; $ ptcld_predicted_dbh_cm    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …</span></span>
-<span><span class="co">#&gt; $ tree_cbh_m                &lt;dbl&gt; 15.500000, 8.500000, 7.239267, 11.797820, 20…</span></span>
+<span><span class="co">#&gt; $ tree_cbh_m                &lt;dbl&gt; 15.500000, 8.500000, 7.012133, 11.720800, 20…</span></span>
 <span><span class="co">#&gt; $ is_training_cbh           &lt;lgl&gt; TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE, …</span></span>
 <span><span class="co">#&gt; $ forest_type_group_code    &lt;chr&gt; "220", "220", "220", "220", "220", "220", "2…</span></span>
 <span><span class="co">#&gt; $ forest_type_group         &lt;chr&gt; "Ponderosa pine group", "Ponderosa pine grou…</span></span>
@@ -419,15 +415,15 @@
 <span><span class="co">#&gt; $ comp_trees_per_ha         &lt;dbl&gt; 495.0296, 742.5445, 742.5445, 990.0593, 742.…</span></span>
 <span><span class="co">#&gt; $ comp_relative_tree_height &lt;dbl&gt; 0.9099468, 1.0000000, 0.5804963, 1.0000000, …</span></span>
 <span><span class="co">#&gt; $ comp_dist_to_nearest_m    &lt;dbl&gt; 3.010399, 2.549510, 1.677051, 1.414214, 3.60…</span></span>
-<span><span class="co">#&gt; $ max_crown_diam_height_m   &lt;dbl&gt; 10.030708, 10.522636, 5.540000, 1.670000, 12…</span></span>
-<span><span class="co">#&gt; $ is_training_hmd           &lt;lgl&gt; FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE…</span></span>
+<span><span class="co">#&gt; $ max_crown_diam_height_m   &lt;dbl&gt; 10.644080, 10.660000, 6.370394, 10.096082, 1…</span></span>
+<span><span class="co">#&gt; $ is_training_hmd           &lt;lgl&gt; FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, FALS…</span></span>
 <span><span class="co">#&gt; $ landfire_stand_id         &lt;dbl&gt; 49, 50, 50, 50, 51, 51, 51, 49, 50, 50, 51, …</span></span>
 <span><span class="co">#&gt; $ crown_dia_m               &lt;dbl&gt; 3.6345371, 3.7103777, 1.2296227, 2.4102190, …</span></span>
-<span><span class="co">#&gt; $ crown_length_m            &lt;dbl&gt; 6.7299995, 7.3500004, 2.8207338, 1.6421791, …</span></span>
-<span><span class="co">#&gt; $ crown_volume_m3           &lt;dbl&gt; 46.5491635, 52.9812527, 2.2330809, 4.9949614…</span></span>
-<span><span class="co">#&gt; $ landfire_tree_kg_per_m3   &lt;dbl&gt; 0.2168266, 0.1643176, 0.1643176, 0.1643176, …</span></span>
+<span><span class="co">#&gt; $ crown_length_m            &lt;dbl&gt; 6.7299995, 7.3500004, 3.0478671, 1.7191996, …</span></span>
+<span><span class="co">#&gt; $ crown_volume_m3           &lt;dbl&gt; 46.5491635, 52.9812527, 2.4128948, 5.2292321…</span></span>
+<span><span class="co">#&gt; $ landfire_tree_kg_per_m3   &lt;dbl&gt; 0.2167401, 0.1645076, 0.1645076, 0.1645076, …</span></span>
 <span><span class="co">#&gt; $ landfire_stand_kg_per_m3  &lt;dbl&gt; 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.…</span></span>
-<span><span class="co">#&gt; $ landfire_crown_biomass_kg &lt;dbl&gt; 10.09309722, 8.70575146, 0.36693446, 0.82075…</span></span></code></pre></div>
+<span><span class="co">#&gt; $ landfire_crown_biomass_kg &lt;dbl&gt; 10.08907036, 8.71581875, 0.39693953, 0.86024…</span></span></code></pre></div>
 <p>Remember, we also changed the <code>ws</code> parameter used to detect the local maxima for identifying tree tops so we got a few more trees compared to the default settings.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
@@ -847,15 +843,15 @@
 <span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4450078, 4450076, 4450072, 4450078, 4450081, 44…</span></span>
 <span><span class="co">#&gt; $ tree_height_m          &lt;dbl&gt; 1.447969, 4.970239, 3.549897, 7.216735, 3.54328…</span></span>
 <span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (458066.6 4450078), POINT (458060.4…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm         &lt;dbl&gt; 3.231616, 8.445900, 6.090368, 12.561439, 6.0903…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_lower   &lt;dbl&gt; 1.938536, 5.031832, 3.631305, 7.489301, 3.63130…</span></span>
-<span><span class="co">#&gt; $ fia_est_dbh_cm_upper   &lt;dbl&gt; 4.809553, 12.673982, 9.100955, 18.732703, 9.100…</span></span>
-<span><span class="co">#&gt; $ dbh_cm                 &lt;dbl&gt; 3.231616, 8.445900, 6.090368, 12.561439, 6.0903…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm         &lt;dbl&gt; 3.229841, 8.447579, 6.094372, 12.563307, 6.0943…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_lower   &lt;dbl&gt; 1.939234, 5.030607, 3.647726, 7.505863, 3.64772…</span></span>
+<span><span class="co">#&gt; $ fia_est_dbh_cm_upper   &lt;dbl&gt; 4.805320, 12.666605, 9.087239, 18.769135, 9.087…</span></span>
+<span><span class="co">#&gt; $ dbh_cm                 &lt;dbl&gt; 3.229841, 8.447579, 6.094372, 12.563307, 6.0943…</span></span>
 <span><span class="co">#&gt; $ is_training_data       &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE…</span></span>
-<span><span class="co">#&gt; $ dbh_m                  &lt;dbl&gt; 0.03231616, 0.08445900, 0.06090368, 0.12561439,…</span></span>
-<span><span class="co">#&gt; $ radius_m               &lt;dbl&gt; 0.01615808, 0.04222950, 0.03045184, 0.06280720,…</span></span>
-<span><span class="co">#&gt; $ basal_area_m2          &lt;dbl&gt; 0.000820218, 0.005602499, 0.002913245, 0.012392…</span></span>
-<span><span class="co">#&gt; $ basal_area_ft2         &lt;dbl&gt; 0.008828826, 0.060305296, 0.031358169, 0.133395…</span></span>
+<span><span class="co">#&gt; $ dbh_m                  &lt;dbl&gt; 0.03229841, 0.08447579, 0.06094372, 0.12563307,…</span></span>
+<span><span class="co">#&gt; $ radius_m               &lt;dbl&gt; 0.01614921, 0.04223790, 0.03047186, 0.06281654,…</span></span>
+<span><span class="co">#&gt; $ basal_area_m2          &lt;dbl&gt; 0.0008193176, 0.0056047266, 0.0029170762, 0.012…</span></span>
+<span><span class="co">#&gt; $ basal_area_ft2         &lt;dbl&gt; 0.008819135, 0.060329277, 0.031399409, 0.133435…</span></span>
 <span><span class="co">#&gt; $ ptcld_extracted_dbh_cm &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</span></span>
 <span><span class="co">#&gt; $ ptcld_predicted_dbh_cm &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree DBH estimated from the FIA plot data.</p>
@@ -922,25 +918,24 @@
 <span><span class="co">#&gt; Rows: 66</span></span>
 <span><span class="co">#&gt; Columns: 7</span></span>
 <span><span class="co">#&gt; $ treeID                 &lt;chr&gt; "1", "2", "3", "4", "5", "6", "7", "8", "9", "1…</span></span>
-<span><span class="co">#&gt; $ tree_x                 &lt;dbl&gt; 458167.9, 457934.7, 458032.4, 458009.7, 458041.…</span></span>
-<span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4450086, 4450005, 4450000, 4449870, 4449936, 44…</span></span>
-<span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (458167.9 4450086), POINT (457934.7…</span></span>
-<span><span class="co">#&gt; $ forest_type_group_code &lt;chr&gt; "200", "200", "280", "280", "280", "200", "200"…</span></span>
-<span><span class="co">#&gt; $ forest_type_group      &lt;chr&gt; "Douglas-fir group", "Douglas-fir group", "Lodg…</span></span>
+<span><span class="co">#&gt; $ tree_x                 &lt;dbl&gt; 457980.9, 457941.7, 457902.6, 457927.3, 457916.…</span></span>
+<span><span class="co">#&gt; $ tree_y                 &lt;dbl&gt; 4449951, 4450079, 4449905, 4449872, 4450004, 44…</span></span>
+<span><span class="co">#&gt; $ geometry               &lt;POINT [m]&gt; POINT (457980.9 4449951), POINT (457941.7…</span></span>
+<span><span class="co">#&gt; $ forest_type_group_code &lt;chr&gt; "200", "200", "200", "220", "200", "200", "260"…</span></span>
+<span><span class="co">#&gt; $ forest_type_group      &lt;chr&gt; "Douglas-fir group", "Douglas-fir group", "Doug…</span></span>
 <span><span class="co">#&gt; $ hardwood_softwood      &lt;chr&gt; "Softwood", "Softwood", "Softwood", "Softwood",…</span></span></code></pre></div>
 <p>Let’s look at the FIA Forest Type Group data we extracted for the tree list.</p>
 <div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl_type</span><span class="op">$</span><span class="va">tree_list</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">forest_type_group_code</span>, <span class="va">forest_type_group</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 5 × 3</span></span>
+<span><span class="co">#&gt; # A tibble: 4 × 3</span></span>
 <span><span class="co">#&gt;   forest_type_group_code forest_type_group                         n</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;                  &lt;chr&gt;                                 &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 200                    Douglas-fir group                        45</span></span>
+<span><span class="co">#&gt; 1 200                    Douglas-fir group                        39</span></span>
 <span><span class="co">#&gt; 2 220                    Ponderosa pine group                      4</span></span>
-<span><span class="co">#&gt; 3 260                    Fir / spruce / mountain hemlock group     1</span></span>
-<span><span class="co">#&gt; 4 280                    Lodgepole pine group                     15</span></span>
-<span><span class="co">#&gt; 5 900                    Aspen / birch group                       1</span></span></code></pre></div>
+<span><span class="co">#&gt; 3 260                    Fir / spruce / mountain hemlock group     4</span></span>
+<span><span class="co">#&gt; 4 280                    Lodgepole pine group                     19</span></span></code></pre></div>
 <p>We can plot our spatial tree list</p>
 <div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># now plot</span></span>
@@ -1023,8 +1018,8 @@
 <span><span class="co">#&gt; Columns: 5</span></span>
 <span><span class="co">#&gt; $ treeID          &lt;chr&gt; "1_458054.1_4450092.9", "2_458055.9_4450092.9", "3_458…</span></span>
 <span><span class="co">#&gt; $ tree_height_m   &lt;dbl&gt; 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.310, 4.6…</span></span>
-<span><span class="co">#&gt; $ tree_cbh_m      &lt;dbl&gt; 4.108416, 4.483700, 8.500000, 2.500000, 4.108416, 3.50…</span></span>
-<span><span class="co">#&gt; $ is_training_cbh &lt;lgl&gt; FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, F…</span></span>
+<span><span class="co">#&gt; $ tree_cbh_m      &lt;dbl&gt; 4.102961, 4.500000, 8.500000, 2.500000, 4.500000, 4.76…</span></span>
+<span><span class="co">#&gt; $ is_training_cbh &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, FAL…</span></span>
 <span><span class="co">#&gt; $ geom            &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((458054 4450..., MULTIPOLY…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree CBH as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and CBH throughout the entire height range because CBH is also determined spatially (e.g. as a fire moves through a stand).</p>
 <div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
@@ -1083,7 +1078,7 @@
 <span><span class="co">#&gt; Columns: 5</span></span>
 <span><span class="co">#&gt; $ treeID                  &lt;chr&gt; "1_458054.1_4450092.9", "2_458055.9_4450092.9"…</span></span>
 <span><span class="co">#&gt; $ tree_height_m           &lt;dbl&gt; 4.599, 5.130, 10.641, 4.610, 4.599, 8.957, 10.…</span></span>
-<span><span class="co">#&gt; $ max_crown_diam_height_m &lt;dbl&gt; 3.635119, 4.681000, 8.943000, 3.151000, 3.2190…</span></span>
+<span><span class="co">#&gt; $ max_crown_diam_height_m &lt;dbl&gt; 3.531745, 4.681000, 8.943000, 3.151000, 3.2190…</span></span>
 <span><span class="co">#&gt; $ is_training_hmd         &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…</span></span>
 <span><span class="co">#&gt; $ geom                    &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((458054 4450..., M…</span></span></code></pre></div>
 <p>Let’s look at the relationship between tree height and tree HMD as extracted from the point cloud. Note, that we do not expect a perfect linear relationship between tree height and HMD throughout the entire height range because HMD is also determined spatially (e.g. as a fire moves through a stand).</p>
