@@ -272,3 +272,129 @@ terra::aggregate(
   terra::res() %>% 
   paste(collapse = "x")
 ```
+
+## Customizing CHM Generation
+
+Individual Tree Detection (ITD) is traditionally achieved using two main approaches: segmenting trees directly from the point cloud by clustering points based on crown shape and spacing (e.g. [Li et al. 2012](https://doi.org/10.14358/PERS.78.1.75)), or using a Canopy Height Model (CHM) to delineate crowns after identifying tree tops (local maxima; e.g. [Popescu and Wynne 2004](https://doi.org/10.14358/PERS.70.5.589)). The `cloud2trees` package is built exclusively upon the CHM methodology for ITD. The CHM is therefore the critical, indispensable input for all subsequent steps in our pipeline. Users wishing to explore direct point cloud segmentation methods should consult the functionalities of the `lidR` package (e.g. `lidR::li2012()`).
+
+The `cloud2raster()` function provides several arguments for customization of the CHM. This includes the influence of the previously discussed `accuracy_level` parameter, which dictates whether the CHM is normalized using the continuous triangulation (level '2' or '3') or the coarser rasterized DTM (level '1'). The three primary arguments for customizing the CHM are `chm_res_m`, which sets the output resolution, and `min_height` (default 2.0 m) and `max_height` (default 70 m), which control the height thresholds for CHM cell inclusion. While most high outliers are typically removed during early noise filtering, the `max_height` parameter primarily serves to limit the height search range to expected forest vegetation heights. The `min_height` setting, on the other hand, represents the minimum height threshold for any segmented object to be subsequently considered a tree during the ITD process. It is important to note that if the CHM is intended for ITD, these height thresholds must be considered carefully to reflect expected tree heights, but for other uses, the thresholds should be set to meet those specific objectives.
+
+Let's create CHM data at 0.60 m, 0.40 m, and 0.20 m resolutions and look at the differences. Here, we also demonstrate creating unique folders to store the results from `cloud2raster()` which would otherwise be written and overwritten to the *point_cloud_processing_delivery* directory.
+
+```{r, results=F, warning=F, message=F}
+# 0.6 m chm
+out_dir_0.6m <- file.path(out_dir,"chm_0.6m")
+dir.create(out_dir_0.6m)
+cloud2raster_ans_chm_0.6m <- cloud2trees::cloud2raster(
+  input_las_dir = las_dir
+  , output_dir = out_dir_0.6m
+  , chm_res_m = 0.6
+)
+# 0.4 m chm
+out_dir_0.4m <- file.path(out_dir,"chm_0.4m")
+dir.create(out_dir_0.4m)
+cloud2raster_ans_chm_0.4m <- cloud2trees::cloud2raster(
+  input_las_dir = las_dir
+  , output_dir = out_dir_0.4m
+  , chm_res_m = 0.4
+)
+# 0.2 m chm
+out_dir_0.2m <- file.path(out_dir,"chm_0.2m")
+dir.create(out_dir_0.2m)
+cloud2raster_ans_chm_0.2m <- cloud2trees::cloud2raster(
+  input_las_dir = las_dir
+  , output_dir = out_dir_0.2m
+  , chm_res_m = 0.2
+)
+```
+
+We can confirm that we got the resolution expected by checking the resolution in the X and Y horizontal
+
+```{r}
+paste0(
+  "The resolution of `cloud2raster_ans_chm_0.4m` is: "
+  , terra::res(cloud2raster_ans_chm_0.4m$chm_rast) %>% 
+    scales::comma(accuracy = 0.01) %>% 
+    paste(collapse = "x")
+)
+```
+
+Let's plot the CHM rasters and combine them using `patchwork`
+
+```{r}
+# plt_chm_0.6m
+plt_chm_0.6m <- 
+ cloud2raster_ans_chm_0.6m$chm_rast %>%
+  terra::as.data.frame(xy=T) %>%
+  dplyr::rename(f=3) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(
+    mapping = ggplot2::aes(x=x, y=y, fill=f)
+    , alpha = 0.9
+  ) +
+  ggplot2::scale_fill_viridis_c(option = "plasma") +
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::labs(fill = "CHM (m)", title = "CHM - 0.6 m resolution") +
+  ggplot2::theme_light() +
+  ggplot2::theme(
+    legend.position = "none"
+    , axis.text = ggplot2::element_text(size = 5)
+    , axis.title = ggplot2::element_blank()
+    , plot.title = ggplot2::element_text(hjust = 0.5)
+  )
+# plt_chm_0.4m
+plt_chm_0.4m <- 
+ cloud2raster_ans_chm_0.4m$chm_rast %>%
+  terra::as.data.frame(xy=T) %>%
+  dplyr::rename(f=3) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(
+    mapping = ggplot2::aes(x=x, y=y, fill=f)
+    , alpha = 0.9
+  ) +
+  ggplot2::scale_fill_viridis_c(option = "plasma") +
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::labs(fill = "CHM (m)", title = "CHM - 0.4 m resolution") +
+  ggplot2::theme_light() +
+  ggplot2::theme(
+    legend.position = "none"
+    , axis.text = ggplot2::element_text(size = 5)
+    , axis.title = ggplot2::element_blank()
+    , plot.title = ggplot2::element_text(hjust = 0.5)
+  )
+# plt_chm_0.2m
+plt_chm_0.2m <- 
+ cloud2raster_ans_chm_0.2m$chm_rast %>%
+  terra::as.data.frame(xy=T) %>%
+  dplyr::rename(f=3) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(
+    mapping = ggplot2::aes(x=x, y=y, fill=f)
+    , alpha = 0.9
+  ) +
+  ggplot2::scale_fill_viridis_c(option = "plasma") +
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::labs(fill = "CHM (m)", title = "CHM - 0.2 m resolution") +
+  ggplot2::theme_light() +
+  ggplot2::theme(
+    legend.position = "none"
+    , axis.text = ggplot2::element_text(size = 5)
+    , axis.title = ggplot2::element_blank()
+    , plot.title = ggplot2::element_text(hjust = 0.5)
+  )
+
+```
+
+combine with `patchwork::wrap_plots()`
+
+```{r, fig.height=9, fig.width=4.5}
+# patchwork
+patchwork::wrap_plots(plt_chm_0.6m, plt_chm_0.4m, plt_chm_0.2m, ncol = 1)
+```
+
+As you transition from the coarser resolution CHM (0.6 m) to the finest resolution CHM (0.2 m), several changes are apparent. The first difference relates to canopy coverage: coarser resolution data covers more area above the minimum height threshold. This occurs because the larger cell size forces the raster to search a broader area for the highest non-ground point, effectively smoothing the point cloud data and reducing fine detail and small gaps. Conversely, finer resolution data makes crown gaps more apparent, but this increased detail comes with the risk of introducing "holes" within what should be continuous individual tree crowns (an effect that can be mitigated with post-processing smoothing). Furthermore, the finer resolution CHM better resolves small trees, making them more apparent in the product. While using a finer resolution CHM has been shown to improve both tree detection and tree crown area accuracy, a trade-off must be considered as the 0.2 m resolution product generates `r scales::comma(terra::ncell(cloud2raster_ans_chm_0.2m$chm_rast)/terra::ncell(cloud2raster_ans_chm_0.6m$chm_rast),accuracy=1)` times the amount of data to store and process compared to the 0.6 m resolution product.
+
+A simple rule of thumb for determining how fine a CHM to generate is to ensure there is at least one point per cell in the target CHM. To find the minimum CHM resolution that could be created for a given point density (i.e. points m^-2^) while maintaining this threshold, use the formula $\sqrt{1/\text{point_density}}$. For example, a point density of 17 points m^-2^ could generate a minimum CHM resolution of approximately 0.24 m ($\sqrt{1/17} \approx 0.24$) while ensuring at least one point per cell on average. Alternatively, to find the minimum point density needed to support a desired CHM resolution, use the formula $1/(\text{desired_res}^2)$. For instance, creating a 0.3 m CHM raster requires point cloud data with at least 11.11 points m^-2^ ($1/(0.3^2) \approx 11.11$).
