@@ -405,6 +405,183 @@ display the resultant resolution in the X and Y horizontal</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span>collapse <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "2x2"</span></span></code></pre></div>
 </div>
+<div class="section level2">
+<h2 id="customizing-chm-generation">Customizing CHM Generation<a class="anchor" aria-label="anchor" href="#customizing-chm-generation"></a>
+</h2>
+<p>Individual Tree Detection (ITD) is traditionally achieved using two
+main approaches: segmenting trees directly from the point cloud by
+clustering points based on crown shape and spacing (e.g. <a href="https://doi.org/10.14358/PERS.78.1.75" class="external-link">Li et al. 2012</a>), or
+using a Canopy Height Model (CHM) to delineate crowns after identifying
+tree tops (local maxima; e.g. <a href="https://doi.org/10.14358/PERS.70.5.589" class="external-link">Popescu and Wynne
+2004</a>). The <code>cloud2trees</code> package is built exclusively
+upon the CHM methodology for ITD. The CHM is therefore the critical,
+indispensable input for all subsequent steps in our pipeline. Users
+wishing to explore direct point cloud segmentation methods should
+consult the functionalities of the <code>lidR</code> package
+(e.g. <code><a href="https://rdrr.io/pkg/lidR/man/its_li2012.html" class="external-link">lidR::li2012()</a></code>).</p>
+<p>The <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> function provides several arguments
+for customization of the CHM. This includes the influence of the
+previously discussed <code>accuracy_level</code> parameter, which
+dictates whether the CHM is normalized using the continuous
+triangulation (level ‘2’ or ‘3’) or the coarser rasterized DTM (level
+‘1’). The three primary arguments for customizing the CHM are
+<code>chm_res_m</code>, which sets the output resolution, and
+<code>min_height</code> (default 2.0 m) and <code>max_height</code>
+(default 70 m), which control the height thresholds for CHM cell
+inclusion. While most high outliers are typically removed during early
+noise filtering, the <code>max_height</code> parameter primarily serves
+to limit the height search range to expected forest vegetation heights.
+The <code>min_height</code> setting, on the other hand, represents the
+minimum height threshold for any segmented object to be subsequently
+considered a tree during the ITD process. It is important to note that
+if the CHM is intended for ITD, these height thresholds must be
+considered carefully to reflect expected tree heights, but for other
+uses, the thresholds should be set to meet those specific
+objectives.</p>
+<p>Let’s create CHM data at 0.60 m, 0.40 m, and 0.20 m resolutions and
+look at the differences. Here, we also demonstrate creating unique
+folders to store the results from <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> which
+would otherwise be written and overwritten to the
+<em>point_cloud_processing_delivery</em> directory.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 0.6 m chm</span></span>
+<span><span class="va">out_dir_0.6m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_dir</span>,<span class="st">"chm_0.6m"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_dir_0.6m</span><span class="op">)</span></span>
+<span><span class="va">cloud2raster_ans_chm_0.6m</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/cloud2raster.html">cloud2raster</a></span><span class="op">(</span></span>
+<span>  input_las_dir <span class="op">=</span> <span class="va">las_dir</span></span>
+<span>  , output_dir <span class="op">=</span> <span class="va">out_dir_0.6m</span></span>
+<span>  , chm_res_m <span class="op">=</span> <span class="fl">0.6</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># 0.4 m chm</span></span>
+<span><span class="va">out_dir_0.4m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_dir</span>,<span class="st">"chm_0.4m"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_dir_0.4m</span><span class="op">)</span></span>
+<span><span class="va">cloud2raster_ans_chm_0.4m</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/cloud2raster.html">cloud2raster</a></span><span class="op">(</span></span>
+<span>  input_las_dir <span class="op">=</span> <span class="va">las_dir</span></span>
+<span>  , output_dir <span class="op">=</span> <span class="va">out_dir_0.4m</span></span>
+<span>  , chm_res_m <span class="op">=</span> <span class="fl">0.4</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># 0.2 m chm</span></span>
+<span><span class="va">out_dir_0.2m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_dir</span>,<span class="st">"chm_0.2m"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_dir_0.2m</span><span class="op">)</span></span>
+<span><span class="va">cloud2raster_ans_chm_0.2m</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/cloud2raster.html">cloud2raster</a></span><span class="op">(</span></span>
+<span>  input_las_dir <span class="op">=</span> <span class="va">las_dir</span></span>
+<span>  , output_dir <span class="op">=</span> <span class="va">out_dir_0.2m</span></span>
+<span>  , chm_res_m <span class="op">=</span> <span class="fl">0.2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>We can confirm that we got the resolution expected by checking the
+resolution in the X and Y horizontal</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>  <span class="st">"The resolution of `cloud2raster_ans_chm_0.4m` is: "</span></span>
+<span>  , <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">res</a></span><span class="op">(</span><span class="va">cloud2raster_ans_chm_0.4m</span><span class="op">$</span><span class="va">chm_rast</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>    <span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/comma.html" class="external-link">comma</a></span><span class="op">(</span>accuracy <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span>collapse <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "The resolution of `cloud2raster_ans_chm_0.4m` is: 0.40x0.40"</span></span></code></pre></div>
+<p>Let’s plot the CHM rasters and combine them using
+<code>patchwork</code></p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># plt_chm_0.6m</span></span>
+<span><span class="va">plt_chm_0.6m</span> <span class="op">&lt;-</span> </span>
+<span> <span class="va">cloud2raster_ans_chm_0.6m</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span>xy<span class="op">=</span><span class="cn">T</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>f<span class="op">=</span><span class="fl">3</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html" class="external-link">geom_tile</a></span><span class="op">(</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">x</span>, y<span class="op">=</span><span class="va">y</span>, fill<span class="op">=</span><span class="va">f</span><span class="op">)</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.9</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"plasma"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"CHM (m)"</span>, title <span class="op">=</span> <span class="st">"CHM - 0.6 m resolution"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
+<span>    legend.position <span class="op">=</span> <span class="st">"none"</span></span>
+<span>    , axis.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span>    , axis.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    , plot.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co"># plt_chm_0.4m</span></span>
+<span><span class="va">plt_chm_0.4m</span> <span class="op">&lt;-</span> </span>
+<span> <span class="va">cloud2raster_ans_chm_0.4m</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span>xy<span class="op">=</span><span class="cn">T</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>f<span class="op">=</span><span class="fl">3</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html" class="external-link">geom_tile</a></span><span class="op">(</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">x</span>, y<span class="op">=</span><span class="va">y</span>, fill<span class="op">=</span><span class="va">f</span><span class="op">)</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.9</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"plasma"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"CHM (m)"</span>, title <span class="op">=</span> <span class="st">"CHM - 0.4 m resolution"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
+<span>    legend.position <span class="op">=</span> <span class="st">"none"</span></span>
+<span>    , axis.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span>    , axis.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    , plot.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co"># plt_chm_0.2m</span></span>
+<span><span class="va">plt_chm_0.2m</span> <span class="op">&lt;-</span> </span>
+<span> <span class="va">cloud2raster_ans_chm_0.2m</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span>xy<span class="op">=</span><span class="cn">T</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>f<span class="op">=</span><span class="fl">3</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html" class="external-link">geom_tile</a></span><span class="op">(</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">x</span>, y<span class="op">=</span><span class="va">y</span>, fill<span class="op">=</span><span class="va">f</span><span class="op">)</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.9</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"plasma"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"CHM (m)"</span>, title <span class="op">=</span> <span class="st">"CHM - 0.2 m resolution"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
+<span>    legend.position <span class="op">=</span> <span class="st">"none"</span></span>
+<span>    , axis.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span>    , axis.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    , plot.title <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<p>combine with <code><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">patchwork::wrap_plots()</a></code></p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># patchwork</span></span>
+<span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plt_chm_0.6m</span>, <span class="va">plt_chm_0.4m</span>, <span class="va">plt_chm_0.2m</span>, ncol <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-25-1.png" width="100%"></p>
+<p>As you transition from the coarser resolution CHM (0.6 m) to the
+finest resolution CHM (0.2 m), several changes are apparent. The first
+difference relates to canopy coverage: coarser resolution data covers
+more area above the minimum height threshold. This occurs because the
+larger cell size forces the raster to search a broader area for the
+highest non-ground point, effectively smoothing the point cloud data and
+reducing fine detail and small gaps. Conversely, finer resolution data
+makes crown gaps more apparent, but this increased detail comes with the
+risk of introducing “holes” within what should be continuous individual
+tree crowns (an effect that can be mitigated with post-processing
+smoothing). Furthermore, the finer resolution CHM better resolves small
+trees, making them more apparent in the product. While using a finer
+resolution CHM has been shown to improve both tree detection and tree
+crown area accuracy, a trade-off must be considered as the 0.2 m
+resolution product generates 9 times the amount of data to store and
+process compared to the 0.6 m resolution product.</p>
+<p>A simple rule of thumb for determining how fine a CHM to generate is
+to ensure there is at least one point per cell in the target CHM. To
+find the minimum CHM resolution that could be created for a given point
+density (i.e. points m<sup>-2</sup>) while maintaining this threshold,
+use the formula
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msqrt><mrow><mn>1</mn><mi>/</mi><mtext mathvariant="normal">point_density</mtext></mrow></msqrt><annotation encoding="application/x-tex">\sqrt{1/\text{point_density}}</annotation></semantics></math>.
+For example, a point density of 17 points m<sup>-2</sup> could generate
+a minimum CHM resolution of approximately 0.24 m
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msqrt><mrow><mn>1</mn><mi>/</mi><mn>17</mn></mrow></msqrt><mo>≈</mo><mn>0.24</mn></mrow><annotation encoding="application/x-tex">\sqrt{1/17} \approx 0.24</annotation></semantics></math>)
+while ensuring at least one point per cell on average. Alternatively, to
+find the minimum point density needed to support a desired CHM
+resolution, use the formula
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><msup><mtext mathvariant="normal">desired_res</mtext><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">1/(\text{desired_res}^2)</annotation></semantics></math>.
+For instance, creating a 0.3 m CHM raster requires point cloud data with
+at least 11.11 points m<sup>-2</sup>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><msup><mn>0.3</mn><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow><mo>≈</mo><mn>11.11</mn></mrow><annotation encoding="application/x-tex">1/(0.3^2) \approx 11.11</annotation></semantics></math>).</p>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>
