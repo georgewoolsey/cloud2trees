@@ -17,10 +17,9 @@ articles:
   - articles/cloud2trees-setup
 
 - title: Overview
-  navbar: Overview
+  navbar:
   contents:
   - articles/cloud2trees-overview
-  - articles/cloud2trees-pipeline
 
 - title: Tutorials
   navbar: Tutorials
@@ -28,3 +27,4 @@ articles:
   contents:
   - articles/cloud2raster-tutorial
   - articles/raster2trees-tutorial
+  - articles/cloud2trees-pipeline

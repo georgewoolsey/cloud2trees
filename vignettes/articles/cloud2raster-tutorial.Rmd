@@ -398,3 +398,99 @@ patchwork::wrap_plots(plt_chm_0.6m, plt_chm_0.4m, plt_chm_0.2m, ncol = 1)
 As you transition from the coarser resolution CHM (0.6 m) to the finest resolution CHM (0.2 m), several changes are apparent. The first difference relates to canopy coverage: coarser resolution data covers more area above the minimum height threshold. This occurs because the larger cell size forces the raster to search a broader area for the highest non-ground point, effectively smoothing the point cloud data and reducing fine detail and small gaps. Conversely, finer resolution data makes crown gaps more apparent, but this increased detail comes with the risk of introducing "holes" within what should be continuous individual tree crowns (an effect that can be mitigated with post-processing smoothing). Furthermore, the finer resolution CHM better resolves small trees, making them more apparent in the product. While using a finer resolution CHM has been shown to improve both tree detection and tree crown area accuracy, a trade-off must be considered as the 0.2 m resolution product generates `r scales::comma(terra::ncell(cloud2raster_ans_chm_0.2m$chm_rast)/terra::ncell(cloud2raster_ans_chm_0.6m$chm_rast),accuracy=1)` times the amount of data to store and process compared to the 0.6 m resolution product.
 
 A simple rule of thumb for determining how fine a CHM to generate is to ensure there is at least one point per cell in the target CHM. To find the minimum CHM resolution that could be created for a given point density (i.e. points m^-2^) while maintaining this threshold, use the formula $\sqrt{1/\text{point_density}}$. For example, a point density of 17 points m^-2^ could generate a minimum CHM resolution of approximately 0.24 m ($\sqrt{1/17} \approx 0.24$) while ensuring at least one point per cell on average. Alternatively, to find the minimum point density needed to support a desired CHM resolution, use the formula $1/(\text{desired_res}^2)$. For instance, creating a 0.3 m CHM raster requires point cloud data with at least 11.11 points m^-2^ ($1/(0.3^2) \approx 11.11$).
+
+### Unfiltered Maximum CHM
+
+We can also generate an unfiltered maximum CHM which is a raster layer generated from a height-normalized point cloud using maximum Z-value interpolation, where the "unfiltered" characteristic means no minimum or maximum height threshold is applied to mask out values. This process ensures the resulting CHM captures the maximum vertical extent of all above-ground features, from the tallest canopy down to the smallest ground debris. The unfilterd CHM represents the height of the highest object found directly above the ground in every cell. This type of raster data is distinct from a Digital Surface Model (DSM), which represents the total elevation including the ground itself, and a Digital Terrain Model (DTM), which only represents the bare earth elevation.
+
+The primary benefit of generating an unfiltered CHM is the analysis flexibility it enables, as it includes all non-ground data. Because no information is masked out during generation, the data can be "sliced" in post-processing to look at specific height ranges of interest without needing to regenerate the CHM. For example, in forestry management, a single unfiltered CHM can be used to filter for trees only (e.g. set a threshold above 2 m) or filter for understory vegetation and other objects (e.g. isolate features between 0.3 m and 2.2 m). This allows for analysis of different forest strata using a single initial dataset.
+
+To further enhance analysis flexibility and avoid repeating the computationally expensive point cloud processing, we strongly advise generating the CHM at the finest resolution that might be required for analysis. It is far more efficient to later aggregate a fine resolution raster (for instance, taking a 0.5 m resolution raster and aggregating it to a more coarse 2.0 m resolution) than it is to re-run the entire pipeline.
+
+Here we'll demonstrate how to generate an unfiltered maximum CHM, "slice" the CHM to look at a specific height range, and aggregate it to a more coarse resolution.
+
+The key settings to ensure the resulting CHM is unfiltered are the `min_height = 0` and `max_height = Inf` arguments
+
+```{r, results=F, warning=F, message=F}
+# unfiltered chm
+cloud2raster_ans_chm_unfiltered <- cloud2trees::cloud2raster(
+  input_las_dir = las_dir
+  , output_dir = out_dir
+  , chm_res_m = 0.2
+  , min_height = 0
+  , max_height = Inf
+)
+```
+
+let's compare this unfiltered CHM to the first 0.2 m resolution raster we created which was height filtered based on the default `min_height = 2` and `max_height = 70` arguments
+
+```{r}
+plt_chm_unfiltered <- 
+ cloud2raster_ans_chm_unfiltered$chm_rast %>%
+  terra::as.data.frame(xy=T) %>%
+  dplyr::rename(f=3) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(
+    mapping = ggplot2::aes(x=x, y=y, fill=f)
+    , alpha = 0.9
+  ) +
+  ggplot2::scale_fill_viridis_c(option = "plasma") +
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::labs(fill = "CHM (m)", title = "CHM - Unfiltered Height") +
+  ggplot2::theme_light() +
+  ggplot2::theme(
+    legend.position = "none"
+    , axis.text = ggplot2::element_text(size = 5)
+    , axis.title = ggplot2::element_blank()
+    , plot.title = ggplot2::element_text(hjust = 0.5)
+  )
+# update title on the filtered
+plt_chm_0.2m <- plt_chm_0.2m + ggplot2::labs(title = "CHM - Filtered Height")
+```
+
+combine with `patchwork::wrap_plots()`
+
+```{r}
+# patchwork
+patchwork::wrap_plots(plt_chm_unfiltered, plt_chm_0.2m, ncol = 2)
+```
+
+that might be difficult to see, so let's create a difference raster for easier comparison
+
+```{r}
+# differnece raster
+terra::ifel(
+    is.na(cloud2raster_ans_chm_0.2m$chm_rast)
+    , cloud2raster_ans_chm_unfiltered$chm_rast
+    , cloud2raster_ans_chm_unfiltered$chm_rast - cloud2raster_ans_chm_0.2m$chm_rast
+  ) %>% 
+  # dichotomous non-zero difference
+  `!=`(0) %>% 
+  # plot it
+  terra::plot(col = c("gray","firebrick"), main = "differences shown in red")
+```
+
+now, let's "slice" the unfiltered CHM to look for possible lower vegetation between 0.3 m and 2.2 m that is not directly underneath taller objects (which would occlude these objects in the CHM)
+
+```{r}
+terra::ifel(
+    cloud2raster_ans_chm_unfiltered$chm_rast >= 0.3 & 
+    cloud2raster_ans_chm_unfiltered$chm_rast <= 2.2
+    , cloud2raster_ans_chm_unfiltered$chm_rast 
+    , NA
+  ) %>% 
+  terra::plot(col = rev(grDevices::hcl.colors(55, "Peach")))
+```
+
+finally, we can make the fine resolution (0.2 m) CHM raster more coarse (0.4 m) using `terra::aggregate()` and we'll display the resultant resolution in the X and Y horizontal
+
+```{r}
+terra::aggregate(
+    cloud2raster_ans_chm_unfiltered$chm_rast
+    , fact = 2
+    , fun = "max"
+  ) %>% 
+  terra::res() %>% 
+  paste(collapse = "x")
+```

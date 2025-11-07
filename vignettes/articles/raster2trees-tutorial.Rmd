@@ -13,7 +13,11 @@ collapse = TRUE
 )
 ```
 
-This script will familiarize users with the raster2trees function and how it can be used to customize how trees are detected from a CHM. Before using the raster2trees function, we recommend using the `itd_tuning()` function to identify the most logical tree detection to use with the crown architecture for the trees at your site. See the xxxx tutorial to learn more on how to do this
+Individual Tree Detection (ITD) from aerial point cloud data is traditionally achieved using two main approaches: segmenting trees directly from the point cloud by clustering points based on crown shape and spacing (e.g. [Li et al. 2012](https://doi.org/10.14358/PERS.78.1.75)), or using a Canopy Height Model (CHM) to delineate crowns after identifying tree tops (local maxima; e.g. [Popescu and Wynne 2004](https://doi.org/10.14358/PERS.70.5.589)). It is important to note that the `cloud2trees` package is built exclusively upon the CHM methodology for ITD. Users wishing to explore direct point cloud segmentation methods should consult the functionalities of the `lidR` package (e.g. `lidR::li2012()`). 
+
+This section introduces the `raster2trees()` function, which takes an already-generated CHM as input and performs the ITD. This all-in-one function operates in two key steps: first, it performs the initial tree detection using the `lidR::locate_trees()` function with the `lidR::lmf()` (Local Maximum Filter) algorithm. Second, the resulting tree-top points are used as "seeds" to perform Marker-Controlled Watershed Segmentation via the `ForestTools::mcws()` function. This segmentation method inverts the CHM to treat crowns as basins, and the marker points prevent over-segmentation when delineating crown boundaries at the conceptual boundary where water would overflow. It is superior to non-controlled watershed segmentation methods because the tree-top markers prevent over-segmentation. Upon successful completion, the `raster2trees()` function returns a spatial data frame containing the tree crown polygons with the detected tree top point X and Y coordinates to create spatial points if desired. This resulting tree list provides the inherent ITD outputs of tree location and height, along with crown area, but does not return any other biophysical tree estimates (e.g. DBH).
+
+Before using the raster2trees function, we recommend using the `itd_tuning()` function to identify the most logical tree detection to use with the crown architecture for the trees at your site. See the xxxx tutorial to learn more on how to do this.
 
 Let's load the libraries we'll use
 
@@ -24,3 +28,139 @@ library(magrittr)
 library(terra)
 library(sf)
 ```
+
+We [previously demonstrated](cloud2raster-tutorial.html) how to use `cloud2raster()` to process raw point cloud data to generate a CHM. 
+
+We'll continue with the small point cloud dataset that ships with the `lidR` package for processing. We also need to define where outputs should be written in the `output_dir` argument. For demonstration we'll use a temporary directory but you'll likely want to point to a permanent directory, for example: *C:/Data/MixedConifer*.
+
+```{r}
+# the path to a single .las|.laz file 
+#  -or- the directory to a folder with many .las|.laz files
+las_dir <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
+# output directroy
+out_dir <- tempdir()
+```
+
+First, we'll run `cloud2raster()` with some custom settings since we know how to setup the function to get what we want ([review here](cloud2raster-tutorial.html))
+
+```{r, results=F, warning=F, message=F}
+cloud2raster_ans <- cloud2trees::cloud2raster(
+  input_las_dir = las_dir
+  , output_dir = out_dir
+  , chm_res_m = 0.44
+  , min_height = 0
+  , max_height = 66
+)
+```
+
+let's look at the CHM really quick using `terra::plot()`
+
+```{r}
+terra::plot(
+  cloud2raster_ans$chm_rast
+  , col = grDevices::heat.colors(55, alpha = 0.88)
+  , colNA = "gray88"
+  , main = "CHM (m)"
+)
+```
+
+we can also get a summary of the CHM cell values
+
+```{r}
+terra::summary(cloud2raster_ans$chm_rast %>% setNames("CHM.meters"))
+```
+
+Now, we'll run the `raster2trees()` function to segment trees from the CHM that we just generated which is passed to the `chm_rast` argument. This argument expects a *SpatRaster* class object as loaded by the `terra` package.
+
+```{r, results=F, warning=F, message=F}
+raster2trees_ans <- cloud2trees::raster2trees(
+  chm_rast = cloud2raster_ans$chm_rast
+  , outfolder = out_dir
+)
+```
+
+`raster2trees()` returns a spatial data frame with crowns segmented and delineated via polygon geometries
+
+```{r}
+raster2trees_ans %>% dplyr::glimpse()
+```
+
+The CHM-based tree detection process yielded `r nrow(raster2trees_ans)` unique trees (data rows) with `r ncol(raster2trees_ans)` tree attributes (data columns). Let's break down what these attributes are:  
+
+1) `treeID`: A unique identifier for each detected tree
+2) `tree_height_m`: This is the tree top height based on the local maximum identified for each tree
+3) `tree_x`: The X coordinate of the tree top point
+4) `tree_y`: The Y coordinate of the tree top point
+5) `crown_area_m2`: The tree's crown area in square meters
+6) `geometry`: The vertices for the tree crown polygon
+
+Let's take a look at the crown polygons colored by the tree heights:
+
+```{r}
+# log_crowns <- 
+raster2trees_ans %>% 
+  ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_height_m)) + 
+  ggplot2::geom_sf() + 
+  ggplot2::scale_fill_distiller(palette = "Oranges", name = "tree ht. (m)", direction = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
+```
+
+Visually, it seems like there are a lot of small trees (lighter color) in the `r scales::comma(min(raster2trees_ans$tree_height_m), accuracy = 0.1)` m to `r scales::comma(quantile(raster2trees_ans$tree_height_m,probs=0.33), accuracy = 0.1)` m height range while the dominant and co-dominant trees are between `r scales::comma(quantile(raster2trees_ans$tree_height_m,probs=0.67), accuracy = 0.1)` m and `r scales::comma(max(raster2trees_ans$tree_height_m), accuracy = 0.1)` m in height
+
+it is also easy to look at the tree crown polygons overlaid on the CHM. We'll first demonstrate with `terra::plot()`
+
+```{r}
+terra::plot(
+  cloud2raster_ans$chm_rast
+  , col = grDevices::heat.colors(55, alpha = 0.88)
+  , colNA = "gray88"
+  , main = "CHM (m) + segmented crown polygons (blue)"
+)
+terra::plot(
+  raster2trees_ans %>% 
+    terra::vect()
+  , add = T
+  , border = "blue"
+  , col = NA, lwd = 1.1
+)
+```
+
+Let's look at a histogram of the tree heights to get a better feel for what is going on:
+
+```{r}
+raster2trees_ans %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_histogram(
+    ggplot2::aes(x = tree_height_m)
+    , color = "gray"
+    , binwidth = 2
+  ) +
+  ggplot2::scale_x_continuous(labels = scales::comma) +
+  ggplot2::scale_y_continuous(labels = scales::comma) +
+  ggplot2::labs(x = "tree ht. (m)") +
+  ggplot2::theme_light()
+```
+
+we can also inspect the detected trees by comparing the tree height against crown area with the expectation that shorter trees have smaller crowns 
+
+```{r}
+raster2trees_ans %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_point(
+    ggplot2::aes(x = tree_height_m, y = crown_area_m2)
+    , color = "grey"
+    , alpha = 0.7
+  ) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(x = tree_height_m, y = crown_area_m2)
+    , se = F
+  ) +
+  ggplot2::labs(
+    x = "tree ht. (m)"
+    , y = expression(paste("crown area (m"^2,")"))
+  ) +
+  ggplot2::theme_light()
+```
+
+Typically, we would not expect to see large crown areas associated with short trees, so to me this looks pretty good. 
