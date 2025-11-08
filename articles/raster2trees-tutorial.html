@@ -126,6 +126,9 @@ point to a permanent directory, for example:
 <span><span class="va">las_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"lidR"</span>, <span class="st">"extdata"</span>, <span class="st">"MixedConifer.laz"</span><span class="op">)</span></span>
 <span><span class="co"># output directroy</span></span>
 <span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="generating-a-tree-list-from-a-chm-defaults">Generating a tree list from a CHM: Defaults<a class="anchor" aria-label="anchor" href="#generating-a-tree-list-from-a-chm-defaults"></a>
+</h2>
 <p>First, we’ll run <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> with some custom
 settings since we know how to setup the function to get what we want (<a href="cloud2raster-tutorial.html">review here</a>)</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -144,8 +147,9 @@ settings since we know how to setup the function to get what we want (<a href="c
 <span>  , col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">heat.colors</a></span><span class="op">(</span><span class="fl">55</span>, alpha <span class="op">=</span> <span class="fl">0.88</span><span class="op">)</span></span>
 <span>  , colNA <span class="op">=</span> <span class="st">"gray88"</span></span>
 <span>  , main <span class="op">=</span> <span class="st">"CHM (m)"</span></span>
+<span>  , axes <span class="op">=</span> <span class="cn">F</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-5-1.png" width="100%"></p>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" width="100%"></p>
 <p>we can also get a summary of the CHM cell values</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="st">"CHM.meters"</span><span class="op">)</span><span class="op">)</span></span>
@@ -201,14 +205,13 @@ meters</li>
 <p>Let’s take a look at the crown polygons colored by the tree
 heights:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># log_crowns &lt;- </span></span>
-<span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<code class="sourceCode R"><span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_distiller</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Oranges"</span>, name <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, direction <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-9-1.png" width="100%"></p>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" width="100%"></p>
 <p>Visually, it seems like there are a lot of small trees (lighter
 color) in the 2.0 m to 2.5 m height range while the dominant and
 co-dominant trees are between 18.4 m and 32.0 m in height</p>
@@ -219,44 +222,49 @@ CHM. We’ll first demonstrate with <code><a href="https://rspatial.github.io/te
 <span>  <span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span></span>
 <span>  , col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">heat.colors</a></span><span class="op">(</span><span class="fl">55</span>, alpha <span class="op">=</span> <span class="fl">0.88</span><span class="op">)</span></span>
 <span>  , colNA <span class="op">=</span> <span class="st">"gray88"</span></span>
-<span>  , main <span class="op">=</span> <span class="st">"CHM (m) + segmented crown polygons (blue)"</span></span>
+<span>  , main <span class="op">=</span> <span class="st">"CHM (m) + segmented crown polygons (purple)"</span></span>
+<span>  , axes <span class="op">=</span> <span class="cn">F</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>    <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/vect.html" class="external-link">vect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  , add <span class="op">=</span> <span class="cn">T</span></span>
-<span>  , border <span class="op">=</span> <span class="st">"blue"</span></span>
-<span>  , col <span class="op">=</span> <span class="cn">NA</span>, lwd <span class="op">=</span> <span class="fl">1.1</span></span>
+<span>  , border <span class="op">=</span> <span class="st">"slateblue3"</span></span>
+<span>  , col <span class="op">=</span> <span class="cn">NA</span>, lwd <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-10-1.png" width="100%"></p>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" width="100%"></p>
 <p>Let’s look at a histogram of the tree heights to get a better feel
-for what is going on:</p>
+for what is going on</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html" class="external-link">geom_histogram</a></span><span class="op">(</span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span></span>
-<span>    , color <span class="op">=</span> <span class="st">"gray"</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span><span class="op">)</span></span>
+<span>    , color <span class="op">=</span> <span class="st">"slateblue3"</span></span>
+<span>    , fill <span class="op">=</span> <span class="st">"slateblue3"</span></span>
 <span>    , binwidth <span class="op">=</span> <span class="fl">2</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.8</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.1</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="va"><a href="https://scales.r-lib.org/reference/comma.html" class="external-link">comma</a></span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="va"><a href="https://scales.r-lib.org/reference/comma.html" class="external-link">comma</a></span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"tree ht. (m)"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-11-1.png" width="100%"></p>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" width="100%"></p>
 <p>we can also inspect the detected trees by comparing the tree height
 against crown area with the expectation that shorter trees have smaller
-crowns</p>
+crowns while taller trees have larger crowns</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">crown_area_m2</span><span class="op">)</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">crown_area_m2</span><span class="op">)</span></span>
 <span>    , color <span class="op">=</span> <span class="st">"grey"</span></span>
 <span>    , alpha <span class="op">=</span> <span class="fl">0.7</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">crown_area_m2</span><span class="op">)</span></span>
+<span>    mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">tree_height_m</span>, y <span class="op">=</span> <span class="va">crown_area_m2</span><span class="op">)</span></span>
+<span>    , color <span class="op">=</span> <span class="st">"grey22"</span></span>
 <span>    , se <span class="op">=</span> <span class="cn">F</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
@@ -264,10 +272,150 @@ crowns</p>
 <span>    , y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"crown area (m"</span><span class="op">^</span><span class="fl">2</span>,<span class="st">")"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-12-1.png" width="100%"></p>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" width="100%"></p>
 <p>Typically, we would not expect to see large crown areas associated
-with short trees, so to me this looks pretty good.</p>
-  </main>
+with short trees, so we may need to adjust the window search size to
+adjust the search radius for shorter trees in this data set</p>
+<p>If we look in the directory that we set the <code>outfolder</code>
+argument to in the <code><a href="../reference/raster2trees.html">raster2trees()</a></code> call, we will see that
+the function wrote two files:</p>
+<ol style="list-style-type: decimal">
+<li>
+<em>final_detected_crowns.gpkg</em>: This is a Geopackage file
+containing the individual tree crown polygons with the attributes we
+looked at</li>
+<li>
+<em>final_detected_tree_tops.gpkg</em>: This is a Geopackage file
+containing the individual tree top locations as points attributed with
+each variable we looked at</li>
+</ol>
+<p>If you execute the <code><a href="../reference/raster2trees.html">raster2trees()</a></code> process multiple times
+using the same <code>outfolder</code> location, then these two files
+will be overwritten. As such, if you intend to perform multiple
+iterations of the processing in the same <code>outfolder</code> location
+and wish to retain the results, it is recommended you rename the
+<em>final_detected_*.gpkg</em> files before running the next
+iteration.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">out_dir</span>, pattern <span class="op">=</span> <span class="st">"*.gpkg$"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "final_detected_crowns.gpkg"    "final_detected_tree_tops.gpkg"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="generating-a-tree-list-from-a-chm-custom">Generating a tree list from a CHM: Custom<a class="anchor" aria-label="anchor" href="#generating-a-tree-list-from-a-chm-custom"></a>
+</h2>
+<p>By default, the <code><a href="../reference/raster2trees.html">raster2trees()</a></code> function implements the
+logarithmic variable window function that is built into cloud2trees for
+tree detection. Should you want to select a different function to apply,
+we can see a list of them</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "lin_fn" "exp_fn" "log_fn"</span></span></code></pre></div>
+<p>we can quickly plot what shapes these take over a range of
+<code>x</code> values which represent CHM cell heights in the ITD
+algorithm</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_function.html" class="external-link">geom_function</a></span><span class="op">(</span></span>
+<span>    fun <span class="op">=</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">lin_fn</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"lin_fn"</span><span class="op">)</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.7</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_function.html" class="external-link">geom_function</a></span><span class="op">(</span></span>
+<span>    fun <span class="op">=</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">exp_fn</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"exp_fn"</span><span class="op">)</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.7</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_function.html" class="external-link">geom_function</a></span><span class="op">(</span></span>
+<span>    fun <span class="op">=</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">log_fn</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"log_fn"</span><span class="op">)</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.7</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_color_brewer</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Dark2"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">60</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"CHM height"</span>, y <span class="op">=</span> <span class="st">"window size"</span>, color <span class="op">=</span> <span class="st">""</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lwd <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" width="100%"></p>
+<p>This shows us that there is a <code>lin_fn</code> (linear),
+<code>exp_fn</code> (exponential), and <code>log_fn</code> (logarithmic)
+function that relate CHM-based tree top height to crown size for
+detecting individual trees.</p>
+<p>If we want to use the <code>exp_fn</code> we can execute
+<code><a href="../reference/raster2trees.html">raster2trees()</a></code> and directly specify the <code>exp_fn</code>
+using the <code>itd_ws_functions</code> function list</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">raster2trees_ans_exp</span> <span class="op">&lt;-</span> <span class="fu">cloud2trees</span><span class="fu">::</span><span class="fu"><a href="../reference/raster2trees.html">raster2trees</a></span><span class="op">(</span></span>
+<span>  chm_rast <span class="op">=</span> <span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span></span>
+<span>  , outfolder <span class="op">=</span> <span class="va">out_dir</span></span>
+<span>  , ws <span class="op">=</span> <span class="fu"><a href="../reference/itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">"exp_fn"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Let’s spatially compare the detected crowns</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># make a custom color palette to mimic </span></span>
+<span>  <span class="co"># ...the RColorBrewer palette without needing to load that package</span></span>
+<span><span class="va">cust_cols</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"seagreen3"</span>, <span class="st">"slateblue3"</span><span class="op">)</span></span>
+<span><span class="co"># plot </span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span></span>
+<span>    data <span class="op">=</span> <span class="va">raster2trees_ans</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"ITD with log_fn (default)"</span><span class="op">)</span></span>
+<span>    , fill <span class="op">=</span> <span class="cn">NA</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.1</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span></span>
+<span>    data <span class="op">=</span> <span class="va">raster2trees_ans_exp</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"ITD with exp_fn"</span><span class="op">)</span></span>
+<span>    , fill <span class="op">=</span> <span class="cn">NA</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">0.6</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">cust_cols</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">""</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" width="100%"></p>
+<p>A few areas of difference are apparent. Using the <code>exp_fn</code>
+for the window search function resulted in 422 detected trees whereas
+the default, <code>log_fn</code> yielded 477 trees (change of
+-11.5%)</p>
+<p>to really see what is going on, let’s look at the height distribution
+of the detected trees</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html" class="external-link">geom_histogram</a></span><span class="op">(</span></span>
+<span>    data <span class="op">=</span> <span class="va">raster2trees_ans</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
+<span>      x <span class="op">=</span> <span class="va">tree_height_m</span></span>
+<span>      , fill <span class="op">=</span> <span class="st">"ITD with log_fn (default)"</span></span>
+<span>      , color <span class="op">=</span> <span class="st">"ITD with log_fn (default)"</span></span>
+<span>    <span class="op">)</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.8</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.2</span></span>
+<span>    , binwidth <span class="op">=</span> <span class="fl">2</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html" class="external-link">geom_histogram</a></span><span class="op">(</span></span>
+<span>    data <span class="op">=</span> <span class="va">raster2trees_ans_exp</span></span>
+<span>    , mapping <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
+<span>      x <span class="op">=</span> <span class="va">tree_height_m</span></span>
+<span>      , fill <span class="op">=</span> <span class="st">"ITD with exp_fn"</span></span>
+<span>      , color <span class="op">=</span> <span class="st">"ITD with exp_fn"</span></span>
+<span>    <span class="op">)</span></span>
+<span>    , alpha <span class="op">=</span> <span class="fl">0.8</span></span>
+<span>    , lwd <span class="op">=</span> <span class="fl">1.2</span></span>
+<span>    , binwidth <span class="op">=</span> <span class="fl">2</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_fill_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">cust_cols</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">cust_cols</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="va"><a href="https://scales.r-lib.org/reference/comma.html" class="external-link">comma</a></span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="va"><a href="https://scales.r-lib.org/reference/comma.html" class="external-link">comma</a></span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"tree ht. (m)"</span>, fill <span class="op">=</span> <span class="st">""</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span>  </span></code></pre></div>
+<p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" width="100%"></p>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 
@@ -277,7 +425,7 @@ with short trees, so to me this looks pretty good.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
