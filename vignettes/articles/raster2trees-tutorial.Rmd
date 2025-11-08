@@ -41,6 +41,8 @@ las_dir <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
 out_dir <- tempdir()
 ```
 
+## Generating a tree list from a CHM: Defaults
+
 First, we'll run `cloud2raster()` with some custom settings since we know how to setup the function to get what we want ([review here](cloud2raster-tutorial.html))
 
 ```{r, results=F, warning=F, message=F}
@@ -61,6 +63,7 @@ terra::plot(
   , col = grDevices::heat.colors(55, alpha = 0.88)
   , colNA = "gray88"
   , main = "CHM (m)"
+  , axes = F
 )
 ```
 
@@ -97,7 +100,6 @@ The CHM-based tree detection process yielded `r nrow(raster2trees_ans)` unique t
 Let's take a look at the crown polygons colored by the tree heights:
 
 ```{r}
-# log_crowns <- 
 raster2trees_ans %>% 
   ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_height_m)) + 
   ggplot2::geom_sf() + 
@@ -115,26 +117,30 @@ terra::plot(
   cloud2raster_ans$chm_rast
   , col = grDevices::heat.colors(55, alpha = 0.88)
   , colNA = "gray88"
-  , main = "CHM (m) + segmented crown polygons (blue)"
+  , main = "CHM (m) + segmented crown polygons (purple)"
+  , axes = F
 )
 terra::plot(
   raster2trees_ans %>% 
     terra::vect()
   , add = T
-  , border = "blue"
-  , col = NA, lwd = 1.1
+  , border = "slateblue3"
+  , col = NA, lwd = 1
 )
 ```
 
-Let's look at a histogram of the tree heights to get a better feel for what is going on:
+Let's look at a histogram of the tree heights to get a better feel for what is going on
 
 ```{r}
 raster2trees_ans %>%
   ggplot2::ggplot() +
   ggplot2::geom_histogram(
-    ggplot2::aes(x = tree_height_m)
-    , color = "gray"
+    mapping = ggplot2::aes(x = tree_height_m)
+    , color = "slateblue3"
+    , fill = "slateblue3"
     , binwidth = 2
+    , alpha = 0.8
+    , lwd = 1.1
   ) +
   ggplot2::scale_x_continuous(labels = scales::comma) +
   ggplot2::scale_y_continuous(labels = scales::comma) +
@@ -142,18 +148,19 @@ raster2trees_ans %>%
   ggplot2::theme_light()
 ```
 
-we can also inspect the detected trees by comparing the tree height against crown area with the expectation that shorter trees have smaller crowns 
+we can also inspect the detected trees by comparing the tree height against crown area with the expectation that shorter trees have smaller crowns while taller trees have larger crowns
 
 ```{r}
 raster2trees_ans %>%
   ggplot2::ggplot() +
   ggplot2::geom_point(
-    ggplot2::aes(x = tree_height_m, y = crown_area_m2)
+    mapping = ggplot2::aes(x = tree_height_m, y = crown_area_m2)
     , color = "grey"
     , alpha = 0.7
   ) +
   ggplot2::geom_smooth(
-    ggplot2::aes(x = tree_height_m, y = crown_area_m2)
+    mapping = ggplot2::aes(x = tree_height_m, y = crown_area_m2)
+    , color = "grey22"
     , se = F
   ) +
   ggplot2::labs(
@@ -163,4 +170,126 @@ raster2trees_ans %>%
   ggplot2::theme_light()
 ```
 
-Typically, we would not expect to see large crown areas associated with short trees, so to me this looks pretty good. 
+Typically, we would not expect to see large crown areas associated with short trees, so we may need to adjust the window search size to adjust the search radius for shorter trees in this data set
+
+If we look in the directory that we set the `outfolder` argument to in the `raster2trees()` call, we will see that the function wrote two files:
+
+1) *final_detected_crowns.gpkg*: This is a Geopackage file containing the individual tree crown polygons with the attributes we looked at
+2) *final_detected_tree_tops.gpkg*: This is a Geopackage file containing the individual tree top locations as points attributed with each variable we looked at
+
+If you execute the `raster2trees()` process multiple times using the same `outfolder` location, then these two files will be overwritten. As such, if you intend to perform multiple iterations of the processing in the same `outfolder` location and wish to retain the results, it is recommended you rename the *final_detected_\*.gpkg* files before running the next iteration.
+
+```{r}
+list.files(out_dir, pattern = "*.gpkg$")
+```
+
+## Generating a tree list from a CHM: Custom
+
+By default, the `raster2trees()` function implements the logarithmic variable window function that is built into cloud2trees for tree detection. Should you want to select a different function to apply, we can see a list of them
+
+```{r}
+cloud2trees::itd_ws_functions() %>% names()
+```
+
+we can quickly plot what shapes these take over a range of `x` values which represent CHM cell heights in the ITD algorithm
+
+```{r}
+ggplot2::ggplot() +
+  ggplot2::geom_function(
+    fun = cloud2trees::itd_ws_functions()$lin_fn
+    , mapping = ggplot2::aes(color="lin_fn")
+    , lwd = 1.7
+  ) +
+  ggplot2::geom_function(
+    fun = cloud2trees::itd_ws_functions()$exp_fn
+    , mapping = ggplot2::aes(color="exp_fn")
+    , lwd = 1.7
+  ) +
+  ggplot2::geom_function(
+    fun = cloud2trees::itd_ws_functions()$log_fn
+    , mapping = ggplot2::aes(color="log_fn")
+    , lwd = 1.7
+  ) +
+  ggplot2::scale_color_brewer(palette = "Dark2") +
+  ggplot2::xlim(0,60) +
+  ggplot2::labs(x = "CHM height", y = "window size", color = "") +
+  ggplot2::theme_light() +
+  ggplot2::theme(legend.position = "top") +
+  ggplot2::guides(color = ggplot2::guide_legend(override.aes = list(lwd = 5)))
+```
+
+This shows us that there is a `lin_fn` (linear), `exp_fn` (exponential), and `log_fn` (logarithmic) function that relate CHM-based tree top height to crown size for detecting individual trees. 
+
+If we want to use the `exp_fn` we can execute `raster2trees()` and directly specify the `exp_fn` using the `itd_ws_functions` function list
+
+```{r, results=F, warning=F, message=F}
+raster2trees_ans_exp <- cloud2trees::raster2trees(
+  chm_rast = cloud2raster_ans$chm_rast
+  , outfolder = out_dir
+  , ws = itd_ws_functions()[["exp_fn"]]
+)
+```
+
+Let's spatially compare the detected crowns
+
+```{r}
+# make a custom color palette to mimic 
+  # ...the RColorBrewer palette without needing to load that package
+cust_cols = c("seagreen3", "slateblue3")
+# plot 
+ggplot2::ggplot() + 
+  ggplot2::geom_sf(
+    data = raster2trees_ans
+    , mapping = ggplot2::aes(color = "ITD with log_fn (default)")
+    , fill = NA
+    , lwd = 1.1
+  ) + 
+  ggplot2::geom_sf(
+    data = raster2trees_ans_exp
+    , mapping = ggplot2::aes(color = "ITD with exp_fn")
+    , fill = NA
+    , lwd = 0.6
+  ) + 
+  ggplot2::scale_color_manual(values = cust_cols) +
+  ggplot2::labs(color = "") +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "top", legend.direction = "horizontal")
+```
+
+A few areas of difference are apparent. Using the `exp_fn` for the window search function resulted in `r nrow(raster2trees_ans_exp)` detected trees whereas the default, `log_fn` yielded `r nrow(raster2trees_ans)` trees (change of `r scales::percent((nrow(raster2trees_ans_exp)-nrow(raster2trees_ans))/nrow(raster2trees_ans), accuracy = 0.1)`)
+
+to really see what is going on, let's look at the height distribution of the detected trees
+
+```{r}
+ggplot2::ggplot() +
+  ggplot2::geom_histogram(
+    data = raster2trees_ans
+    , mapping = ggplot2::aes(
+      x = tree_height_m
+      , fill = "ITD with log_fn (default)"
+      , color = "ITD with log_fn (default)"
+    )
+    , alpha = 0.8
+    , lwd = 1.2
+    , binwidth = 2
+  ) +
+  ggplot2::geom_histogram(
+    data = raster2trees_ans_exp
+    , mapping = ggplot2::aes(
+      x = tree_height_m
+      , fill = "ITD with exp_fn"
+      , color = "ITD with exp_fn"
+    )
+    , alpha = 0.8
+    , lwd = 1.2
+    , binwidth = 2
+  ) +
+  ggplot2::scale_fill_manual(values = cust_cols) +
+  ggplot2::scale_color_manual(values = cust_cols) +
+  ggplot2::scale_x_continuous(labels = scales::comma) +
+  ggplot2::scale_y_continuous(labels = scales::comma) +
+  ggplot2::labs(x = "tree ht. (m)", fill = "") +
+  ggplot2::theme_light() +
+  ggplot2::theme(legend.position = "top", legend.direction = "horizontal") +
+  ggplot2::guides(color = "none")  
+```

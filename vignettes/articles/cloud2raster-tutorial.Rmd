@@ -28,7 +28,7 @@ library(sf)
 library(patchwork)
 ```
 
-## Extract Raster Data from Point Cloud: Defaults
+## Extract raster data from point cloud: Defaults
 
 We'll begin by using a small point cloud dataset that ships with the `lidR` package for processing (we previously used this data in the package [overview demonstration](cloud2trees-overview.html). The `cloud2raster()` function requires the `input_las_dir` argument to be the path to a single point cloud file (*.las* or *.laz*) or a directory containing these files. If a directory is utilized, the function treats the directory and all sub-directories as a single point cloud catalog, processing all contained files together. Therefore, ensure that the specified directory contains only the point cloud data intended for a single processing area, as the function recursively processes all files within its path.
 
