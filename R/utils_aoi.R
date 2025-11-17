@@ -456,18 +456,18 @@ quicfire_check_fuellist <- function(fuellist) {
       )
       , row_number = c(
         # firetech domain info
-        4,5,6,7,8,9,10,11,12,13
+        5,6,7,8,9,10,11,12,13,14
         # data import from existing files
-        ,17,18,19,20,21,22,23,24,25,26,27,28,29,30
+        ,18,19,20,21,22,23,24,25,26,27,28,29,30,31
         # input trees dataset info
-        ,34,35,36,37,38,39,40
+        ,35,36,37,38,39,40,41
         # litter switch
-        ,44,46,47,48,49,50,53,54,55
-        ,56,57,58,59,60,62,63,64,65,66,67
+        ,45,47,48,49,50,51,54,55,56
+        ,57,58,59,60,61,63,64,65,66,67,68
         # grass switch
-        ,71,73,74,75,76,77,78
+        ,72,74,75,76,77,78,79
         # option to output tree list and fuellist
-        ,82
+        ,83
       )
     )
 
@@ -671,29 +671,29 @@ make_lanl_trees_input <- function(
   nz <- ceiling(max(as.numeric(data$tree_height_m))) + 1 #max tree height + 1 m
 
   # Make Fuellist for TREES
-  lines[4]  <- paste0("      nx  = "      ,quicfire_domain_df$nx[1])#nx
-  lines[5]  <- paste0("      ny  = "      ,quicfire_domain_df$ny[1])#ny
-  lines[6]  <- paste0("      nz  = "      ,nz)#nz
-  lines[7]  <- paste0("      dx  = "      ,horizontal_resolution)
-  lines[8]  <- paste0("      dy  = "      ,horizontal_resolution)
-  lines[13] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
-  lines[36] <- paste0("      treefile = " ,treefile_path_q) #treefile path
-  lines[37] <- paste0("      ndatax = "   ,quicfire_domain_df$width[1])#ndatax
-  lines[38] <- paste0("      ndatay = "   ,quicfire_domain_df$length[1])#ndatay
+  lines[5]  <- paste0("      nx  = "      ,quicfire_domain_df$nx[1])#nx
+  lines[6]  <- paste0("      ny  = "      ,quicfire_domain_df$ny[1])#ny
+  lines[7]  <- paste0("      nz  = "      ,nz)#nz
+  lines[8]  <- paste0("      dx  = "      ,horizontal_resolution)
+  lines[9]  <- paste0("      dy  = "      ,horizontal_resolution)
+  lines[14] <- paste0("      topofile = " ,topofile) #This is always flat for QF, but can be applied as a pathfile to topo.dat for FIRETEC
+  lines[37] <- paste0("      treefile = " ,treefile_path_q) #treefile path
+  lines[38] <- paste0("      ndatax = "   ,quicfire_domain_df$width[1])#ndatax
+  lines[39] <- paste0("      ndatay = "   ,quicfire_domain_df$length[1])#ndatay
 
   #Litter
-  lines[44] <- paste0("      ilitter = "  , as_character_safe(round(fuel_litter$ilitter[1],0))  ) # ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
-  lines[47] <- paste0("      lrho = "     , as_character_safe(round(fuel_litter$lrho[1],3)) )
-  lines[48] <- paste0("      lmoisture = ", as_character_safe(round(fuel_litter$lmoisture[1],2)) )
-  lines[49] <- paste0("      lss = "      , as_character_safe(round(fuel_litter$lss[1],5)) )
-  lines[50] <- paste0("      ldepth = "   , as_character_safe(round(fuel_litter$ldepth[1],2)) )
+  lines[45] <- paste0("      ilitter = "  , as_character_safe(round(fuel_litter$ilitter[1],0))  ) # ! Litter flag; 0=no litter, 1=basic litter, 2=DUET
+  lines[48] <- paste0("      lrho = "     , as_character_safe(round(fuel_litter$lrho[1],3)) )
+  lines[49] <- paste0("      lmoisture = ", as_character_safe(round(fuel_litter$lmoisture[1],2)) )
+  lines[50] <- paste0("      lss = "      , as_character_safe(round(fuel_litter$lss[1],5)) )
+  lines[51] <- paste0("      ldepth = "   , as_character_safe(round(fuel_litter$ldepth[1],2)) )
 
   #Grass
-  lines[71] <- paste0("      igrass = "   , as_character_safe(round(fuel_grass$igrass[1],0)) )
-  lines[75] <- paste0("      grho = "     , as_character_safe(round(fuel_grass$grho[1],3)) )
-  lines[76] <- paste0("      gmoisture = ", as_character_safe(round(fuel_grass$gmoisture[1],2)) )
-  lines[77] <- paste0("      gss = "      , as_character_safe(round(fuel_grass$gss[1],5)) )
-  lines[78] <- paste0("      gdepth = "   , as_character_safe(round(fuel_grass$gdepth[1],2)) )
+  lines[72] <- paste0("      igrass = "   , as_character_safe(round(fuel_grass$igrass[1],0)) )
+  lines[76] <- paste0("      grho = "     , as_character_safe(round(fuel_grass$grho[1],3)) )
+  lines[77] <- paste0("      gmoisture = ", as_character_safe(round(fuel_grass$gmoisture[1],2)) )
+  lines[78] <- paste0("      gss = "      , as_character_safe(round(fuel_grass$gss[1],5)) )
+  lines[79] <- paste0("      gdepth = "   , as_character_safe(round(fuel_grass$gdepth[1],2)) )
 
   # print(lines)
   fuellist_path <- file.path(normalizePath(outdir),"fuellist")
