@@ -3,8 +3,21 @@
 \docType{package}
 \name{cloud2trees-package}
 \alias{cloud2trees-package}
-\title{cloud2trees: Point Cloud Data to Forest Inventory Tree List}
+\title{cloud2trees: Aerial point cloud data to forest inventory tree lists}
 \description{
 Extract a tree list, CHM, DTM, and more from .las|.laz point cloud data. Point cloud data can be from a LiDAR sensor or photogrammetry (i.e. structure from motion).
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://georgewoolsey.github.io/cloud2trees/}
+  \item \url{https://github.com/georgewoolsey/cloud2trees}
+  \item Report bugs at \url{https://github.com/georgewoolsey/cloud2trees/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: George Woolsey \email{george.woolsey@colostate.edu}
+
 }
 \keyword{internal}
