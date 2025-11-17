@@ -1,3 +1,4 @@
+&fuellist
 ! ----------------------------------
 ! FIRETEC domain info
 ! ----------------------------------
@@ -15,11 +16,11 @@
 ! Data import from existing files
 ! ----------------------------------
       ifuelin = 0                               ! Fuel read-in flag (0 no existing fuel files, 1 read-in exisiting fuel files)
-      inx = 100 
-      iny = 100 
+      inx = 100
+      iny = 100
       inz = 41                                  ! Size of HIGRAD/FIRETEC grid [cells]
-      idx = 2.0 
-      idy = 2.0 
+      idx = 2.0
+      idy = 2.0
       idz = 15.0                                ! Grid Resolution [m]
       iaa1 = 0.1                                ! Vertical stretching component [default=0.1]
       infuel = 2                                ! Number of Fuel Types
@@ -36,8 +37,8 @@
       treefile = "C:/Users/sbonner/Documents/QUICFIRE/GitLab/gui/GUI/projects/FortHuachuca/Sophie_Treelist.txt"
       ndatax = 128
       ndatay = 128
-      datalocx = 0                       !x coordinate for bottom left corner where dataset should be placed 
-      datalocy = 0                       !y coordinate for bottom left corner where dataset should be placed 
+      datalocx = 0                       !x coordinate for bottom left corner where dataset should be placed
+      datalocy = 0                       !y coordinate for bottom left corner where dataset should be placed
 ! ----------------------------------
 ! Litter switch
 ! ----------------------------------
@@ -48,8 +49,8 @@
       lmoisture = 0.06
       lss = 0.0005
       ldepth = 0.06
-      
-      !ilitter eq 2 (DUET) info    
+
+      !ilitter eq 2 (DUET) info
       windprofile = 2                 ! type of windprofile used by DUET: 0 = user provided below, 1 = binary wind profile, 2 = random generated
       YearsSinceBurn = 1              ! number of years since the last burn
       StepsPerYear = 1                ! number of time steps during the year: 1 = yearly, 2 = semiyearly, 4 = seasonally, 6 = bimonthly, 12 = monthly
@@ -58,7 +59,7 @@
       iFIA = 1
       FIA = 121,819
       randomwinds = 2                 ! if windprofile=2, choose 1 for up to 3m/s, 2 for up to 6m/s, 3 for up to 9m/s, etc.
-      
+
       litout = 0                      ! flag to turn on extra output files for visualizations of DUET functionality
       gmoistoverride = 0        ! value for moisture if override is desired; SET TO 0 TO TURN OFF
       uavg = 0,0,15,15,20             ! wind velocity m/s average (u) each year since burn
@@ -69,7 +70,7 @@
 ! Grass switch
 ! ----------------------------------
       igrass = 1
-      !igrass options 
+      !igrass options
       ngrass = 1                ! Number of Grass Species
       grassconstant = 5         ! Exponential constant used to determine the decay of grass mass with tree shading
       grho = 0.27
