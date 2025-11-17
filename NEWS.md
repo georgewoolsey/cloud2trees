@@ -1,3 +1,5 @@
+# cloud2trees 0.7.4
+
 # cloud2trees 0.7.3
 
 - Fix: `itd_tuning()` no longer fails if sample plots have no trees and either returns results from a backup plot or a more detailed error message.
