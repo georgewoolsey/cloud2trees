@@ -49,8 +49,6 @@ chunk_las_catalog <- function(
   # check if folder contains las files directly
     las_ctg <- check_las_data(folder)
     if(!inherits(las_ctg, "LAScatalog")){stop("could not detect .las|.laz files")}
-  # create spatial index files (.lax)
-    flist_temp <- create_lax_for_tiles(las_file_list = las_ctg$filename)
 
   ###______________________________###
   # crs checks and transformations
@@ -73,8 +71,6 @@ chunk_las_catalog <- function(
           ) %>%
           c() %>%
           unlist()
-      # create spatial index files (.lax)
-        flist_temp <- create_lax_for_tiles(flist_temp)
       ### point to input las files as a lidR LAScatalog
         las_ctg <- lidR::readLAScatalog(flist_temp)
     }
@@ -104,6 +100,17 @@ chunk_las_catalog <- function(
     }else if(!is.na(crs_list_temp)){
       proj_crs <- paste0("EPSG:",unique(crs_list_temp))
     }
+
+  ########################
+  # check_las_ctg_empty
+  ########################
+    if(!is.na(proj_crs)){
+      las_ctg <- check_las_ctg_empty(las_ctg)
+    }
+  ########################
+  # create spatial index files (.lax)
+  ########################
+    flist_temp <- create_lax_for_tiles(las_file_list = las_ctg$filename)
 
   ### is this ctg huge or what?
     ctg_pts_so_many <- sum(las_ctg@data$Number.of.point.records) > max_ctg_pts
