@@ -1,5 +1,12 @@
 # Changelog
 
+## cloud2trees 0.7.5
+
+- Change:
+  [`cloud2raster()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2raster.md)
+  integrates enhanced checks of input point cloud data to remove tiles
+  that contain invalid geometries or no points prior to processing.
+
 ## cloud2trees 0.7.4
 
 - Change:
