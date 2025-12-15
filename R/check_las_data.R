@@ -47,3 +47,50 @@ check_las_data <- function(
 
   return(nlas_ctg)
 }
+
+# make a function to check las ctg and get rid of empty files or non-valid geoms
+check_las_ctg_empty <- function(las_ctg, pts = T, geoms = T) {
+  if(!inherits(las_ctg, "LAScatalog")){stop("`las_ctg` must be of class LAScatalog")}
+  # final flist
+  if(pts && geoms){
+    good_fls <- las_ctg@data %>%
+      dplyr::ungroup() %>%
+      sf::st_transform(5070) %>%
+      sf::st_make_valid() %>%
+      dplyr::filter(
+        !sf::st_is_empty(.)
+        & Number.of.point.records>0
+      ) %>%
+      dplyr::pull(filename) %>%
+      unique()
+  }else if(pts){
+    good_fls <- las_ctg@data %>%
+      dplyr::filter(
+        Number.of.point.records>0
+      ) %>%
+      dplyr::pull(filename) %>%
+      unique()
+  }else if(geoms){
+    good_fls <- las_ctg@data %>%
+      dplyr::ungroup() %>%
+      sf::st_transform(5070) %>%
+      sf::st_make_valid() %>%
+      dplyr::filter(
+        !sf::st_is_empty(.)
+      ) %>%
+      dplyr::pull(filename) %>%
+      unique()
+  }else{
+    good_fls <- unique(las_ctg@data$filename)
+  }
+  # check
+  if(dplyr::coalesce(length(good_fls),0)==0){
+    stop("no valid point cloud files found...all missing geometry or empty points")
+  }
+
+  # read las ctg
+  ret_ctg <- check_las_data(good_fls)
+  # huh
+  if(!inherits(ret_ctg, "LAScatalog")){stop("could not detect .las|.laz files...all missing geometry or empty points")}
+  return(ret_ctg)
+}
