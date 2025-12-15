@@ -1,3 +1,5 @@
+# cloud2trees 0.7.5
+
 # cloud2trees 0.7.4
 
 - Change: `cloud2trees_to_lanl_trees()` writes the *fuellist* file with a different header so that LANL TREES will also read the domain.
