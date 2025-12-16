@@ -21,7 +21,7 @@ parameter in raster2trees() and/or cloud2trees()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,11 +71,12 @@ parameter in <code><a href="raster2trees.html">raster2trees()</a></code> and/or 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">itd_tuning</span><span class="op">(</span></span>
-<span>  <span class="va">input_las_dir</span>,</span>
+<span>  input_las_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_samples <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  ws_fn_list <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_height <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  chm_res_m <span class="op">=</span> <span class="fl">0.25</span></span>
+<span>  chm_res_m <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  input_chm_rast <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -104,12 +105,16 @@ If providing a custom function, it must always return a numeric value &gt;0 (see
 <dt id="arg-chm-res-m">chm_res_m<a class="anchor" aria-label="anchor" href="#arg-chm-res-m"></a></dt>
 <dd><p>numeric. The desired resolution of the CHM produced in meters.</p></dd>
 
+
+<dt id="arg-input-chm-rast">input_chm_rast<a class="anchor" aria-label="anchor" href="#arg-input-chm-rast"></a></dt>
+<dd><p>SpatRaster. A SpatRaster class object read with the <code>terra</code> package. Can be used instead of defining <code>input_las_dir</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Returns a list with: 1) "plot_samples" is a plot of the sample canopy height model (CHM) and extracted tree crowns for each window size tested;
-and 2) "ws_fn_list" is a list of the window size functions tested which can be used to pass the desired function to the <code>ws</code>
-parameter in <code><a href="raster2trees.html">raster2trees()</a></code> and/or <code><a href="cloud2trees.html">cloud2trees()</a></code>.</p>
+and 2) "ws_fn_list" is a list of the window size functions tested which can be used to pass the desired function to the <code>ws</code> parameter in <code><a href="raster2trees.html">raster2trees()</a></code> and/or <code><a href="cloud2trees.html">cloud2trees()</a></code>.
+and 3) "plot_sample_summary" is a plot summarizing the characteristics of the extracted trees for each window size tested.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

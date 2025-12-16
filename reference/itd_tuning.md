@@ -23,11 +23,12 @@ and/or
 
 ``` r
 itd_tuning(
-  input_las_dir,
+  input_las_dir = NULL,
   n_samples = 3,
   ws_fn_list = NULL,
   min_height = 2,
-  chm_res_m = 0.25
+  chm_res_m = 0.25,
+  input_chm_rast = NULL
 )
 ```
 
@@ -61,6 +62,11 @@ itd_tuning(
 
   numeric. The desired resolution of the CHM produced in meters.
 
+- input_chm_rast:
+
+  SpatRaster. A SpatRaster class object read with the `terra` package.
+  Can be used instead of defining `input_las_dir`.
+
 ## Value
 
 Returns a list with: 1) "plot_samples" is a plot of the sample canopy
@@ -71,6 +77,8 @@ parameter in
 [`raster2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/raster2trees.md)
 and/or
 [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md).
+and 3) "plot_sample_summary" is a plot summarizing the characteristics
+of the extracted trees for each window size tested.
 
 ## References
 

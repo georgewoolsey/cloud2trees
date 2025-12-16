@@ -1,5 +1,13 @@
 # Changelog
 
+## cloud2trees 0.7.6
+
+- Change:
+  [`itd_tuning()`](https://georgewoolsey.github.io/cloud2trees/reference/itd_tuning.md)
+  now allows for the processing of CHM data via the `input_chm_rast`
+  argument which expects a “SpatRaster” class object read with the
+  `terra` package and can be used instead of defining `input_las_dir`.
+
 ## cloud2trees 0.7.5
 
 - Change:
