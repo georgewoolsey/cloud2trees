@@ -361,7 +361,13 @@ sample_las_point_extract_trees <- function(
         sqrt(1000/4) ## numerator = desired plot size in m2
       )
     # FEEEEEEEET ;\
-    if(check_horizontal_crs_is_feet(las)){
+    if(
+      (
+        inherits(x_input, "LAScatalog")
+        || inherits(x_input,"LAS")
+      )
+      && check_horizontal_crs_is_feet(x_input)
+    ){
       # convert to ft
       buffer <- buffer*3.28084
     }
@@ -404,15 +410,15 @@ sample_las_point_extract_trees <- function(
     ########################
     # clip las
     # at a minimum we need to set the opt_output_files if ctg
-    if(inherits(las, "LAScatalog")){
-      lidR::opt_progress(las) <- F
-      lidR::opt_filter(las) <- "-drop_duplicates"
-      lidR::opt_select(las) <- "xyz"
+    if(inherits(x_input, "LAScatalog")){
+      lidR::opt_progress(x_input) <- F
+      lidR::opt_filter(x_input) <- "-drop_duplicates"
+      lidR::opt_select(x_input) <- "xyz"
       # "dummy" has to exist as a column name in the roi polygon data
-      lidR::opt_output_files(las) <- paste0(tempfile(), "_{dummy}")
+      lidR::opt_output_files(x_input) <- paste0(tempfile(), "_{dummy}")
     }
     # clip it
-    clip_las <- lidR::clip_roi(las, plot_poly)
+    clip_las <- lidR::clip_roi(x_input, plot_poly)
     # if ctg, the clipped las is already written to disk and saved
     # if las was a LAS originally, clip_las will be a LAS and we need to writeLAS
     # of the las so that Las can retrieve the LAS
@@ -486,7 +492,13 @@ sample_las_point_extract_trees <- function(
     # FEEEEEEEET ;\
     # plot_poly %>% sf::st_crs()
     # crowns %>% sf::st_crs()
-    if(check_horizontal_crs_is_feet(las)){
+    if(
+      (
+        inherits(x_input, "LAScatalog")
+        || inherits(x_input,"LAS")
+      )
+      && check_horizontal_crs_is_feet(x_input)
+    ){
       # convert to ft
       plot_poly <- plot_poly %>% sf::st_transform(sf::st_crs(crowns))
     }
