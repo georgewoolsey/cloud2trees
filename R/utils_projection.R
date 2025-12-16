@@ -403,6 +403,7 @@ adjust_raster_resolution <- function(
   , target_resolution
   , fun = mean
   , resample_method = "bilinear"
+  , ofile = NULL
 ) {
   # check if the input is a spatraster object
   if (!inherits(raster_object, "SpatRaster")) {
@@ -419,17 +420,26 @@ adjust_raster_resolution <- function(
     fact <- max(1, floor(target_resolution / current_resolution))
 
     # aggregate the raster
-    aggregated_raster <- terra::aggregate(raster_object, fact = fact, fun = fun)
-    result_raster <- aggregated_raster  
+    if(inherits(ofile,"character")){
+      aggregated_raster <- terra::aggregate(raster_object, fact = fact, fun = fun, na.rm = TRUE, filename = ofile, overwrite = TRUE)
+    }else{
+      aggregated_raster <- terra::aggregate(raster_object, fact = fact, fun = fun, na.rm = TRUE)
+    }
+    result_raster <- aggregated_raster
   }else if(target_resolution < current_resolution) {
     # disaggregating (increasing resolution)
 
     # calculate the disaggregation factor
     # we aim for an integer factor for disaggregate, but then refine with resample
     fact <- max(1, floor(current_resolution / target_resolution)) # round down to ensure disagg factor is not too large
-    
+
     # disaggregate the raster
-    disaggregated_raster <- terra::disagg(raster_object, fact = fact)
+    if(inherits(ofile,"character")){
+      disaggregated_raster <- terra::disagg(raster_object, fact = fact, filename = ofile, overwrite = TRUE)
+    }else{
+      disaggregated_raster <- terra::disagg(raster_object, fact = fact)
+    }
+
     result_raster <- disaggregated_raster
 
   }else if(target_resolution == current_resolution){
@@ -441,13 +451,18 @@ adjust_raster_resolution <- function(
   # check if the resulting resolution is exactly the target resolution
   if (abs(terra::res(result_raster)[1] - target_resolution) > 0.0001) { # Using a small tolerance for comparison
     message("the initial aggregation/disaggregation did not result in the exact target resolution. resampling to achieve the precise target resolution.")
-    
+
     # create a dummy raster with the desired resolution and extent for resampling
     template_raster <- terra::rast(result_raster)
     terra::res(template_raster) <- target_resolution
-    
+
     # resample the result_raster to the exact target resolution
-    result_raster <- terra::resample(result_raster, template_raster, method = resample_method)
+    if(inherits(ofile,"character")){
+      result_raster <- terra::resample(result_raster, template_raster, method = resample_method, filename = tempfile(fileext = ".tif"), overwrite = TRUE)
+      terra::writeRaster(result_raster, filename = ofile, overwrite=T)
+    }else{
+      result_raster <- terra::resample(result_raster, template_raster, method = resample_method)
+    }
   }
 
   return(result_raster)
@@ -527,8 +542,8 @@ st_calculate_diameter <- function(sf_data) {
 
   # calculate diameter
   # !!rlang::sym() unquotes the geometry column
-  return_dta <- sf_data %>% 
-    dplyr::ungroup() %>% 
+  return_dta <- sf_data %>%
+    dplyr::ungroup() %>%
     dplyr::rowwise() %>%
     dplyr::mutate(diameter_m = st_calculate_diameter_polygon( !!rlang::sym(geom_col_name) )) %>%
     dplyr::ungroup()

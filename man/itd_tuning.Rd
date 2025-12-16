@@ -5,11 +5,12 @@
 \title{Individual Tree Detection (ITD) tuning}
 \usage{
 itd_tuning(
-  input_las_dir,
+  input_las_dir = NULL,
   n_samples = 3,
   ws_fn_list = NULL,
   min_height = 2,
-  chm_res_m = 0.25
+  chm_res_m = 0.25,
+  input_chm_rast = NULL
 )
 }
 \arguments{
@@ -24,11 +25,13 @@ If providing a custom function, it must always return a numeric value >0 (see ex
 \item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
 
 \item{chm_res_m}{numeric. The desired resolution of the CHM produced in meters.}
+
+\item{input_chm_rast}{SpatRaster. A SpatRaster class object read with the \code{terra} package. Can be used instead of defining \code{input_las_dir}.}
 }
 \value{
 Returns a list with: 1) "plot_samples" is a plot of the sample canopy height model (CHM) and extracted tree crowns for each window size tested;
-and 2) "ws_fn_list" is a list of the window size functions tested which can be used to pass the desired function to the \code{ws}
-parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=cloud2trees]{cloud2trees()}}.
+and 2) "ws_fn_list" is a list of the window size functions tested which can be used to pass the desired function to the \code{ws} parameter in \code{\link[=raster2trees]{raster2trees()}} and/or \code{\link[=cloud2trees]{cloud2trees()}}.
+and 3) "plot_sample_summary" is a plot summarizing the characteristics of the extracted trees for each window size tested.
 }
 \description{
 \code{itd_tuning()} is used to visually assess tree crown delineation results

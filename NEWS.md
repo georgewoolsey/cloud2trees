@@ -1,3 +1,7 @@
+# cloud2trees 0.7.6
+
+- Change: `itd_tuning()` now allows for the processing of CHM data via the `input_chm_rast` argument which expects a "SpatRaster" class object read with the `terra` package and can be used instead of defining `input_las_dir`.
+
 # cloud2trees 0.7.5
 
 - Change: `cloud2raster()` integrates enhanced checks of input point cloud data to remove tiles that contain invalid geometries or no points prior to processing.
