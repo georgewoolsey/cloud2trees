@@ -1,5 +1,7 @@
 # cloud2trees 0.7.7
 
+- Change: `itd_tuning()` now returns the detected tree crowns (the named `crowns` object) in a data frame with columns denoting the sample number (`sample_number`) and the window function (`ws_fn`)
+
 # cloud2trees 0.7.6
 
 - Change: `itd_tuning()` now allows for the processing of CHM data via the `input_chm_rast` argument which expects a "SpatRaster" class object read with the `terra` package and can be used instead of defining `input_las_dir`.
