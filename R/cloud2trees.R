@@ -25,7 +25,11 @@
 #' desired size of the search window when centered on that pixel.
 #' @param estimate_tree_dbh logical. Should tree DBH be estimated? See [trees_dbh()].
 #' @param max_dbh numeric. Set the largest tree diameter (m) expected in the point cloud
-#' @param dbh_model string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear
+#' @param dbh_model `r lifecycle::badge("deprecated")` Use the `dbh_model_regional` or `dbh_model_local` argument instead.
+#' @param dbh_model_regional string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+#' Can be "cr" for the Chapman-Richards formula (default) or "power" for power function
+#' @param dbh_model_local string. Set the model to use for local dbh-height allometry based on provided DBH training data in `treels_dbh_locations`.
+#' Can be "rf" for random forest or "lin" for linear
 #' @param estimate_dbh_from_cloud logical. Should DBH be estimated from the point cloud? See [treels_stem_dbh()]. Setting to `TRUE` may significantly increase processing time.
 #' @param estimate_tree_competition logical. Should tree competition metrics be calculated? See [trees_competition()]. Setting to `TRUE` may slightly increase processing time.
 #' @param competition_buffer_m number. Set buffer around tree (m) to calculate competition metrics
@@ -124,7 +128,8 @@ cloud2trees <- function(
   , ws = itd_ws_functions()[["log_fn"]]
   , estimate_tree_dbh = FALSE
   , max_dbh = 2
-  , dbh_model = "lin"
+  , dbh_model_regional = "cr"
+  , dbh_model_local = "lin"
   , estimate_dbh_from_cloud = FALSE
   , estimate_tree_competition = FALSE
   , competition_buffer_m = 5
@@ -164,6 +169,11 @@ cloud2trees <- function(
     if(any("search_dist_max" %in% calls)) {
         stop(
           "`search_dist_max` deprecated. Use the `competition_max_search_dist_m` argument instead."
+        )
+    }
+    if(any("dbh_model" %in% calls)) {
+        stop(
+          "`dbh_model` deprecated. Use the `dbh_model_regional` or `dbh_model_local` argument instead."
         )
     }
   ####################################################################
@@ -436,7 +446,8 @@ cloud2trees <- function(
     trees_dbh_ans <- safe_trees_dbh(
       tree_list = raster2trees_ans
       , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
-      , dbh_model = dbh_model
+      , dbh_model_regional = dbh_model_regional
+      , dbh_model_local = dbh_model_local
       , treels_dbh_locations = treels_dbh_locations
       , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
       , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
@@ -462,7 +473,8 @@ cloud2trees <- function(
     trees_dbh_ans <- safe_trees_dbh(
       tree_list = raster2trees_ans
       , study_boundary = cloud2raster_ans$chunk_las_catalog_ans$las_ctg@data$geometry
-      , dbh_model = dbh_model
+      , dbh_model_regional = dbh_model_regional
+      , dbh_model_local = dbh_model_local
       , treels_dbh_locations = NA
       , input_treemap_dir = cloud2raster_ans$create_project_structure_ans$input_treemap_dir
       , outfolder = cloud2raster_ans$create_project_structure_ans$delivery_dir
@@ -1007,7 +1019,8 @@ cloud2trees <- function(
             , sttng_ws = as.character(deparse(ws)) %>% paste(collapse = "") %>% stringr::str_trim()
             , sttng_estimate_tree_dbh = estimate_tree_dbh
             , sttng_max_dbh = max_dbh
-            , sttng_dbh_model = dbh_model
+            , sttng_dbh_model_regional = dbh_model_regional
+            , sttng_dbh_model_local = dbh_model_local
             , sttng_estimate_dbh_from_cloud = estimate_dbh_from_cloud
             , sttng_estimate_tree_competition = estimate_tree_competition
             , sttng_competition_buffer_m = competition_buffer_m

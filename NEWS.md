@@ -1,6 +1,13 @@
 # cloud2trees 0.7.7
 
 - Change: `itd_tuning()` now returns the detected tree crowns (the named `crowns` object) in a data frame with columns denoting the sample number (`sample_number`) and the window function (`ws_fn`)
+- Change: `trees_dbh()` now uses the Chapman–Richards formula for fitting the regional DBH-height allometry based on FIA tree data in the TreeMap 2022 product. Formerly, a power function was the default model and this model can still be implemented instead via `dbh_model_regional = "power"`. 
+  + The Chapman–Richards formula is superior because its sigmoidal shape prevents the unrealistic, infinite growth predicted by power models by enforcing a biological maximum diameter (asymptote). 
+  + It also more accurately captures the "inflection point" where diameter growth naturally accelerates then tapers as a tree matures. 
+  + See [Pienaar and Turnbull (1973)](https://doi.org/10.1093/forestscience/19.1.2), [Peng et al. (2001)](https://doi.org/10.1093/njaf/18.3.87), and [Zhao-gang and Feng-ri (2003)](https://doi.org/10.1007/BF02856757) for further detail on the Chapman–Richards formula.
+
+### Breaking Changes
+- Change: the `dbh_model` argument in `trees_dbh()` was deprecated and replaced by the `dbh_model_regional` or `dbh_model_local` arguments for clarity.
 
 # cloud2trees 0.7.6
 

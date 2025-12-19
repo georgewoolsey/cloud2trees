@@ -21,7 +21,11 @@
 #' Defaults to the crs of the `tree_list` data if of class "sf".
 #' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
 #' If no boundary given, regional model will be built from location of trees in the tree list.
-#' @param dbh_model string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear
+#' @param dbh_model `r lifecycle::badge("deprecated")` Use the `dbh_model_regional` or `dbh_model_local` argument instead.
+#' @param dbh_model_regional string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+#' Can be "cr" for the Chapman-Richards formula (default) or "power" for power function
+#' @param dbh_model_local string. Set the model to use for local dbh-height allometry based on provided DBH training data in `treels_dbh_locations`.
+#' Can be "rf" for random forest or "lin" for linear
 #' @param treels_dbh_locations sf. Return from [treels_stem_dbh()].
 #' Must also provide crown polygons (as returned from [raster2trees()]) in the `tree_list` data as an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])
 #' If a valid file is provided, will make DBH predictions based on this training data instead of from the regional model from the FIA data
@@ -90,12 +94,22 @@ trees_dbh <- function(
   tree_list
   , crs = NA
   , study_boundary = NA
-  , dbh_model = "lin"
+  , dbh_model_regional = "cr" # "power"
+  , dbh_model_local = "lin"
   , treels_dbh_locations = NA
   , boundary_buffer = 50
   , input_treemap_dir = NULL
   , outfolder = tempdir()
-) {
+){
+  ####################################################################
+  # check deprecated parameters
+  ####################################################################
+    calls <- names(sapply(match.call(), deparse))[-1]
+    if(any("dbh_model" %in% calls)) {
+        stop(
+          "`dbh_model` deprecated. Use the `dbh_model_regional` or `dbh_model_local` argument instead."
+        )
+    }
   ####################################################################
   # check external data
   ####################################################################
@@ -382,27 +396,76 @@ trees_dbh <- function(
     ### population model of dbh on height, non-linear
     ### used to filter sfm dbhs
     ###__________________________________________________________###
-    # population model with no random effects (i.e. no group-level variation)
-    # non-linear model form with Gamma distribution for strictly positive response variable dbh
-    # set up prior
-    p_temp <- brms::prior(normal(1, 2), nlpar = "b1") +
-      brms::prior(normal(0, 2), nlpar = "b2")
-    mod_nl_pop <- brms::brm(
-      formula = brms::bf(
+    if(stringr::str_squish( tolower(dbh_model_regional) )=="power"){
+      # population model with no random effects (i.e. no group-level variation)
+      # Define the non-linear model formula for DBH
+      dbh_formula <- brms::bf(
         formula = dbh_cm|weights(tree_weight) ~ (b1 * tree_height_m) + tree_height_m^b2
         , b1 + b2 ~ 1
         , nl = TRUE # !! specify non-linear
       )
-      , data = treemap_trees_df
-      , prior = p_temp
-      , family = brms::brmsfamily("Gamma")
-      , iter = 4000, warmup = 2000, chains = 4
-      , cores = lasR::half_cores()
-      , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
-      , file_refit = "always"
-    )
-    # plot(mod_nl_pop)
-    # summary(mod_nl_pop)
+
+      # Define Priors
+      dbh_priors <- c(
+        brms::prior(normal(1, 2), nlpar = "b1")
+        , brms::prior(normal(0, 2), nlpar = "b2")
+      )
+
+      # non-linear model form with Gamma distribution for strictly positive response variable dbh
+      mod_nl_pop <- brms::brm(
+        formula = dbh_formula
+        , data = treemap_trees_df
+        , prior = dbh_priors
+        , family = brms::brmsfamily("Gamma")
+        , iter = 6000, warmup = 3000, chains = 4
+        , cores = lasR::half_cores()
+        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+        , file_refit = "always"
+      )
+      # plot(mod_nl_pop)
+      # summary(mod_nl_pop)
+    }else{
+      # dbh ~ asym * (1 - exp(-k * height))^p # Chapman-Richards non-linear formula
+      # Define the non-linear Chapman-Richards formula for DBH
+      dbh_formula <- brms::bf(
+        dbh_cm|weights(tree_weight) ~ asym * (1 - exp(-k * tree_height_m))^p
+        , asym ~ 1
+        , k ~ 1
+        , p ~ 1
+        , nl = TRUE
+      )
+
+      # Define Priors
+      # Note: Since we are using lognormal, the parameters asym, k, and p are
+      # still interpreted on the original scale of the tree (e.g., inches or cm).
+      dbh_priors <- c(
+        # Asymptote: The max diameter. Adjust based on your units (e.g., inches vs cm).
+        brms::prior(normal(60, 20), nlpar = "asym", lb = 0)
+        # k: The rate of approach to the asymptote. Usually a small decimal.
+        , brms::prior(normal(0.05, 0.02), nlpar = "k", lb = 0)
+        # p: The shape parameter. p > 1 creates the initial acceleration.
+        , brms::prior(normal(2, 0.5), nlpar = "p", lb = 0)
+      )
+
+      # non-linear model form with lognormal distribution for strictly positive response variable dbh
+        # the lognormal family is appropriate for allometric data since
+        # as trees get larger, the variance in their diameter typically increases.
+        # the lognormal distribution naturally accounts for this because it assumes the
+        # error is multiplicative rather than additive, and it ensures that predicted DBH values are always strictly positive.
+      mod_nl_pop <- brms::brm(
+        formula = dbh_formula
+        , data = treemap_trees_df
+        , prior = dbh_priors
+        , family = brms::lognormal()
+        , iter = 6000, warmup = 3000, chains = 4
+        , cores = lasR::half_cores()
+        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+        , file_refit = "always"
+        , control = list(adapt_delta = 0.98)
+      )
+      # plot(mod_nl_pop)
+      # summary(mod_nl_pop)
+    }
 
     ## write out model estimates to tabular file
     #### extract posterior draws to a df
@@ -430,6 +493,7 @@ trees_dbh <- function(
         paste0(normalizePath(outfolder), "/regional_dbh_height_model_estimates.csv")
         , row.names = F
       )
+
 
     ### obtain model predictions over range
     # range of x var to predict
@@ -583,7 +647,7 @@ trees_dbh <- function(
       # Use the SfM-detected stems remaining after the filtering workflow
       # for the local DBH to height allometric relationship model.
         if(nrow(dbh_training_data_temp)>10){
-          if(tolower(dbh_model) == "rf"){
+          if(stringr::str_squish( tolower(dbh_model_local) ) == "rf"){
             # set random seed
             set.seed(21)
 

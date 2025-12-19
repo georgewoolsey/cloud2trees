@@ -8,7 +8,8 @@ trees_dbh(
   tree_list,
   crs = NA,
   study_boundary = NA,
-  dbh_model = "lin",
+  dbh_model_regional = "cr",
+  dbh_model_local = "lin",
   treels_dbh_locations = NA,
   boundary_buffer = 50,
   input_treemap_dir = NULL,
@@ -25,7 +26,11 @@ Defaults to the crs of the \code{tree_list} data if of class "sf".}
 \item{study_boundary}{sf. The boundary of the study are to define the area of the regional model.
 If no boundary given, regional model will be built from location of trees in the tree list.}
 
-\item{dbh_model}{string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear}
+\item{dbh_model_regional}{string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+Can be "cr" for the Chapman-Richards formula (default) or "power" for power function}
+
+\item{dbh_model_local}{string. Set the model to use for local dbh-height allometry based on provided DBH training data in \code{treels_dbh_locations}.
+Can be "rf" for random forest or "lin" for linear}
 
 \item{treels_dbh_locations}{sf. Return from \code{\link[=treels_stem_dbh]{treels_stem_dbh()}}.
 Must also provide crown polygons (as returned from \code{\link[=raster2trees]{raster2trees()}}) in the \code{tree_list} data as an \code{sf} class object with POLYGON geometry (see \code{\link[sf:st_geometry_type]{sf::st_geometry_type()}})
@@ -36,6 +41,8 @@ If a valid file is provided, will make DBH predictions based on this training da
 \item{input_treemap_dir}{directory where Treemap 2016 exists. Use \code{\link[=get_treemap]{get_treemap()}} first.}
 
 \item{outfolder}{string. The path of a folder to write the model data to}
+
+\item{dbh_model}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use the \code{dbh_model_regional} or \code{dbh_model_local} argument instead.}
 }
 \value{
 Returns a spatial data frame of individual trees.

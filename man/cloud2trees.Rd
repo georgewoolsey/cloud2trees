@@ -24,7 +24,8 @@ cloud2trees(
   ws = itd_ws_functions()[["log_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
-  dbh_model = "lin",
+  dbh_model_regional = "cr",
+  dbh_model_local = "lin",
   estimate_dbh_from_cloud = FALSE,
   estimate_tree_competition = FALSE,
   competition_buffer_m = 5,
@@ -101,7 +102,11 @@ desired size of the search window when centered on that pixel.}
 
 \item{max_dbh}{numeric. Set the largest tree diameter (m) expected in the point cloud}
 
-\item{dbh_model}{string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear}
+\item{dbh_model_regional}{string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+Can be "cr" for the Chapman-Richards formula (default) or "power" for power function}
+
+\item{dbh_model_local}{string. Set the model to use for local dbh-height allometry based on provided DBH training data in \code{treels_dbh_locations}.
+Can be "rf" for random forest or "lin" for linear}
 
 \item{estimate_dbh_from_cloud}{logical. Should DBH be estimated from the point cloud? See \code{\link[=treels_stem_dbh]{treels_stem_dbh()}}. Setting to \code{TRUE} may significantly increase processing time.}
 
@@ -180,6 +185,8 @@ Should the missing CBH values be estimated using the tree height and location in
 \item{cbh_frst_layer_min_ht_m}{numeric. value for the depth height of the first fuel layer. If the first fuel layer has the maximum LAD and its depth is greater than the indicated value, then this fuel layer is considered as the CBH of the tree. On the contrary, if its depth is <= the value, the CBH with maximum LAD will be the second fuel layer, although it has not the maximum LAD. See \code{hdepth1_height} in \code{\link[LadderFuelsR:get_cbh_metrics]{LadderFuelsR::get_cbh_metrics()}}}
 
 \item{overwrite}{logical. Should the output files in the \code{point_cloud_processing_delivery} directory from previous iterations be deleted?}
+
+\item{dbh_model}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use the \code{dbh_model_regional} or \code{dbh_model_local} argument instead.}
 }
 \value{
 Returns the goods.
