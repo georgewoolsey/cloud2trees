@@ -31,7 +31,7 @@ Use the height predicting DBH model built from the point cloud training data to 
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,7 +83,8 @@ Use the height predicting DBH model built from the point cloud training data to 
 <span>  <span class="va">tree_list</span>,</span>
 <span>  crs <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  study_boundary <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  dbh_model <span class="op">=</span> <span class="st">"lin"</span>,</span>
+<span>  dbh_model_regional <span class="op">=</span> <span class="st">"cr"</span>,</span>
+<span>  dbh_model_local <span class="op">=</span> <span class="st">"lin"</span>,</span>
 <span>  treels_dbh_locations <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  boundary_buffer <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  input_treemap_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -110,8 +111,14 @@ Defaults to the crs of the <code>tree_list</code> data if of class "sf".</p></dd
 If no boundary given, regional model will be built from location of trees in the tree list.</p></dd>
 
 
-<dt id="arg-dbh-model">dbh_model<a class="anchor" aria-label="anchor" href="#arg-dbh-model"></a></dt>
-<dd><p>string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear</p></dd>
+<dt id="arg-dbh-model-regional">dbh_model_regional<a class="anchor" aria-label="anchor" href="#arg-dbh-model-regional"></a></dt>
+<dd><p>string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+Can be "cr" for the Chapman-Richards formula (default) or "power" for power function</p></dd>
+
+
+<dt id="arg-dbh-model-local">dbh_model_local<a class="anchor" aria-label="anchor" href="#arg-dbh-model-local"></a></dt>
+<dd><p>string. Set the model to use for local dbh-height allometry based on provided DBH training data in <code>treels_dbh_locations</code>.
+Can be "rf" for random forest or "lin" for linear</p></dd>
 
 
 <dt id="arg-treels-dbh-locations">treels_dbh_locations<a class="anchor" aria-label="anchor" href="#arg-treels-dbh-locations"></a></dt>
@@ -130,6 +137,10 @@ If a valid file is provided, will make DBH predictions based on this training da
 
 <dt id="arg-outfolder">outfolder<a class="anchor" aria-label="anchor" href="#arg-outfolder"></a></dt>
 <dd><p>string. The path of a folder to write the model data to</p></dd>
+
+
+<dt id="arg-dbh-model">dbh_model<a class="anchor" aria-label="anchor" href="#arg-dbh-model"></a></dt>
+<dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Use the <code>dbh_model_regional</code> or <code>dbh_model_local</code> argument instead.</p></dd>
 
 </dl></div>
     <div class="section level2">

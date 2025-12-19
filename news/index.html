@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,25 @@
       <small>Source: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.7.7" id="cloud2trees-077">cloud2trees 0.7.7<a class="anchor" aria-label="anchor" href="#cloud2trees-077"></a></h2>
+<ul><li>Change/Fix: <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> now filters all of the following classes from the raw point cloud data (if classified as such) prior to processing. Previously, only class “18” was removed prior to processing using <code><a href="https://rdrr.io/pkg/lasR/man/filters.html" class="external-link">lasR::drop_noise()</a></code>. Classes were identified using the <a href="https://www.usgs.gov/ngp-standards-and-specifications/lidar-base-specification-tables" class="external-link">USGS data standards</a>.
+<ul><li>“7” = low-noise</li>
+<li>“18” = high-noise</li>
+<li>“20” = ignored ground (typically breakline proximity)</li>
+<li>“22” = temporal exclusion (typically nonfavored data in intertidal zones)</li>
+</ul></li>
+<li>Change: <code><a href="../reference/itd_tuning.html">itd_tuning()</a></code> now returns the detected tree crowns (the named <code>crowns</code> object) in a data frame with columns denoting the sample number (<code>sample_number</code>) and the window function (<code>ws_fn</code>)</li>
+<li>Change: <code><a href="../reference/trees_dbh.html">trees_dbh()</a></code> now uses the Chapman–Richards formula for fitting the regional DBH-height allometry based on FIA tree data in the TreeMap 2022 product. Formerly, a power function was the default model and this model can still be implemented instead via <code>dbh_model_regional = "power"</code>.
+<ul><li>The Chapman–Richards formula mitigates unrealistic infinite DBH or negative growth predictions possible with power functions by enforcing a biological maximum (asymptote) to maintain DBH prediction stability when limited, variable data for larger trees might skew results.</li>
+<li>It also more accurately captures the “inflection point” where diameter growth naturally accelerates then tapers as a tree matures</li>
+<li>See <a href="https://doi.org/10.1093/forestscience/19.1.2" class="external-link">Pienaar and Turnbull (1973)</a>, <a href="https://doi.org/10.1093/njaf/18.3.87" class="external-link">Peng et al. (2001)</a>, and <a href="https://doi.org/10.1007/BF02856757" class="external-link">Zhao-gang and Feng-ri (2003)</a> for further detail on the Chapman–Richards formula.</li>
+</ul></li>
+</ul><div class="section level4">
+<h4 id="breaking-changes-0-7-7">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-7-7"></a></h4>
+<ul><li>Change: the <code>dbh_model</code> argument in <code><a href="../reference/trees_dbh.html">trees_dbh()</a></code> was deprecated and replaced by the <code>dbh_model_regional</code> or <code>dbh_model_local</code> arguments for clarity.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.6" id="cloud2trees-076">cloud2trees 0.7.6<a class="anchor" aria-label="anchor" href="#cloud2trees-076"></a></h2>
 <ul><li>Change: <code><a href="../reference/itd_tuning.html">itd_tuning()</a></code> now allows for the processing of CHM data via the <code>input_chm_rast</code> argument which expects a “SpatRaster” class object read with the <code>terra</code> package and can be used instead of defining <code>input_las_dir</code>.</li>

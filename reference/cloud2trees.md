@@ -61,7 +61,8 @@ cloud2trees(
   ws = itd_ws_functions()[["log_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
-  dbh_model = "lin",
+  dbh_model_regional = "cr",
+  dbh_model_local = "lin",
   estimate_dbh_from_cloud = FALSE,
   estimate_tree_competition = FALSE,
   competition_buffer_m = 5,
@@ -197,10 +198,17 @@ cloud2trees(
 
   numeric. Set the largest tree diameter (m) expected in the point cloud
 
-- dbh_model:
+- dbh_model_regional:
 
-  string. Set the model to use for local dbh-height allometry. Can be
-  "rf" for random forest or "lin" for linear
+  string. Set the model to use for regional dbh-height allometry based
+  on FIA tree measurements. Can be "cr" for the Chapman-Richards formula
+  (default) or "power" for power function
+
+- dbh_model_local:
+
+  string. Set the model to use for local dbh-height allometry based on
+  provided DBH training data in `treels_dbh_locations`. Can be "rf" for
+  random forest or "lin" for linear
 
 - estimate_dbh_from_cloud:
 
@@ -397,6 +405,11 @@ cloud2trees(
   logical. Should the output files in the
   `point_cloud_processing_delivery` directory from previous iterations
   be deleted?
+
+- dbh_model:
+
+  **\[deprecated\]** Use the `dbh_model_regional` or `dbh_model_local`
+  argument instead.
 
 ## Value
 

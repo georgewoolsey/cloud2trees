@@ -34,7 +34,8 @@ trees_dbh(
   tree_list,
   crs = NA,
   study_boundary = NA,
-  dbh_model = "lin",
+  dbh_model_regional = "cr",
+  dbh_model_local = "lin",
   treels_dbh_locations = NA,
   boundary_buffer = 50,
   input_treemap_dir = NULL,
@@ -66,10 +67,17 @@ trees_dbh(
   model. If no boundary given, regional model will be built from
   location of trees in the tree list.
 
-- dbh_model:
+- dbh_model_regional:
 
-  string. Set the model to use for local dbh-height allometry. Can be
-  "rf" for random forest or "lin" for linear
+  string. Set the model to use for regional dbh-height allometry based
+  on FIA tree measurements. Can be "cr" for the Chapman-Richards formula
+  (default) or "power" for power function
+
+- dbh_model_local:
+
+  string. Set the model to use for local dbh-height allometry based on
+  provided DBH training data in `treels_dbh_locations`. Can be "rf" for
+  random forest or "lin" for linear
 
 - treels_dbh_locations:
 
@@ -97,6 +105,11 @@ trees_dbh(
 - outfolder:
 
   string. The path of a folder to write the model data to
+
+- dbh_model:
+
+  **\[deprecated\]** Use the `dbh_model_regional` or `dbh_model_local`
+  argument instead.
 
 ## Value
 

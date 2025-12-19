@@ -33,7 +33,7 @@ See the documentation for each individual function called for more details."></h
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,7 +105,8 @@ The order of operations is:</p><ul><li><p>Generate a CHM from the point cloud us
 <span>  ws <span class="op">=</span> <span class="fu"><a href="itd_ws_functions.html">itd_ws_functions</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">"log_fn"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  estimate_tree_dbh <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  max_dbh <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  dbh_model <span class="op">=</span> <span class="st">"lin"</span>,</span>
+<span>  dbh_model_regional <span class="op">=</span> <span class="st">"cr"</span>,</span>
+<span>  dbh_model_local <span class="op">=</span> <span class="st">"lin"</span>,</span>
 <span>  estimate_dbh_from_cloud <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  estimate_tree_competition <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  competition_buffer_m <span class="op">=</span> <span class="fl">5</span>,</span>
@@ -224,8 +225,14 @@ desired size of the search window when centered on that pixel.</p></dd>
 <dd><p>numeric. Set the largest tree diameter (m) expected in the point cloud</p></dd>
 
 
-<dt id="arg-dbh-model">dbh_model<a class="anchor" aria-label="anchor" href="#arg-dbh-model"></a></dt>
-<dd><p>string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear</p></dd>
+<dt id="arg-dbh-model-regional">dbh_model_regional<a class="anchor" aria-label="anchor" href="#arg-dbh-model-regional"></a></dt>
+<dd><p>string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+Can be "cr" for the Chapman-Richards formula (default) or "power" for power function</p></dd>
+
+
+<dt id="arg-dbh-model-local">dbh_model_local<a class="anchor" aria-label="anchor" href="#arg-dbh-model-local"></a></dt>
+<dd><p>string. Set the model to use for local dbh-height allometry based on provided DBH training data in <code>treels_dbh_locations</code>.
+Can be "rf" for random forest or "lin" for linear</p></dd>
 
 
 <dt id="arg-estimate-dbh-from-cloud">estimate_dbh_from_cloud<a class="anchor" aria-label="anchor" href="#arg-estimate-dbh-from-cloud"></a></dt>
@@ -354,6 +361,10 @@ Should the missing CBH values be estimated using the tree height and location in
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
 <dd><p>logical. Should the output files in the <code>point_cloud_processing_delivery</code> directory from previous iterations be deleted?</p></dd>
+
+
+<dt id="arg-dbh-model">dbh_model<a class="anchor" aria-label="anchor" href="#arg-dbh-model"></a></dt>
+<dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Use the <code>dbh_model_regional</code> or <code>dbh_model_local</code> argument instead.</p></dd>
 
 </dl></div>
     <div class="section level2">
