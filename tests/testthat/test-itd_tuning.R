@@ -9,7 +9,7 @@ testthat::test_that("itd_tuning() returns a list of objects", {
   # tests
   ####################
   ## includes the named list?
-  testthat::expect_named(itd_tuning_ans, expected = c("ws_fn_list", "plot_samples", "plot_sample_summary"), ignore.order = TRUE)
+  testthat::expect_named(itd_tuning_ans, expected = c("ws_fn_list", "plot_samples", "plot_sample_summary", "crowns"), ignore.order = TRUE)
   # get the things
   ws_fn_list <- itd_tuning_ans %>% purrr::pluck("ws_fn_list")
   plot_samples <- itd_tuning_ans %>% purrr::pluck("plot_samples")
@@ -43,7 +43,7 @@ testthat::test_that("itd_tuning() returns a list of objects", {
   # tests
   ####################
   ## includes the named list?
-  testthat::expect_named(itd_tuning_ans2, expected = c("ws_fn_list", "plot_samples", "plot_sample_summary"), ignore.order = TRUE)
+  testthat::expect_named(itd_tuning_ans2, expected = c("ws_fn_list", "plot_samples", "plot_sample_summary", "crowns"), ignore.order = TRUE)
   # get the things
   ws_fn_list2 <- itd_tuning_ans2 %>% purrr::pluck("ws_fn_list")
   plot_samples2 <- itd_tuning_ans2 %>% purrr::pluck("plot_samples")

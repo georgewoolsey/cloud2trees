@@ -80,7 +80,18 @@ lasr_pipeline <- function(
     ###################
     # read with filter
     ###################
-      lasr_read <- lasR::reader(filter = "-drop_noise -drop_duplicates")
+      lasr_read_filter <- c(
+        lasR::drop_duplicates()
+        , lasR::drop_noise()
+        # https://www.usgs.gov/ngp-standards-and-specifications/lidar-base-specification-tables
+        # filter other noise not represented in lasR::drop_noise()
+        # 7 = low-noise
+        # 18 = high-noise
+        # 20 = ignored ground (typically breakline proximity)
+        # 22 = Temporal exclusion (typically nonfavored data in intertidal zones)
+        , lasR::drop_class(c(7,18,20,22))
+      )
+      lasr_read <- lasR::reader( filter =  lasr_read_filter )
     ###################
     # classify
     ###################

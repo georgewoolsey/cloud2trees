@@ -243,6 +243,20 @@ if(is.null(big_ans_list) || dplyr::coalesce(length(big_ans_list), 0)<1){
   }
   # plt_summary
 
+# pull out the crowns and combine them
+  crwn_list <- the_ans_list %>% purrr::map(purrr::pluck("crowns"))
+  if(any(is.null(crwn_list))){
+    crowns <- NULL
+  }else{
+    crowns <- crwn_list %>%
+      purrr::imap(~ .x %>% dplyr::select(-c(crwn_bin,ht_bin)) %>% dplyr::mutate(sample_number = .y)) %>%
+      dplyr::bind_rows() %>%
+      dplyr::relocate(sample_number)
+      # sf::st_drop_geometry() %>%
+      # dplyr::count(sample_number, ws_fn)
+  }
+  # crowns %>% dplyr::glimpse
+
 # pull out the ws fn...will be the same for each list so just need to get one
   if(any(is.null(plt_list))){
     ws_fn_list <- NULL
@@ -256,6 +270,7 @@ if(is.null(big_ans_list) || dplyr::coalesce(length(big_ans_list), 0)<1){
     plot_samples = plt
     , ws_fn_list = ws_fn_list
     , plot_sample_summary = plt_summary
+    , crowns = crowns
   ))
 }
 

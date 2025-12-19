@@ -21,7 +21,11 @@
 #' Defaults to the crs of the `tree_list` data if of class "sf".
 #' @param study_boundary sf. The boundary of the study are to define the area of the regional model.
 #' If no boundary given, regional model will be built from location of trees in the tree list.
-#' @param dbh_model string. Set the model to use for local dbh-height allometry. Can be "rf" for random forest or "lin" for linear
+#' @param dbh_model `r lifecycle::badge("deprecated")` Use the `dbh_model_regional` or `dbh_model_local` argument instead.
+#' @param dbh_model_regional string. Set the model to use for regional dbh-height allometry based on FIA tree measurements.
+#' Can be "cr" for the Chapman-Richards formula (default) or "power" for power function
+#' @param dbh_model_local string. Set the model to use for local dbh-height allometry based on provided DBH training data in `treels_dbh_locations`.
+#' Can be "rf" for random forest or "lin" for linear
 #' @param treels_dbh_locations sf. Return from [treels_stem_dbh()].
 #' Must also provide crown polygons (as returned from [raster2trees()]) in the `tree_list` data as an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])
 #' If a valid file is provided, will make DBH predictions based on this training data instead of from the regional model from the FIA data
@@ -90,12 +94,22 @@ trees_dbh <- function(
   tree_list
   , crs = NA
   , study_boundary = NA
-  , dbh_model = "lin"
+  , dbh_model_regional = "cr" # "power"
+  , dbh_model_local = "lin"
   , treels_dbh_locations = NA
   , boundary_buffer = 50
   , input_treemap_dir = NULL
   , outfolder = tempdir()
-) {
+){
+  ####################################################################
+  # check deprecated parameters
+  ####################################################################
+    calls <- names(sapply(match.call(), deparse))[-1]
+    if(any("dbh_model" %in% calls)) {
+        stop(
+          "`dbh_model` deprecated. Use the `dbh_model_regional` or `dbh_model_local` argument instead."
+        )
+    }
   ####################################################################
   # check external data
   ####################################################################
@@ -132,7 +146,17 @@ trees_dbh <- function(
   }
   tree_list <- tree_list %>%
     dplyr::mutate(tree_height_m = as.numeric(tree_height_m))
-
+  # check all blank height
+  if(
+    all(is.na(tree_list$tree_height_m))
+    || all(is.null(tree_list$tree_height_m))
+    || all( tree_list$tree_height_m <= 0 )
+  ){
+    stop(paste0(
+      "`tree_list` contains all missing `tree_height_m` data."
+      , "\n   height is required to estimate DBH."
+    ))
+  }
   ##################################
   # convert to spatial points data
   ##################################
@@ -382,27 +406,76 @@ trees_dbh <- function(
     ### population model of dbh on height, non-linear
     ### used to filter sfm dbhs
     ###__________________________________________________________###
-    # population model with no random effects (i.e. no group-level variation)
-    # non-linear model form with Gamma distribution for strictly positive response variable dbh
-    # set up prior
-    p_temp <- brms::prior(normal(1, 2), nlpar = "b1") +
-      brms::prior(normal(0, 2), nlpar = "b2")
-    mod_nl_pop <- brms::brm(
-      formula = brms::bf(
+    if(stringr::str_squish( tolower(dbh_model_regional) )=="power"){
+      # population model with no random effects (i.e. no group-level variation)
+      # Define the non-linear model formula for DBH
+      dbh_formula <- brms::bf(
         formula = dbh_cm|weights(tree_weight) ~ (b1 * tree_height_m) + tree_height_m^b2
         , b1 + b2 ~ 1
         , nl = TRUE # !! specify non-linear
       )
-      , data = treemap_trees_df
-      , prior = p_temp
-      , family = brms::brmsfamily("Gamma")
-      , iter = 4000, warmup = 2000, chains = 4
-      , cores = lasR::half_cores()
-      , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
-      , file_refit = "always"
-    )
-    # plot(mod_nl_pop)
-    # summary(mod_nl_pop)
+
+      # Define Priors
+      dbh_priors <- c(
+        brms::prior(normal(1, 2), nlpar = "b1")
+        , brms::prior(normal(0, 2), nlpar = "b2")
+      )
+
+      # non-linear model form with Gamma distribution for strictly positive response variable dbh
+      mod_nl_pop <- brms::brm(
+        formula = dbh_formula
+        , data = treemap_trees_df
+        , prior = dbh_priors
+        , family = brms::brmsfamily("Gamma")
+        , iter = 6000, warmup = 3000, chains = 4
+        , cores = lasR::half_cores()
+        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+        , file_refit = "always"
+      )
+      # plot(mod_nl_pop)
+      # summary(mod_nl_pop)
+    }else{
+      # dbh ~ asym * (1 - exp(-k * height))^p # Chapman-Richards non-linear formula
+      # Define the non-linear Chapman-Richards formula for DBH
+      dbh_formula <- brms::bf(
+        dbh_cm|weights(tree_weight) ~ asym * (1 - exp(-k * tree_height_m))^p
+        , asym ~ 1
+        , k ~ 1
+        , p ~ 1
+        , nl = TRUE
+      )
+
+      # Define Priors
+      # Note: Since we are using lognormal, the parameters asym, k, and p are
+      # still interpreted on the original scale of the tree (e.g., inches or cm).
+      dbh_priors <- c(
+        # Asymptote: The max diameter. Adjust based on your units (e.g., inches vs cm).
+        brms::prior(normal(60, 20), nlpar = "asym", lb = 0)
+        # k: The rate of approach to the asymptote. Usually a small decimal.
+        , brms::prior(normal(0.05, 0.02), nlpar = "k", lb = 0)
+        # p: The shape parameter. p > 1 creates the initial acceleration.
+        , brms::prior(normal(2, 0.5), nlpar = "p", lb = 0)
+      )
+
+      # non-linear model form with lognormal distribution for strictly positive response variable dbh
+        # the lognormal family is appropriate for allometric data since
+        # as trees get larger, the variance in their diameter typically increases.
+        # the lognormal distribution naturally accounts for this because it assumes the
+        # error is multiplicative rather than additive, and it ensures that predicted DBH values are always strictly positive.
+      mod_nl_pop <- brms::brm(
+        formula = dbh_formula
+        , data = treemap_trees_df
+        , prior = dbh_priors
+        , family = brms::lognormal()
+        , iter = 6000, warmup = 3000, chains = 4
+        , cores = lasR::half_cores()
+        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+        , file_refit = "always"
+        , control = list(adapt_delta = 0.98)
+      )
+      # plot(mod_nl_pop)
+      # summary(mod_nl_pop)
+    }
 
     ## write out model estimates to tabular file
     #### extract posterior draws to a df
@@ -431,21 +504,39 @@ trees_dbh <- function(
         , row.names = F
       )
 
+
     ### obtain model predictions over range
     # range of x var to predict
-    height_range <- dplyr::tibble(
-      tree_height_m = seq(
-        from = 0
-        , to = 120 # tallest tree in the world
-        , by = 0.1 # by 0.1 m increments
-      )
-    )
+    height_range <-
+      dplyr::tibble(
+        tree_height_m = c(
+            round(tree_tops$tree_height_m,2)
+            , seq(
+              from = 0
+              , to = 120 # tallest tree in the world
+              , by = 0.1 # by 0.1 m increments
+            )
+          ) %>%
+          unique()
+      ) %>%
+      dplyr::filter(
+        dplyr::coalesce(tree_height_m,0)>0
+      ) %>%
+      dplyr::mutate(tree_height_m_tnth=as_character_safe(tree_height_m)) %>%
+      dplyr::group_by(tree_height_m_tnth) %>%
+      dplyr::summarise(tree_height_m = dplyr::first(tree_height_m)) %>%
+      dplyr::ungroup() %>%
+      dplyr::arrange(tree_height_m)
+
+    # dplyr::glimpse(height_range)
+
     # predict and put estimates in a data frame
-    pred_mod_nl_pop_temp <- predict(
-      mod_nl_pop
-      , newdata = height_range
-      , probs = c(.05, .95)
-    ) %>%
+    pred_mod_nl_pop_temp <-
+      predict(
+        mod_nl_pop
+        , newdata = height_range
+        , probs = c(.05, .95)
+      ) %>%
       dplyr::as_tibble() %>%
       dplyr::rename(
         lower_b = 3, upper_b = 4
@@ -454,14 +545,14 @@ trees_dbh <- function(
       dplyr::select(-c(est.error)) %>%
       dplyr::bind_cols(height_range) %>%
       dplyr::rename(
-        tree_height_m_tnth=tree_height_m
-        , fia_est_dbh_cm = estimate
+        fia_est_dbh_cm = estimate
         , fia_est_dbh_cm_lower = lower_b
         , fia_est_dbh_cm_upper = upper_b
       ) %>%
-      dplyr::mutate(tree_height_m_tnth=as_character_safe(tree_height_m_tnth)) %>%
+      dplyr::select(-c(tree_height_m)) %>%
       dplyr::relocate(tree_height_m_tnth)
-    # str(pred_mod_nl_pop_temp)
+
+    # dplyr::glimpse(pred_mod_nl_pop_temp)
 
     # save predictions for reading later
     write.csv(
@@ -471,10 +562,11 @@ trees_dbh <- function(
     )
 
     # attach to treelist
+    # dplyr::glimpse(tree_tops)
     tree_tops <- tree_tops %>%
-      # join with model predictions at 0.1 m height intervals
+      # join with model predictions at 0.01 m height intervals...old version was 0.1 m
         dplyr::mutate(
-          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as_character_safe()
+          tree_height_m_tnth = round(as.numeric(tree_height_m),2) %>% as_character_safe()
         ) %>%
         dplyr::left_join(
           pred_mod_nl_pop_temp
@@ -482,6 +574,8 @@ trees_dbh <- function(
         ) %>%
         dplyr::select(-tree_height_m_tnth) %>%
         dplyr::mutate(dbh_cm = fia_est_dbh_cm)
+
+    # dplyr::glimpse(tree_tops)
 
   ####################################################################
   # Model DBH using `treels_dbh_locations`
@@ -583,7 +677,7 @@ trees_dbh <- function(
       # Use the SfM-detected stems remaining after the filtering workflow
       # for the local DBH to height allometric relationship model.
         if(nrow(dbh_training_data_temp)>10){
-          if(tolower(dbh_model) == "rf"){
+          if(stringr::str_squish( tolower(dbh_model_local) ) == "rf"){
             # set random seed
             set.seed(21)
 
