@@ -146,7 +146,17 @@ trees_dbh <- function(
   }
   tree_list <- tree_list %>%
     dplyr::mutate(tree_height_m = as.numeric(tree_height_m))
-
+  # check all blank height
+  if(
+    all(is.na(tree_list$tree_height_m))
+    || all(is.null(tree_list$tree_height_m))
+    || all( tree_list$tree_height_m <= 0 )
+  ){
+    stop(paste0(
+      "`tree_list` contains all missing `tree_height_m` data."
+      , "\n   height is required to estimate DBH."
+    ))
+  }
   ##################################
   # convert to spatial points data
   ##################################
@@ -497,19 +507,36 @@ trees_dbh <- function(
 
     ### obtain model predictions over range
     # range of x var to predict
-    height_range <- dplyr::tibble(
-      tree_height_m = seq(
-        from = 0
-        , to = 120 # tallest tree in the world
-        , by = 0.1 # by 0.1 m increments
-      )
-    )
+    height_range <-
+      dplyr::tibble(
+        tree_height_m = c(
+            round(tree_tops$tree_height_m,2)
+            , seq(
+              from = 0
+              , to = 120 # tallest tree in the world
+              , by = 0.1 # by 0.1 m increments
+            )
+          ) %>%
+          unique()
+      ) %>%
+      dplyr::filter(
+        dplyr::coalesce(tree_height_m,0)>0
+      ) %>%
+      dplyr::mutate(tree_height_m_tnth=as_character_safe(tree_height_m)) %>%
+      dplyr::group_by(tree_height_m_tnth) %>%
+      dplyr::summarise(tree_height_m = dplyr::first(tree_height_m)) %>%
+      dplyr::ungroup() %>%
+      dplyr::arrange(tree_height_m)
+
+    # dplyr::glimpse(height_range)
+
     # predict and put estimates in a data frame
-    pred_mod_nl_pop_temp <- predict(
-      mod_nl_pop
-      , newdata = height_range
-      , probs = c(.05, .95)
-    ) %>%
+    pred_mod_nl_pop_temp <-
+      predict(
+        mod_nl_pop
+        , newdata = height_range
+        , probs = c(.05, .95)
+      ) %>%
       dplyr::as_tibble() %>%
       dplyr::rename(
         lower_b = 3, upper_b = 4
@@ -518,14 +545,14 @@ trees_dbh <- function(
       dplyr::select(-c(est.error)) %>%
       dplyr::bind_cols(height_range) %>%
       dplyr::rename(
-        tree_height_m_tnth=tree_height_m
-        , fia_est_dbh_cm = estimate
+        fia_est_dbh_cm = estimate
         , fia_est_dbh_cm_lower = lower_b
         , fia_est_dbh_cm_upper = upper_b
       ) %>%
-      dplyr::mutate(tree_height_m_tnth=as_character_safe(tree_height_m_tnth)) %>%
+      dplyr::select(-c(tree_height_m)) %>%
       dplyr::relocate(tree_height_m_tnth)
-    # str(pred_mod_nl_pop_temp)
+
+    # dplyr::glimpse(pred_mod_nl_pop_temp)
 
     # save predictions for reading later
     write.csv(
@@ -535,10 +562,11 @@ trees_dbh <- function(
     )
 
     # attach to treelist
+    # dplyr::glimpse(tree_tops)
     tree_tops <- tree_tops %>%
-      # join with model predictions at 0.1 m height intervals
+      # join with model predictions at 0.01 m height intervals...old version was 0.1 m
         dplyr::mutate(
-          tree_height_m_tnth = round(as.numeric(tree_height_m),1) %>% as_character_safe()
+          tree_height_m_tnth = round(as.numeric(tree_height_m),2) %>% as_character_safe()
         ) %>%
         dplyr::left_join(
           pred_mod_nl_pop_temp
@@ -546,6 +574,8 @@ trees_dbh <- function(
         ) %>%
         dplyr::select(-tree_height_m_tnth) %>%
         dplyr::mutate(dbh_cm = fia_est_dbh_cm)
+
+    # dplyr::glimpse(tree_tops)
 
   ####################################################################
   # Model DBH using `treels_dbh_locations`
