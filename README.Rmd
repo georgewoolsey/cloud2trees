@@ -46,7 +46,7 @@ The development and functionality of the `cloud2trees` package relies extensivel
 
 # Installation and Setup
 
-A full demonstration of the install and setup of `cloud2trees` including dependencies is available at the [Setup demonstration](articles/cloud2trees-setup.html) 
+A full demonstration of the install and setup of `cloud2trees` including dependencies is available at the [Setup demonstration](https://georgewoolsey.github.io/cloud2trees/articles/cloud2trees-setup.html) 
 
 It is recommended that users follow this full install demonstration which includes program functionality checks after the installation steps are completed.
 
