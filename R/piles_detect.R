@@ -1,0 +1,1416 @@
+#' @title Geometric rules-based detection of slash piles from CHM data
+#'
+#' @description This function implements a geometric, rules-based framework to
+#' identify candidate slash piles from a Canopy Height Model (CHM). The process
+#' begins by defining a vertical search space within the CHM
+#' based on user-defined height thresholds. Once candidate segments
+#' are generated via the chosen segmentation method, the function applies two
+#' distinct shape irregularity filters to refine the results. This approach
+#' ensures that the final predictions align with the expected structural
+#' characteristics of slash piles that also meet expected sizing thresholds
+#' based on minimum and maximum area expectations set by the user.
+#' Users should determine these threshold values based on pile
+#' construction prescriptions, on-site
+#' visual observations post-treatment, or prior research on typical pile
+#' dimensions for the specific treatment/forest type. This function is the primary
+#' structural pile detection process and is intended to be used prior to
+#' [piles_spectral_filter()] for a complete detection workflow.
+#'
+#' @param chm_rast A SpatRaster object representing the Canopy Height Model.
+#' @param seg_method Character string. The segmentation algorithm to use:
+#' either "watershed" or "dbscan".
+#' @param min_ht_m Numeric. The minimum expected pile height.
+#' @param max_ht_m Numeric. The upper limit of the vertical search space and expected pile height.
+#' @param min_area_m2 Numeric. The minimum pile footprint area required for a
+#' segment to be retained as a candidate.
+#' @param max_area_m2 Numeric. The maximum pile footprint area expected.
+#' @param min_convexity_ratio Numeric (0 to 1). Also known as the "solidity"
+#' ratio. Calculated as (Area of Polygon / Area of Convex Hull). This metric
+#' identifies segments with deep indents, holes, or branching. A perfectly
+#' convex shape like a circle or square has a ratio of 1.0. Values closer to
+#' 0 indicate high irregularity or concavity. Note that convexity is not
+#' sensitive to elongation.
+#' @param min_circularity_ratio Numeric (0 to 1). Also known as the "Reock
+#' Compactness Score." Calculated as (Area of Polygon / Area of Minimum
+#' Bounding Circle). This measures how closely a shape is spread around its
+#' central point. A perfect circle has a ratio of 1.0. For reference, a
+#' perfect square is approximately 0.637 and an equilateral triangle is
+#' approximately 0.414.
+#' @param smooth_segs Logical. Should convex hull smoothing be applied to the
+#' raster-detected segment boundaries to reduce pixelated edges?
+#' Any resulting smoothed segments that overlap are removed based since
+#' slash piles are generally distinct objects on the landscape.
+#' @param outfile Character string or NA. If NA (default), the function
+#' returns the segmented piles as an `sf` object. If a valid file path is
+#' provided (e.g., "./output/detected_piles.gpkg"), the result is written
+#' to a GeoPackage file and the function returns the character string of the
+#' file path.
+#'
+#' @return If `outfile` is NA, returns an `sf` object of candidate pile polygons.
+#' If `outfile` is a character string, returns the character string of the
+#' saved file path.
+#'
+#' @export
+#'
+piles_detect <- function(
+  chm_rast
+  , seg_method = "dbscan"
+  , min_ht_m # set the min expected pile height
+  , max_ht_m # set the max expected pile height
+  , min_area_m2 # set the min expected pile area
+  , max_area_m2 # set the max expected pile area
+  #### convexity filtering
+  # 1 = perfectly convex (no inward angles); 0 = so many inward angles
+  # values closer to 1 remove more irregular segments;
+    # values closer to 0 keep more irregular segments (and also regular segments)
+  # these will all be further filtered for their circularity if desired
+  , min_convexity_ratio # min required overlap between the predicted pile and the convex hull of the predicted pile
+  #### circularity filtering
+  # 1 = perfectly circular; 0 = not circular (e.g. linear) but also circular
+  # min required overlap between the candidate pile segment polygon and the minimum bounding circle of the polygon
+  , min_circularity_ratio
+  #### shape refinement & overlap removal
+  ## smooth_segs = T ... convex hulls of raster detected segments are returned, any that overlap are removed
+  ## smooth_segs = F ... raster detected segments are returned (blocky) if they meet all prior rules
+  , smooth_segs = T
+  ##############
+  # if defined...will instead write the detected segment polygons to the file given and return the name of the file
+  # ex: "my_wshed_segs.gpkg"; ex: "../data/ur_wshed_segs.gpkg"
+  , outfile = NA
+) {
+  # checks
+  if(!inherits(smooth_segs, "logical") || is.na(smooth_segs)){stop("define `smooth_segs` as logical")}
+  outfile <- check_file_path(outfile,ext = ".gpkg")
+  ########################
+  # shape irregularity checks
+  ########################
+    min_convexity_ratio <- min_convexity_ratio[1]
+    min_circularity_ratio <- min_circularity_ratio[1]
+    if(
+      (is.na(tryCatch(as.numeric(min_convexity_ratio), error = function(e) NA)) ||
+       identical(as.numeric(min_convexity_ratio), numeric(0)) ||
+       !is.numeric(tryCatch(as.numeric(min_convexity_ratio), error = function(e) NA))) ||
+      (is.na(tryCatch(as.numeric(min_circularity_ratio), error = function(e) NA)) ||
+       identical(as.numeric(min_circularity_ratio), numeric(0)) ||
+       !is.numeric(tryCatch(as.numeric(min_circularity_ratio), error = function(e) NA))) ||
+      as.numeric(min_convexity_ratio)<0 ||
+      as.numeric(min_convexity_ratio)>1 ||
+      as.numeric(min_circularity_ratio)<0 ||
+      as.numeric(min_circularity_ratio)>1
+    ){
+      # Code to execute if any condition is met (e.g., print an error message)
+      stop("Error: One or more of `min_convexity_ratio`,`min_circularity_ratio` are not valid numbers between 0 and 1.")
+    }
+  ########################################################################################
+  ## 1) Segmentation
+  ########################################################################################
+    get_segmentation_candidates_ans <- get_segmentation_candidates(
+      chm_rast = chm_rast
+      , method = seg_method
+      , min_ht_m = min_ht_m
+      , max_ht_m = max_ht_m
+      , min_area_m2 = min_area_m2
+      , max_area_m2 = max_area_m2
+    )
+
+    # get results individual objects
+    segs_rast <- get_segmentation_candidates_ans$segs_rast
+    segs_sf <- get_segmentation_candidates_ans$segs_sf
+    slice_chm_rast <- get_segmentation_candidates_ans$slice_chm_rast
+    # seg_mthd_params <- get_segmentation_candidates_ans$seg_mthd_params
+
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "no segments detected using the given CHM and size expectations"
+        , "\n     try adjusting size threshold parameters:"
+        , "\n     `min_ht_m`,`max_ht_m`,`min_area_m2`,`max_area_m2`"
+      ))
+    }
+  ########################################################################################
+  ## 2) shape refinement and area filtering
+  ########################################################################################
+    # to better align the segmentation results with real-world pile construction we'll now
+    # simplify candidate segments composed of multiple separate parts representing a single identified feature (i.e. "multi-polygon" candidate segments.
+    # We'll simplify these segments by retaining only the largest contiguous portion using `cloud2trees` functionality.
+    # Because slash piles are constructed as distinct, isolated objects to prevent tree mortality during burning, this refinement step isolates the primary
+    # candidate body to eliminate detached noise and ensure each segment represents a discrete physical object before area-based filtering
+    segs_sf <-
+      segs_sf %>%
+      # simplify multipolygons by keeping only the largest portion
+      dplyr::mutate(treeID = pred_id) %>%
+      cloud2trees::simplify_multipolygon_crowns() %>%
+      dplyr::select(-treeID) %>%
+      # area filtering
+      st_filter_area(min_area_m2 = min_area_m2, max_area_m2 = max_area_m2)
+
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "no segments detected using the given CHM and size expectations"
+        , "\n     try adjusting size threshold parameters:"
+        , "\n     `min_area_m2`,`max_area_m2`"
+      ))
+    }
+
+  ########################################################################################
+  ## 3) convexity filtering
+  ########################################################################################
+    # let's first filter out segments that have holes in them
+    # or are very irregularly shaped by comparing the area of the polygon and convex hull
+    # min_convexity_ratio = min required overlap between the predicted pile and the convex hull of the predicted pile
+    if(min_convexity_ratio>0){
+      # apply the convexity filtering on the polygons
+      segs_sf <- st_convexity_filter(
+          sf_data = segs_sf
+          # min required overlap between the polygon and the convex hull of the polygon
+          , min_convexity_ratio = min_convexity_ratio
+        )
+    }
+
+    # check return
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "no segments detected using the given CHM and `min_convexity_ratio` expectations"
+        , "\n     try adjusting `min_convexity_ratio` "
+      ))
+    }
+
+  ########################################################################################
+  ## 4) circularity filtering
+  ########################################################################################
+    # let's apply a minimum bounding circle algorithm to remove non-circular segments from the remaining segments
+    if(min_circularity_ratio>0){
+      # apply the circularity filtering on the polygons
+      segs_sf <- st_circularity_filter(
+          sf_data = segs_sf
+          # min required overlap between the polygon and the minimum bounding circle of the polygon
+          , min_circularity_ratio = min_circularity_ratio
+        )
+    }
+
+    # check return
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "no segments detected using the given CHM and `min_circularity_ratio` expectations"
+        , "\n     try adjusting `min_circularity_ratio` "
+      ))
+    }
+
+  ########################################################################################
+  ## 5) calculate CHM-based structural metrics for the candidate piles
+  ########################################################################################
+    # we'll use our `get_structural_metrics()` with the height-filtered CHM to compute the structural metrics for the candidate piles
+    segs_sf <-
+      get_structural_metrics(
+        sf_data = segs_sf
+        , chm_rast = slice_chm_rast
+      ) %>%
+      purrr::pluck("sf_data") %>%
+      # we may already have area so we'll use only the value from this function
+      dplyr::select( -dplyr::any_of(c(
+        "hey_xxxxxxxxxx"
+        , "poly_area_m2"
+      )))
+
+    # check return
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "trouble getting the structural metrics"
+        , "\n     try adjusting .... something "
+      ))
+    }
+
+    # filter for height
+    segs_sf <- segs_sf %>%
+      dplyr::filter(
+        max_height_m >= min_ht_m
+        & max_height_m <= max_ht_m
+      )
+
+    # check return
+    if(dplyr::coalesce(nrow(segs_sf),0)==0){
+      stop(paste0(
+        "no segments detected using the given CHM and size expectations"
+        , "\n     try adjusting size threshold parameters:"
+        , "\n     `min_ht_m`,`max_ht_m`"
+      ))
+    }
+
+  ########################################################################################
+  ## 6) shape refinement & overlap removal
+  ########################################################################################
+    # use the convex hull shapes of our remaining segments.
+    # This helps to smooth out the often 'blocky' edges of raster-based segments
+    # , which can look like they were generated in Minecraft.
+    # Additionally, by removing any segments with overlapping convex hull shapes,
+    # we can likely reduce false detections that are actually groups of small trees or shrubs,
+    # ensuring our results represent singular slash piles.
+
+    if(smooth_segs){
+      # take the convex hull and apply our `st_remove_overlaps()` function to the remaining candidate segments.
+      # Finally, we filter for area based on the smoothed shape
+      segs_sf <-
+        segs_sf %>%
+        sf::st_convex_hull() %>%
+        sf::st_simplify() %>%
+        sf::st_make_valid() %>%
+        dplyr::filter(sf::st_is_valid(.)) %>%
+        st_remove_overlaps() %>%
+        # now we need to re-do the volume and area calculations
+        dplyr::mutate(
+          area_m2 = sf::st_area(.) %>% as.numeric()
+          , volume_m3 = area_m2*volume_per_area
+        ) %>%
+        st_filter_area(min_area_m2 = min_area_m2, max_area_m2 = max_area_m2)
+
+      # check return
+      if(dplyr::coalesce(nrow(segs_sf),0)==0){
+        stop(paste0(
+          "no segments detected after removing overlapping final segments"
+          , "\n     try with `smooth_segs = F`"
+        ))
+      }
+    }
+
+    # calculate diameter
+    # st_calculate_diameter in utils_projection.R
+    segs_sf <- st_calculate_diameter(segs_sf)
+
+  # check for write
+    if(
+      inherits(outfile,"character")
+      && stringr::str_squish(outfile)!=""
+      && !identical(stringr::str_squish(outfile),character(0))
+    ){
+      sf::st_write(segs_sf, dsn = outfile, quiet = T, append = F)
+      message(paste0("wrote candidate pile polygons to: '",outfile,"'" ))
+      return(outfile)
+    }
+
+  # return
+    return(list(
+      segs_sf = segs_sf
+      , seg_mthd_params = get_segmentation_candidates_ans$seg_mthd_params
+      , slice_chm_rast = get_segmentation_candidates_ans$slice_chm_rast
+    ))
+}
+####################################################################
+### internal function
+## check if the outfile contains a valid file path in a valid dir
+####################################################################
+check_file_path <- function(outfile = NA, ext) {
+  if(is.na(outfile)){return(NA)}
+  # type checks
+  if (
+    !inherits(outfile,"character") ||
+    length(outfile) != 1 ||
+    stringr::str_length(stringr::str_squish(outfile))==0
+  ) {
+    stop("`outfile` must be a character string or NA")
+  }
+
+  # clean ext to ensure no leading dot for internal logic
+  clean_ext <- stringr::str_remove(ext, "^\\.")
+
+  # check for existing extension
+  # look for a . followed by 1 or more characters at the end
+  has_extension <- stringr::str_detect(outfile, "\\.[[:alnum:]]+$")
+
+  if (!has_extension) {
+    # append the ext if none exists
+    outfile <- paste0(outfile, ".", clean_ext)
+  } else {
+    # if it has an extension, check if it's the correct ext
+    good_ext <- paste0("(?i)\\.", clean_ext, "$")
+    if (!stringr::str_detect(outfile, good_ext)) {
+      stop(
+        paste0("Invalid `outfile` extension. Expected '.", clean_ext, "'.")
+      )
+    }
+  }
+
+  # 3. Directory Check
+  parent_dir <- dirname(outfile)
+  if (!dir.exists(parent_dir)) {
+    stop(
+      paste0("The `outfile` directory '", parent_dir, "' does not exist"),
+      call. = FALSE
+    )
+  }
+
+  # Return the (possibly modified) outfile
+  return(outfile)
+}
+########################################################################################
+## 1) Segmentation
+########################################################################################
+############################################################################
+# full segmentation function
+# given an input CHM raster, target height range, and target area range.
+# the output will include a raster and `sf` polygons of the candidate segments
+# automatically adjusts segmentation method parameters using get_segmentation_params()
+############################################################################
+get_segmentation_candidates <- function(
+  chm_rast
+  , method = "watershed" # "watershed" or "dbscan"
+  , min_ht_m
+  , max_ht_m
+  , min_area_m2
+  , max_area_m2
+){
+  ########################
+  # threshold checks
+  ########################
+  max_ht_m <- max_ht_m[1]
+  min_ht_m <- min_ht_m[1]
+  min_area_m2 <- min_area_m2[1]
+  max_area_m2 <- max_area_m2[1]
+  if(
+    (is.na(tryCatch(as.numeric(max_ht_m), error = function(e) NA)) ||
+     identical(as.numeric(max_ht_m), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(max_ht_m), error = function(e) NA))) ||
+    (is.na(tryCatch(as.numeric(min_ht_m), error = function(e) NA)) ||
+     identical(as.numeric(min_ht_m), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(min_ht_m), error = function(e) NA))) ||
+    (is.na(tryCatch(as.numeric(max_area_m2), error = function(e) NA)) ||
+     identical(as.numeric(max_area_m2), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(max_area_m2), error = function(e) NA))) ||
+    (is.na(tryCatch(as.numeric(min_area_m2), error = function(e) NA)) ||
+     identical(as.numeric(min_area_m2), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(min_area_m2), error = function(e) NA))) ||
+    !(as.numeric(max_ht_m) > as.numeric(min_ht_m)) ||
+    !(as.numeric(max_area_m2) > as.numeric(min_area_m2)) ||
+    as.numeric(max_ht_m)<0 ||
+    as.numeric(min_ht_m)<0 ||
+    as.numeric(min_area_m2)<0 ||
+    as.numeric(max_area_m2)<0
+  ){
+    # Code to execute if any condition is met (e.g., print an error message)
+    stop("Error: One or more of `min_ht_m`,`max_ht_m`,`min_area_m2`,`max_area_m2` are not valid numbers, or the conditions max_area_m2>min_area_m2 or max_ht_m>min_ht_m are not met.")
+  }else{
+    max_ht_m <- as.numeric(max_ht_m)[1]
+    min_ht_m <- as.numeric(min_ht_m)[1]
+    min_area_m2 <- as.numeric(min_area_m2)[1]
+    max_area_m2 <- as.numeric(max_area_m2)[1]
+  }
+
+  ########################
+  # check raster
+  ########################
+  # convert to SpatRaster if input is from 'raster' package
+  if(
+    inherits(chm_rast, "RasterStack")
+    || inherits(chm_rast, "RasterBrick")
+  ){
+    chm_rast <- terra::rast(chm_rast)
+  }else if(!inherits(chm_rast, "SpatRaster")){
+    stop("Input 'chm_rast' must be a SpatRaster from the `terra` package")
+  }
+  # first layer only
+  if(terra::nlyr(chm_rast)>1){warning("...only using first layer of raster stack for segmentation")}
+  chm_rast <- chm_rast %>% terra::subset(subset = 1)
+  # na check
+  if(
+    as.numeric(terra::global(chm_rast, fun = "isNA")) == terra::ncell(chm_rast)
+    # || as.numeric(terra::global(chm_rast, fun = "isNA")) >= round(terra::ncell(chm_rast)*0.98)
+  ){
+    stop("Input 'chm_rast' has all missing values")
+  }
+
+  ########################
+  # check method
+  ########################
+  check_segmentation_method_ans <- check_segmentation_method(method = method)
+  if(length(check_segmentation_method_ans)>1){
+    warning(
+      paste0( "...using only ", check_segmentation_method_ans[1], " method for segmentation")
+    )
+  }
+  check_segmentation_method_ans <- check_segmentation_method_ans[1]
+
+  ########################
+  # slice CHM
+  ########################
+  # lower CHM slice
+  slice_chm_rast <- terra::clamp(chm_rast, upper = max_ht_m, lower = 0, values = F)
+  # na check
+  if(
+    as.numeric(terra::global(slice_chm_rast, fun = "isNA")) == terra::ncell(slice_chm_rast)
+  ){
+    stop("Input 'chm_rast' has no values at or below 'max_ht_m' value")
+  }
+
+  ########################
+  # get_segmentation_params
+  ########################
+  # get_segmentation_params
+  seg_params_ans <- get_segmentation_params(
+      max_ht_m = max_ht_m
+      , min_ht_m = min_ht_m
+      , min_area_m2 = min_area_m2
+      , max_area_m2 = max_area_m2
+      # , pts_per_m2 = NULL
+      , rast_res_m = terra::res(slice_chm_rast)[1]
+    )
+  # # huh?
+  # dplyr::glimpse(seg_params_ans)
+
+  ########################
+  # segmentation
+  ########################
+  if(check_segmentation_method_ans=="watershed"){
+    # ?EBImage::watershed
+    segs_rast <- get_segs_watershed(
+      chm_rast = slice_chm_rast
+      , tol = seg_params_ans$watershed$tol
+      , ext = seg_params_ans$watershed$ext
+      # in case file is not in-memory, how big should tile buffers be?
+        # set to maximum expected target object diameter
+      , buffer_m = ceiling( sqrt(max_area_m2/pi)*2 )
+    )
+  }else if(check_segmentation_method_ans=="dbscan"){
+    segs_rast <- get_segs_dbscan(
+      chm_rast = slice_chm_rast
+      , eps = seg_params_ans$dbscan$eps
+      , minPts = seg_params_ans$dbscan$minPts
+    )
+  }else{
+    stop("incorrect method selected")
+  }
+
+  # na check
+  if(
+    as.numeric(terra::global(segs_rast, fun = "isNA")) == terra::ncell(segs_rast)
+  ){
+    warning("no segmentation candidates detected")
+  }
+
+  ########################
+  # rast to poly
+  ########################
+  segs_sf <- rast_to_poly(segs_rast)
+
+  ########################
+  # return
+  ########################
+  return(list(
+    segs_rast = segs_rast
+    , segs_sf = segs_sf
+    , slice_chm_rast = slice_chm_rast
+    , seg_mthd_params = seg_params_ans
+  ))
+}
+############################################################################
+# intermediate function to check string method
+############################################################################
+  # check the `method` argument
+  check_segmentation_method <- function(method) {
+    if(!inherits(method,"character")){stop("no method")}
+      # clean method
+      method <- dplyr::coalesce(method, "") %>%
+        tolower() %>%
+        stringr::str_squish() %>%
+        unique()
+      # potential methods
+      pot_methods <- c("watershed", "dbscan") %>% unique()
+      find_method <- paste(pot_methods, collapse="|")
+      # can i find one?
+      which_methods <- stringr::str_extract_all(string = method, pattern = find_method) %>%
+        unlist() %>%
+        unique()
+      # make sure at least one is selected
+      n_methods_not <- base::setdiff(
+          pot_methods
+          , which_methods
+        ) %>%
+        length()
+
+      if(n_methods_not>=length(pot_methods)){
+        stop(paste0(
+          "`method` parameter must be one of:\n"
+          , "    "
+          , paste(pot_methods, collapse=", ")
+        ))
+      }else{
+        return(which_methods)
+      }
+  }
+  # check_segmentation_method(c("watershed", "dbscn", "dbsca"))
+  # check_segmentation_method("dbscn")
+############################################################################
+# intermediate function to get_segmentation_params
+# dynamic logic to bridge the gap between the expectation of the target object form (height and area thresholds)
+# and the existence of object in the data by using geometric ratios.
+# For watershed segmentation, the tolerance (tol) is scaled to the height range of the target objects
+# to ensure sensitivity to the vertical variability.
+# The extent (ext) is calculated by converting the physical radius of the smallest expected object into
+# a pixel count based on the raster resolution.
+# For DBSCAN, the epsilon parameter (eps) is calculated to bridge the average
+# gap between points (or the distance between raster cell centroids) but is capped to
+# prevent the merging of adjacent objects. The minimum points (minPts) parameter is scaled by the
+# ratio of the search area (eps) to the total object area to ensure that a
+# cluster only forms if the local point density is representative of a valid target object.
+############################################################################
+# function to get segmentation parameters
+get_segmentation_params <- function(
+  min_ht_m
+  , max_ht_m
+  , min_area_m2
+  , max_area_m2
+  , pts_per_m2 = NULL
+  , rast_res_m = NULL
+){
+
+  # check for missing required values
+  if (missing(max_ht_m) || missing(min_ht_m) ||
+      missing(min_area_m2) || missing(max_area_m2)) {
+    stop("all geometric constraints (max_ht_m, min_ht_m, min_area_m2, max_area_m2) must be defined.")
+  }
+
+  # geometric param validation
+  if (max_ht_m <= min_ht_m) {
+    stop("max_ht_m must be greater than min_ht_m.")
+  }
+  if (max_area_m2 <= min_area_m2) {
+    stop("max_area_m2 must be greater than min_area_m2.")
+  }
+  if (min_ht_m < 0 || min_area_m2 < 0) {
+    stop("height and area constraints must be positive values.")
+  }
+
+  # data structure validation and calculation
+  if (is.null(pts_per_m2) && is.null(rast_res_m)) {
+    stop("must provide either 'pts_per_m2' (pts/m2) or 'rast_res_m' (m/pixel).")
+  }
+
+  # calculate and validate data str values
+  if (is.null(pts_per_m2)) {
+    if (rast_res_m <= 0) stop("rast_res_m must be a positive value.")
+    pts_per_m2 <- 1 / (rast_res_m^2)
+  }
+  if (is.null(rast_res_m)) {
+    if (pts_per_m2 <= 0) stop("pts_per_m2 must be a positive value.")
+    rast_res_m <- 1 / sqrt(pts_per_m2)
+  }
+  ################################################
+  # lidR::watershed / EBImage::watershed
+  ################################################
+  # lidR::watershed `tol`
+  # set based on the height range
+  height_range <- max_ht_m - min_ht_m
+  # scale it to increase the sensitivity to distinguish smaller objects
+  tol_val <- height_range * 0.5
+
+  # lidR::watershed `ext`
+  # use ~half~ quarter the radius of the minimum object to increase sensitivity
+  # this helps prevent merging nearby objects (under-segmentation)
+  target_radius_m <- sqrt(min_area_m2 / pi)
+  effective_radius_m <- target_radius_m * 0.25
+  ext_val <- max(1, round(effective_radius_m / rast_res_m))
+
+  ################################################
+  # dbscan::dbscan
+  ################################################
+  # dbscan::dbscan `eps` (epsilon)
+  # [dos Santos et al. (2025)](https://doi.org/10.3390/rs17040651) recommended to set this value based:
+    # "on the minimum cluster size to be detected and point density"
+
+  # start by scaling based on point spacing (1.5x average distance between points).
+  spacing <- 1 / sqrt(pts_per_m2)
+  connectivity_eps <- 1.5 * spacing
+  # eps should not exceed 25% of the minimum object radius to avoid merging separate objects into one cluster
+  max_allowable_eps <- target_radius_m * 0.25
+  # cap eps by the object size constraint
+  eps_val <- min(connectivity_eps, max_allowable_eps)
+
+  # dbscan::dbscan `minPts`
+  # based on expected points within the epsilon neighborhood area
+
+  # get expected number of points in an object of min_area_m2
+  expected_pts_in_min_object <- min_area_m2 * pts_per_m2
+
+  # ensure a core point is surrounded by a density of points based on min_area_m2 size at point density
+  # scale the total expected points of the minimum object
+    # by the ratio of the epsilon-neighborhood area to the total minimum object area
+    # to ensure a core point meets the expected density of the target object
+  pts_ratio_calc <- expected_pts_in_min_object * (eps_val^2 / target_radius_m^2)
+  min_pts_val <- max(
+    5 # don't go any lower than the dbscan::dbscan() default
+    , round(pts_ratio_calc)
+  )
+
+  # return
+  return(list(
+    data_summary = list(pts_per_m2 = pts_per_m2, rast_res_m = rast_res_m),
+    watershed = list(tol = tol_val, ext = ext_val),
+    dbscan = list(eps = eps_val, minPts = min_pts_val)
+  ))
+}
+############################################################################
+# lidR::watershed or tile and lidR::watershed
+############################################################################
+# lidR::watershed(chm = aoi_chm_rast)() %>% terra::freq() %>% dplyr::glimpse()
+get_segs_watershed <- function(
+  chm_rast
+  , tol
+  , ext
+  # in case file is not in-memory, how big should tile buffers be?
+  # set to maximum expected target object diameter
+  , buffer_m = 10
+){
+  # is file path or current terra obj?
+  if(inherits(chm_rast, "character") && stringr::str_ends(chm_rast,"\\.tif$|\\.tiff$")) {
+    if(!file.exists(chm_rast)) {
+      stop("the provided file path does not exist.")
+    }
+    chm_rast <- terra::rast(chm_rast)
+  }else if(inherits(chm_rast, "SpatRaster")) {
+    chm_rast <- chm_rast
+  }else{
+    stop("'chm_rast' must be a .tif|.tiff file path string or a SpatRaster object.")
+  }
+
+  # memory check and direct processing
+  # if the raster is already in memory, process directly to avoid tiling
+  if(terra::inMemory(chm_rast)) {
+    message("Raster is already in memory. Processing directly with lidR::watershed().")
+    segs_rast <- lidR::watershed(
+      chm = chm_rast
+      # th_tree = Threshold below which a pixel cannot be a tree. Default is 2.
+      , th_tree = 0.01
+      # tol = minimum height of the object in the units of image intensity between its highest point (seed)
+        # and the point where it contacts another object (checked for every contact pixel).
+        # If the height is smaller than the tolerance, the object will be combined with one of its neighbors, which is the highest.
+        # Tolerance should be chosen according to the range of x
+      , tol = tol # max_ht_m-min_ht_m
+      # ext = Radius of the neighborhood in pixels for the detection of neighboring objects.
+        # Higher value smoothes out small objects.
+      , ext = ext # 1
+    )()
+    # match names of get_segs_dbscan()
+    names(segs_rast) <- "cluster"
+
+    return(segs_rast)
+  }
+
+  # tiling setup
+  message("raster is on disk (not inMemory). starting tile processing...")
+  tile_dir <- tempfile("tiles_")
+  dir.create(tile_dir,showWarnings = F)
+  poly_dir <- base::tempfile("polys_")
+  dir.create(poly_dir,showWarnings = F)
+
+  # tile size, dynamically breaks the raster into 10 regions...might not work for realllllly huge rasters
+  # tile_size <- c(
+  #     round(terra::nrow(chm_rast)/10)
+  #     , round(terra::ncol(chm_rast)/10)
+  #   )
+
+  # get_tile_size()...might work for realllllly huge rasters
+  tile_size <- get_tile_size(chm_rast, memory_risk = 0.65)[["tile_size"]]
+  tile_radius_cells <- ceiling( tile_size/2 ) # tile radius
+
+  # need to make sure the buffer isn't larger than the tile radius...otherwise there's no point in tiling because we're processing a similarly large area
+  # = the number of additional rows and columns added to each tile.
+
+  buffer_size <- min(
+    round(buffer_m/terra::res(chm_rast)[1])
+    , tile_radius_cells
+  )
+
+  # generate buffered tiles on disk
+  # ?terra::makeTiles
+  tile_files <- terra::makeTiles(
+    x = chm_rast
+    # specify rows and columns for tiles in pixels/cells
+    , y = tile_size
+    , filename = file.path(tile_dir, "tile_.tif")
+    , buffer = buffer_size
+    , overwrite = T
+    , na.rm = T
+  )
+
+  # process of each tile and save segmented polygons to disk
+  # result of purrr::map_chr is a list of file names
+  poly_files <- purrr::map_chr(
+    tile_files
+    , function(t_path) {
+      # load tile
+      tile_rast <- terra::rast(t_path)
+      tile_rast <- tile_rast*1 # force tile into memory
+      # if nothing, save no file path
+      if(
+        as.numeric(terra::global(tile_rast, fun = "isNA")) == terra::ncell(tile_rast)
+      ){ return(as.character(NA)) }
+      # run watershed
+      segs_rast <- lidR::watershed(
+        chm = tile_rast
+        # th_tree = Threshold below which a pixel cannot be a tree. Default is 2.
+        , th_tree = 0.01
+        # tol = minimum height of the object in the units of image intensity between its highest point (seed)
+          # and the point where it contacts another object (checked for every contact pixel).
+          # If the height is smaller than the tolerance, the object will be combined with one of its neighbors, which is the highest.
+          # Tolerance should be chosen according to the range of x
+        , tol = tol # max_ht_m-min_ht_m
+        # ext = Radius of the neighborhood in pixels for the detection of neighboring objects.
+          # Higher value smoothes out small objects.
+        , ext = ext # 1
+      )()
+      # match names of get_segs_dbscan()
+      names(segs_rast) <- "cluster"
+
+      # convert to poly
+      segs_poly <- terra::as.polygons(segs_rast, values = TRUE, aggregate = TRUE)
+
+      # if nothing, save no file path
+      if(nrow(segs_poly) == 0){ return(as.character(NA)) }
+
+      # boundary (in buffer) vs interior
+      e <- terra::ext(tile_rast)
+      res <- terra::res(tile_rast)
+      # dimensions in meters of buffer
+      ## where in terra::makeTiles :
+      # buffer = integer. The number of additional rows and columns added to each tile. Can be a single number
+      #   , or two numbers to specify a separate number of rows and columns.
+      #   This allows for creating overlapping tiles that can be used for computing spatial context dependent
+      #   values with e.g. focal. The expansion is only inside x, no rows or columns outside of x are added
+      # ?terra::makeTiles
+      # we added a constant number of rows and columns with buffer_size
+      dist_x <- buffer_size * res[1] # meters
+      dist_y <- buffer_size * res[2] # meters
+
+      # tile must be wider/taller than 2x buffer
+      can_shrink_x <- (e$xmax - e$xmin) > (2 * dist_x)
+      can_shrink_y <- (e$ymax - e$ymin) > (2 * dist_y)
+
+      if(can_shrink_x && can_shrink_y){
+        core_ext <- terra::ext(
+          e$xmin + dist_x
+          , e$xmax - dist_x
+          , e$ymin + dist_y
+          , e$ymax - dist_y
+        )
+
+        # ?terra::relate
+        is_within <- terra::relate(segs_poly, terra::as.polygons(core_ext), relation = "within")
+        segs_poly$on_buffer <- !as.vector(is_within) # T = boundary segments
+      }else{
+        # if the tile is too small to have a core everything is a boundary segment
+        segs_poly$on_buffer <- T # T = boundary segments
+      }
+
+      # add flags for boundary processing
+      segs_poly$poly_area <- terra::expanse(segs_poly) # area of poly
+      # give a unique id to every polygon before merging
+      segs_poly$temp_id <- paste0(basename(t_path), "_", 1:nrow(segs_poly))
+
+      # save as temp gpkg
+      out_path <- file.path(poly_dir, paste0(basename(t_path), ".gpkg"))
+      terra::writeVector(segs_poly, out_path, overwrite = TRUE)
+      return(out_path)
+    }
+  )
+  # keep only files with polys
+  poly_files <- poly_files[!is.na(poly_files)]
+  if(length(poly_files)==0 || all(is.na(poly_files))){
+    stop("no segments found with `lidR::watershed()` using input data and `tol`, `ext` settings")
+  }
+  # boundary segments processing
+  # keep all core polygons since they only appear in one tile
+  # for all polygons that are in a boundary (on_buffer), keep the largest if it overlaps with another from a neighbor tile
+  # bring together core and processed boundary segments
+  # message("merging tile polygons segments and processing buffer overlaps...")
+
+  # final datas
+  final_interior <- NULL
+  final_boundary <- NULL
+
+  for(i in 1:length(poly_files)) {
+    # read current tile polys
+    current_tile_vec <- terra::vect(poly_files[i])
+
+    # get core/interior (no olaps possible)
+    tile_interior <- current_tile_vec[!current_tile_vec$on_buffer]
+    # add to final datas
+    if(is.null(final_interior)) {
+      final_interior <- tile_interior
+    } else {
+      final_interior <- rbind(final_interior, tile_interior)
+    }
+
+    # get boundary (olaps possible)
+    tile_boundary <- current_tile_vec[current_tile_vec$on_buffer]
+
+    # compare segs in boundary on the current tile to the final, already processed segs
+    if (nrow(tile_boundary) > 0) {
+      if (is.null(final_boundary)) {
+        final_boundary <- tile_boundary
+      }else{
+        # compare tile_boundary against the accumulated final_boundary
+        adj_matrix <- terra::relate(tile_boundary, final_boundary, relation = "intersects")
+
+        # find olaps in current tile with already processed boundary segs
+        has_olap <- rowSums(adj_matrix) > 0
+
+        # no olap keep as-is
+        safe_boundary <- tile_boundary[!has_olap]
+
+        # for olaps, keep the largest seg for overlapping cluster
+        if( any(has_olap) ){
+          olap_tile_segments <- tile_boundary[has_olap]
+          keeps_from_tile <- c()
+          remove_ids <- c()
+          for(j in 1:nrow(olap_tile_segments)) {
+            # which final segments this tile segment touches
+            match_indxs <- which(adj_matrix[which(has_olap)[j], ] == TRUE)
+            matching_final_segs <- final_boundary[match_indxs]
+
+            # compare current seg area to the largest matching segment in the final
+            max_final_area <- max(matching_final_segs$poly_area)
+
+            if(olap_tile_segments$poly_area[j] > max_final_area) {
+              # current segment is larger, mark finals for removal instead
+              keeps_from_tile <- c(keeps_from_tile, olap_tile_segments$temp_id[j])
+              remove_ids <- c(remove_ids, matching_final_segs$temp_id)
+            }
+          }
+          # update final_boundary: remove smaller, add largest
+          if (length(remove_ids) > 0) {
+            final_boundary <- final_boundary[!(final_boundary$temp_id %in% remove_ids)]
+          }
+
+          largers <- olap_tile_segments[olap_tile_segments$temp_id %in% keeps_from_tile]
+          final_boundary <- rbind(final_boundary, safe_boundary, largers)
+        }else{
+          final_boundary <- rbind(final_boundary, safe_boundary)
+        }
+
+      }
+    }
+    # clean up
+    rm(current_tile_vec)
+  }
+
+  # combine interior with procerssed boundary segs
+  final_vec <- rbind(final_interior, final_boundary)
+  final_vec$cluster <- 1:nrow(final_vec)
+
+  final_raster <- terra::rasterize(
+    x = final_vec
+    , y = chm_rast
+    , field = "cluster"
+  )
+
+  # clean up temp tiles
+  unlink(tile_dir, recursive = TRUE)
+  unlink(poly_dir, recursive = TRUE)
+
+  return(final_raster)
+}
+############################################################################
+# intermediate function to set tile size based on raster size and mem available
+############################################################################
+  get_tile_size <- function(
+    rast
+    , memory_risk = 0.35
+    # low risk (0.01 – 0.20): creates more tiles but is unlikely to crash R
+    # med risk (0.2-0.5): reserves ~95% of free RAM for the remaining calculations
+    # high risk (0.5-0.7): fewer tiles but more likely to crash R
+    # dangerous (>0.7): very likely to crash R
+  ){
+    # is file path or current terra obj?
+    if(inherits(rast, "character") && stringr::str_ends(rast,"\\.tif$|\\.tiff$")) {
+      if(!file.exists(rast)) {
+        stop("the provided file path does not exist.")
+      }
+      my_rast <- terra::rast(rast)
+    }else if(inherits(rast, "SpatRaster")) {
+      my_rast <- rast
+    }else{
+      stop("'rast' must be a .tif|.tiff file path string or a SpatRaster object.")
+    }
+
+    # terra::free_RAM() returns the amount of RAM that is available in Bytes
+    # ?terra::free_RAM
+    free_ram <- terra::free_RAM()
+
+    # logic: (available ram * risk tolerance) / bytes per double-precision pixel (8)
+    # higher risk tolerance allows more pixels per tile, reducing total tile count
+    max_pixels <- (free_ram * memory_risk) / 8
+
+    # calculate tile dimension
+    # sqrt to define side length in pixels
+    optimal_side <- floor(sqrt(max_pixels))
+
+    # specify the number of rows and columns for each tile (1 or 2 numbers if the number of rows and columns is not the same)
+    # ?terra::makeTiles 'y' argument
+    # limit the tile size at the actual raster dimensions
+    optimal_side <- min(optimal_side, terra::nrow(my_rast), terra::ncol(my_rast))
+
+    # total tile count based on rast size
+    n_tiles_cols <- ceiling(terra::ncol(my_rast) / optimal_side)
+    n_tiles_rows <- ceiling(terra::nrow(my_rast) / optimal_side)
+
+    # message(paste0("current free ram: ", round(free_ram / 1e9, 2), " gb"))
+    # message(paste0("memory risk: ", memory_risk))
+    # message(paste0("my tile size: ", optimal_side, " pixels"))
+
+    return(list(
+      # tile_size = number of rows and columns for each zone in terra::makeTiles 'y' argument
+      tile_size = optimal_side
+      , total_tiles = n_tiles_cols * n_tiles_rows
+    ))
+  }
+############################################################################
+# DBSCAN function
+# to align input of raster and output of raster as in lidR::watershed()
+# this enables dbscan, typically a point-based method,
+# to be implemented with raster input data by using cell centroids
+############################################################################
+get_segs_dbscan <- function(
+  chm_rast
+  , eps
+  , minPts
+) {
+  ########################
+  # check raster
+  ########################
+  # convert to SpatRaster if input is from 'raster' package
+  if(
+    inherits(chm_rast, "RasterStack")
+    || inherits(chm_rast, "RasterBrick")
+  ){
+    chm_rast <- terra::rast(chm_rast)
+  }else if(!inherits(chm_rast, "SpatRaster")){
+    stop("Input 'chm_rast' must be a SpatRaster from the `terra` package")
+  }
+  # first layer only
+  if(terra::nlyr(chm_rast)>1){warning("...only using first layer of raster stack for segmentation")}
+  chm_rast <- chm_rast %>% terra::subset(subset = 1)
+  # na check
+  if(
+    as.numeric(terra::global(chm_rast, fun = "isNA")) == terra::ncell(chm_rast)
+    # || as.numeric(terra::global(chm_rast, fun = "isNA")) >= round(terra::ncell(chm_rast)*0.98)
+  ){
+    stop("Input 'chm_rast' has all missing values")
+  }
+
+  ########################
+  # get cell centroids as points
+  ########################
+  ## XY df
+  xy_df_temp <-
+    chm_rast %>%
+    # na.rm = T ensures we only process cells with CHM data
+    terra::as.data.frame(xy = T, na.rm = T) %>%
+    dplyr::rename(
+      X=x,Y=y
+      , f=3
+    ) %>%
+    dplyr::select(X,Y)
+  # huh?
+  # xy_df_temp %>% dplyr::glimpse()
+  # ggplot2::ggplot(data = xy_df_temp, mapping = ggplot2::aes(x=X,y=Y)) + ggplot2::geom_point(shape=".")
+
+  if(nrow(xy_df_temp)==0){stop("Input 'chm_rast' has all missing values")}
+
+  ########################
+  # dbscan::dbscan()
+  ########################
+  # ?dbscan::dbscan
+  dbscan_ans_temp <- dbscan::dbscan(
+    x = xy_df_temp
+    # eps primarily controls the spatial extent of a cluster,
+    # as it defines how far points can be from each other to be considered part of the same dense region.
+    , eps = eps
+    # minPts primarily controls the minimum density of a cluster,
+    # as it dictates how many points must be packed together within that eps radius.
+    , minPts = minPts
+  )
+  # ensure the result is a vector with a `cluster` identifier for each point we provided to the algorithm
+  if(
+    !identical(
+      length(dbscan_ans_temp$cluster)
+      , nrow(xy_df_temp)
+    )
+  ){
+    stop("dbscan::dbscan() length mismatch")
+  }
+  # add the cluster identifier to the XY point data
+  xy_df_temp$cluster <- dbscan_ans_temp$cluster
+  # # what?
+  # xy_df_temp %>%
+  #   dplyr::count(cluster) %>%
+  #   dplyr::arrange(desc(n)) %>%
+  #   head()
+
+  if(
+    nrow( xy_df_temp %>% dplyr::filter(cluster!=0) ) == 0
+  ){
+    stop("dbscan::dbscan() result is all noise based on 'eps' and 'minPts'. try adjusting these parameters.")
+  }
+
+  ########################
+  # back to raster data
+  ########################
+  # to maintain processing consistency with the watershed result
+    # we'll rasterize the XY data back to the original CHM grid
+    # this will result in a raster with cells segmented and given the unique identifier.
+    # *Note*: the cells/segments classified as noise from the `dbscan::dbscan()`
+    # algorithm are marked with a cluster identifier as "0"...we'll remove these prior to rasterizing
+  # fill the rast with the cluster values
+  dbscan_segs <- terra::rasterize(
+    x = xy_df_temp %>%
+      dplyr::filter(cluster!=0) %>%
+      sf::st_as_sf(coords = c("X", "Y"), crs = terra::crs(chm_rast), remove = F) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(cluster) %>%
+      terra::vect()
+    , y = chm_rast
+    , field = "cluster"
+  ) %>%
+  setNames("cluster")
+  # the result is a raster with cells segmented and given a unique identifier
+  # this is a raster
+  # dbscan_segs
+  return(dbscan_segs)
+}
+############################################################################
+# intermediate function to convert rast to polygon
+############################################################################
+rast_to_poly <- function(rast){
+  # ?terra::as.polygons
+  rast %>%
+    terra::subset(1) %>%
+    terra::as.polygons(round = F, aggregate = T, values = T, extent = F, na.rm = T) %>%
+    setNames("pred_id") %>%
+    sf::st_as_sf() %>%
+    sf::st_simplify() %>%
+    sf::st_make_valid() %>%
+    dplyr::filter(sf::st_is_valid(.))
+}
+############################################################################
+# intermediate function to st_filter_area
+############################################################################
+st_filter_area <- function(sf_data, min_area_m2, max_area_m2) {
+  # check input data
+  if(!inherits(sf_data, "sf")){stop("must pass `sf` data object")}
+  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
+    stop(paste0(
+      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
+    ))
+  }
+  # check thresholds
+  min_area_m2 <- min_area_m2[1]
+  max_area_m2 <- max_area_m2[1]
+  if(
+    (is.na(tryCatch(as.numeric(max_area_m2), error = function(e) NA)) ||
+     identical(as.numeric(max_area_m2), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(max_area_m2), error = function(e) NA))) ||
+    (is.na(tryCatch(as.numeric(min_area_m2), error = function(e) NA)) ||
+     identical(as.numeric(min_area_m2), numeric(0)) ||
+     !is.numeric(tryCatch(as.numeric(min_area_m2), error = function(e) NA))) ||
+    !(as.numeric(max_area_m2) > as.numeric(min_area_m2)) ||
+    as.numeric(min_area_m2)<0 ||
+    as.numeric(max_area_m2)<0
+  ){
+    # Code to execute if any condition is met (e.g., print an error message)
+    stop("Error: One or more of `min_area_m2`,`max_area_m2` are not valid numbers, or the condition max_area_m2>min_area_m2 not met.")
+  }else{
+    min_area_m2 <- as.numeric(min_area_m2)[1]
+    max_area_m2 <- as.numeric(max_area_m2)[1]
+  }
+  # return
+  return(
+    sf_data %>%
+      dplyr::ungroup() %>%
+      # area filter
+      dplyr::mutate(area_xxxx = sf::st_area(.) %>% as.numeric()) %>%
+      # filter out the segments that don't meet the size thresholds
+      dplyr::filter(
+        dplyr::coalesce(area_xxxx,0) >= min_area_m2
+        & dplyr::coalesce(area_xxxx,0) <= max_area_m2
+      ) %>%
+      dplyr::select(-c(area_xxxx))
+  )
+}
+############################################################################
+# intermediate function to st_convexity_filter
+############################################################################
+st_convexity_filter <- function(
+  sf_data
+  # min required overlap between the polygon and the convex hull of the polygon
+  , min_convexity_ratio = 0.7
+) {
+  if(!inherits(sf_data, "sf")){stop("must pass `sf` data object")}
+  # if not polygons
+  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
+    stop(paste0(
+      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
+    ))
+  }
+  # convex hulls of segments
+  poly_chull <-
+    sf_data %>%
+    sf::st_convex_hull() %>%
+    sf::st_simplify() %>%
+    sf::st_make_valid()
+    # dplyr::filter(sf::st_is_valid(.))
+  # compare areas
+  if(nrow(poly_chull)!=nrow(sf_data)){
+    stop("could not make valid convex hulls from provided polygon data")
+  }else{
+    area_comp <- sf_data %>%
+      dplyr::mutate(area_xxxx = sf::st_area(.) %>% as.numeric()) %>%
+      dplyr::bind_cols(
+        poly_chull %>%
+          dplyr::mutate(chull_area_xxxx = sf::st_area(.) %>% as.numeric()) %>%
+          dplyr::select(chull_area_xxxx) %>%
+          sf::st_drop_geometry()
+      ) %>%
+      dplyr::mutate(
+        convexity_ratio = area_xxxx/chull_area_xxxx
+      ) %>%
+      dplyr::filter(
+        convexity_ratio >= min_convexity_ratio
+      ) %>%
+      dplyr::select(-c(area_xxxx,chull_area_xxxx))
+    return(area_comp)
+  }
+}
+############################################################################
+# intermediate function to st_circularity_filter
+############################################################################
+st_circularity_filter <- function(
+  sf_data
+  # min required overlap between the polygon and the minimum bounding circle of the polygon
+  , min_circularity_ratio = 0.6
+) {
+  if(!inherits(sf_data, "sf")){stop("must pass `sf` data object")}
+  # if not polygons
+  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
+    stop(paste0(
+      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
+    ))
+  }
+  # minimum bounding circle of segments
+  poly_mbc <-
+    sf_data %>%
+    lwgeom::st_minimum_bounding_circle() %>%
+    sf::st_simplify() %>%
+    sf::st_make_valid()
+    # dplyr::filter(sf::st_is_valid(.))
+  # compare areas
+  if(nrow(poly_mbc)!=nrow(sf_data)){
+    stop("could not make valid minimum bounding circle from provided polygon data")
+  }else{
+    area_comp <- sf_data %>%
+      dplyr::mutate(area_xxxx = sf::st_area(.) %>% as.numeric()) %>%
+      dplyr::bind_cols(
+        poly_mbc %>%
+          dplyr::mutate(mbc_area_xxxx = sf::st_area(.) %>% as.numeric()) %>%
+          dplyr::select(mbc_area_xxxx) %>%
+          sf::st_drop_geometry()
+      ) %>%
+      dplyr::mutate(
+        circularity_ratio = area_xxxx/mbc_area_xxxx
+      ) %>%
+      dplyr::filter(
+        circularity_ratio >= min_circularity_ratio
+      ) %>%
+      dplyr::select(-c(area_xxxx,mbc_area_xxxx))
+    return(area_comp)
+  }
+}
+########################################################################################
+## calculate raster-based area, height, and volume using zonal stats
+########################################################################################
+get_structural_metrics <- function(
+    sf_data
+    , chm_rast
+    # , sf_id = NA
+) {
+  # check polygons
+  if(!inherits(sf_data, "sf")){stop("must include `sf` data object in 'sf_data'")}
+  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
+    stop(paste0(
+      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
+    ))
+  }
+  sf_data <- sf_data %>% dplyr::ungroup()
+
+  # check raster
+  # convert to SpatRaster if input is from 'raster' package
+  if(
+    inherits(chm_rast, "RasterStack")
+    || inherits(chm_rast, "RasterBrick")
+  ){
+    chm_rast <- terra::rast(chm_rast)
+  }else if(!inherits(chm_rast, "SpatRaster")){
+    stop("Input 'chm_rast' must be a SpatRaster from the `terra` package")
+  }
+  chm_rast <- chm_rast %>% terra::subset(subset = 1)
+  if(
+    as.numeric(terra::global(chm_rast, fun = "isNA")) == terra::ncell(chm_rast)
+    # || as.numeric(terra::global(chm_rast, fun = "isNA")) >= round(terra::ncell(chm_rast)*0.98)
+  ){
+    stop("Input 'chm_rast' has all missing values")
+  }
+
+  # # check id
+  # if(!inherits(sf_id, "character")){
+  #   # stop("must include 'sf_id' as the unique identifier")
+  #   sf_data <- sf_data %>%
+  #     dplyr::mutate(idxxxxx = dplyr::row_number())
+  #   sf_id <- "idxxxxx"
+  # }else{
+  #   if( !any( stringr::str_equal(names(sf_data), sf_id) ) ){
+  #     stop(paste0("could not locate '",sf_id,"' in sf_data"))
+  #   }
+  # }
+
+  # check overlap
+  # Returns TRUE if any part of the vector geometry intersects the raster extent
+  if(
+    !any(terra::is.related(
+      x = sf_data %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , y = terra::ext(chm_rast)
+      , relation = "intersects"
+    ))
+  ){
+    stop("Input 'sf_data' does not overlap with 'chm_rast'")
+  }
+  #################################
+  # area, volume of each cell
+  #################################
+  area_rast_temp <- terra::cellSize(chm_rast)
+  names(area_rast_temp) <- "area_m2"
+  # area_rast_temp %>% terra::plot()
+  # then, multiply area by the CHM (elevation) for each cell to get a raster with cell volumes
+  vol_rast_temp <- area_rast_temp*chm_rast
+  names(vol_rast_temp) <- "volume_m3"
+  # vol_rast_temp %>% terra::plot()
+  #################################
+  # zonal stats
+  #################################
+  # sum area within each segment to get the total area
+  area_df_temp <- terra::zonal(
+      x = area_rast_temp
+      , z = sf_data %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , fun = "sum", na.rm = T
+    ) %>%
+    setNames("area_m2") %>%
+    dplyr::mutate(area_m2 = dplyr::na_if(area_m2, NaN))
+  # area_df_temp %>% dplyr::glimpse()
+  # sum volume within each segment to get the total volume
+  vol_df_temp <- terra::zonal(
+      x = vol_rast_temp
+      , z = sf_data %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , fun = "sum", na.rm = T
+    ) %>%
+    setNames("volume_m3") %>%
+    dplyr::mutate(volume_m3 = dplyr::na_if(volume_m3, NaN))
+  # vol_df_temp %>% dplyr::glimpse()
+  # max ht within each segment to get the max ht
+  ht_df_temp <- terra::zonal(
+      x = chm_rast
+      , z = sf_data %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , fun = "max", na.rm = T
+    ) %>%
+    setNames("max_height_m") %>%
+    dplyr::mutate(max_height_m = dplyr::na_if(max_height_m, NaN))
+  #################################
+  # attach to sf
+  #################################
+  if(
+    !identical(
+      nrow(sf_data)
+      , nrow(area_df_temp)
+      , nrow(vol_df_temp)
+      , nrow(ht_df_temp)
+    )
+  ){
+    stop("unable to find data in raster for given vectors")
+  }
+
+  ret_dta <- sf_data %>%
+    dplyr::select( -dplyr::any_of(c(
+      "hey_xxxxxxxxxx"
+      , "area_m2"
+      , "volume_m3"
+      , "max_height_m"
+      , "volume_per_area"
+    ))) %>%
+    dplyr::bind_cols(
+      area_df_temp
+      , vol_df_temp
+      , ht_df_temp
+    ) %>%
+    dplyr::mutate(
+      volume_per_area = volume_m3/area_m2
+    )
+  # ret_dta <- sf_data %>%
+  #   purrr::reduce(
+  #     list(sf_data, area_df_temp, vol_df_temp, ht_df_temp)
+  #     , dplyr::left_join
+  #     , by = sf_id
+  #   ) %>%
+  #   dplyr::mutate(
+  #     volume_per_area = volume_m3/area_m2
+  #   )
+
+  return(
+    list(
+      sf_data = ret_dta
+      , area_rast = area_rast_temp
+      , volume_rast = vol_rast_temp
+    )
+  )
+}
+###############################################################################
+# make a function to remove overlapping polygons from a sf data frame
+# if multiple polygons overlap at all, they are both/all removed
+###############################################################################
+st_remove_overlaps <- function(sf_data) {
+  if(!inherits(sf_data, "sf")){stop("must pass `sf` data object")}
+  # if not polygons
+  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
+    stop(paste0(
+      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
+    ))
+  }
+  if(nrow(sf_data)<=1){return(sf_data)}
+  # combine all touching polygons and keep the ones that overlap multiple from the original polygons
+  comb_temp <- sf_data %>%
+    dplyr::ungroup() %>%
+    sf::st_union(by_feature = F) %>%
+    sf::st_cast("POLYGON") %>%
+    sf::st_as_sf() %>%
+    sf::st_set_geometry("geometry") %>%
+    sf::st_set_crs(sf::st_crs(sf_data)) %>%
+    dplyr::mutate(new_id = dplyr::row_number()) %>%
+    dplyr::select(new_id)
+  # identify overlaps
+  overlap_temp <- comb_temp %>%
+    sf::st_intersection(sf_data) %>%
+    sf::st_drop_geometry() %>%
+    dplyr::group_by(new_id) %>%
+    dplyr::summarise(n_orig = dplyr::n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(n_orig>=2) %>%
+    dplyr::pull(new_id)
+  if(length(overlap_temp)==0){return(sf_data)}
+  # just get the overlaps
+  comb_temp <- comb_temp %>%
+    dplyr::filter(new_id %in% overlap_temp) %>%
+    sf::st_union()
+  # remove all input polygons from the original data that have any overlaps
+  return(sf::st_difference(sf_data,comb_temp))
+}

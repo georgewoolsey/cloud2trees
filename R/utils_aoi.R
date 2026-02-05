@@ -22,7 +22,7 @@
 #' @param reproject_epsg numeric. The EPSG code to reproject the data in prior to buffering and clipping.
 #' Will determine the projection of the output data.
 #'
-#' @keywords internal
+#' @noRd
 #'
 clip_tree_list_aoi <- function(
   tree_list

@@ -41,7 +41,7 @@
 #' If set to TRUE and a file path was used as the input for `trees_poly`, then a csv file will be written to the same location with the same name prefixed with "cbh_".
 #' Leave as NA to return a data.frame of the trees from tree list from `trees_poly` with CBH values added
 #'
-#' @keywords internal
+#' @noRd
 #'
 trees_cbh_sf <- function(
   trees_poly

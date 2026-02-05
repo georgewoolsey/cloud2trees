@@ -25,41 +25,7 @@
 #' @param study_boundary sf.
 #' @param max_search_dist_m numeric.
 #'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' # !!!!!!!!!!!!!!!! this is a starter example for the author if decide to cluster points
-#' # !!!!!!!!!!!!!!!! and apply raster match, fill, aggregate separately for clusters
-#' # Sample data
-#' data <- data.frame(
-#'     x = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-#'     y = c(2, 4, 3, 1, 5, 6, 7, 8, 9, 10)
-#' )
-#'
-#' # Calculate distances
-#' distances <- dist(data)
-#'
-#' # Perform hierarchical clustering
-#' hc <- hclust(distances, method = "complete")
-#'
-#' # Calculate WSS for different numbers of clusters
-#' wss <- numeric(10)
-#' for (k in 1:10) {
-#'   wss[k] <- sum(kmeans(data, centers = k)$withinss)
-#' }
-#'
-#' # Plot the elbow
-#' plot(1:10, wss, type = "b", xlab = "Number of Clusters (k)",
-#'      ylab = "Within-Cluster Sum of Squares (WSS)")
-#'
-#' # Find the optimal number of clusters (this is subjective)
-#' # You might need to visually inspect the plot
-#' optimal_k <- which.min(diff(wss, differences = 2))
-#'
-#' # Cut the dendrogram based on the optimal number of clusters
-#' clusters <- cutree(hc, k = optimal_k)
-#' }
+#' @noRd
 #'
 crop_raster_match_points <- function(
   points

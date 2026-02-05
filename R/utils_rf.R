@@ -25,7 +25,7 @@
 #'
 #' @return A numeric value to use in the `mtry` parameter of [randomForest::randomForest()]
 #'
-#' @keywords internal
+#' @noRd
 #'
 rf_tune_subsample <- function(
   predictors

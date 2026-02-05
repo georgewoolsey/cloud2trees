@@ -9,7 +9,7 @@
 #' @param basal_area_m2_per_ha numeric.
 #' @param trees_per_ha numeric.
 #'
-#' @keywords internal
+#' @noRd
 #'
 get_cruz_stand_kg_per_m3 <- function(forest_type_group_code, basal_area_m2_per_ha, trees_per_ha){
   #######################################################
