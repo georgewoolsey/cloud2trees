@@ -186,7 +186,7 @@ the <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> fun
 <span>    , fill <span class="op">=</span> <span class="cn">NA</span>, color <span class="op">=</span> <span class="st">"gold"</span>, lwd <span class="op">=</span> <span class="fl">1.3</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="100%"></p>
 <p>Let’s look at the digital terrain model (DTM) raster</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a DTM</span></span>
@@ -205,7 +205,7 @@ resolution and that the elevations vary between 0.00 and 0.62 m.</p>
 <p>we can plot the DTM using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">dtm_rast</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" alt="" width="100%"></p>
 <p>While the plot shows a fair amount of variation, let’s remember it
 only represents 0.62 m of vertical relief. If we looked at an area with
 60 m of vertical relief, for example, we would not even notice these
@@ -228,7 +228,7 @@ resolution and that the elevations vary between 2.01 and 32.02 m.</p>
 <p>we can plot the CHM using <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">terra::plot()</a></code></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span>, col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">heat.colors</a></span><span class="op">(</span><span class="fl">55</span>, alpha <span class="op">=</span> <span class="fl">0.88</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="100%"></p>
 <p>We can also plot this raster data using the <code>ggplot2</code>
 package which provides a vast collection of customization for plotting.
 Here, we’ll use a different color palette than we used with
@@ -253,7 +253,7 @@ desired.</p>
 <span>    legend.position <span class="op">=</span> <span class="st">"top"</span></span>
 <span>    , axis.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="100%"></p>
 <p>If we really like this figure and want to share it, we can write it
 out to an image file</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
@@ -375,7 +375,7 @@ we’ll combine later using <code>patchwork</code></p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># patchwork</span></span>
 <span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plt_dtm_2m</span>, <span class="va">plt_dtm_0.5m</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" alt="" width="100%"></p>
 <p>Visually it seems that the 0.5 m resolution has a smoother appearance
 than the 2.0 m resolution, but it is important to consider the
 trade-offs as the 0.5 m resolution data contains 16 times as much
@@ -546,7 +546,7 @@ resolution in the X and Y horizontal</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># patchwork</span></span>
 <span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plt_chm_0.6m</span>, <span class="va">plt_chm_0.4m</span>, <span class="va">plt_chm_0.2m</span>, ncol <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-25-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-25-1.png" class="r-plt" alt="" width="100%"></p>
 <p>As you transition from the coarser resolution CHM (0.6 m) to the
 finest resolution CHM (0.2 m), several changes are apparent. The first
 difference relates to canopy coverage: coarser resolution data covers
@@ -656,7 +656,7 @@ arguments</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># patchwork</span></span>
 <span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plt_chm_unfiltered</span>, <span class="va">plt_chm_0.2m</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-28-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-28-1.png" class="r-plt" alt="" width="100%"></p>
 <p>that might be difficult to see, so let’s create a difference raster
 for easier comparison</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
@@ -670,7 +670,7 @@ for easier comparison</p>
 <span>  <span class="fu">`!=`</span><span class="op">(</span><span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="co"># plot it</span></span>
 <span>  <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span>col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gray"</span>,<span class="st">"firebrick"</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"differences shown in red"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-29-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-29-1.png" class="r-plt" alt="" width="100%"></p>
 <p>now, let’s “slice” the unfiltered CHM to look for possible lower
 vegetation between 0.3 m and 2.2 m that is not directly underneath
 taller objects (which would occlude these objects in the CHM)</p>
@@ -682,7 +682,7 @@ taller objects (which would occlude these objects in the CHM)</p>
 <span>    , <span class="cn">NA</span></span>
 <span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span>col <span class="op">=</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/flip.html" class="external-link">rev</a></span><span class="op">(</span><span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">55</span>, <span class="st">"Peach"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-30-1.png" class="r-plt" width="100%"></p>
+<p><img src="cloud2raster-tutorial_files/figure-html/unnamed-chunk-30-1.png" class="r-plt" alt="" width="100%"></p>
 <p>finally, we can make the fine resolution (0.2 m) CHM raster more
 coarse (0.4 m) using <code><a href="https://rspatial.github.io/terra/reference/aggregate.html" class="external-link">terra::aggregate()</a></code> and we’ll display
 the resultant resolution in the X and Y horizontal</p>
