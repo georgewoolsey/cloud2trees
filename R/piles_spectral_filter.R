@@ -61,7 +61,7 @@ piles_spectral_filter <- function(
   if(!all(sf::st_geometry_type(sf_data) %in% c("POLYGON", "MULTIPOLYGON"))) {
     stop("Input `sf_data` must contain polygon geometries.")
   }
-  spectral_weight <- as.numeric(spectral_weight)
+  spectral_weight <- as.numeric(spectral_weight)[1]
   if(
     filter_return &&
     (
@@ -81,10 +81,10 @@ piles_spectral_filter <- function(
     return(sf_data)
   }
   ##################################################
-  # calculate_all_rgb_indices
+  # calculate_rgb_indices
   ##################################################
-  all_rgb_indices_rast <- calculate_all_rgb_indices(
-    raster_obj = rgb_rast
+  all_rgb_indices_rast <- calculate_rgb_indices(
+    rgb_rast = rgb_rast
     , red_band_idx = red_band_idx
     , green_band_idx = green_band_idx
     , blue_band_idx = blue_band_idx
@@ -112,7 +112,7 @@ piles_spectral_filter <- function(
   rgb_indices_df <- extract_rast_values(
     sf_data = sf_data %>% dplyr::ungroup()
     , rast = some_rgb_indices_rast
-    , fun_agg = median
+    , fun_agg = "median"
   )
   ##################################################
   # rgb_indices_threshold_voting
@@ -137,4 +137,254 @@ piles_spectral_filter <- function(
     segs_sf = rgb_indices_df
     , rgb_indices_rast = all_rgb_indices_rast
   ))
+}
+###############################################################################
+# extract_rast_values
+###############################################################################
+extract_rast_values <- function(sf_data, rast, fun_agg = "mean") {
+  # checks
+  if(!inherits(rast, "SpatRaster")){
+    stop("Input `rast` must be a SpatRaster object.")
+  }
+  if(!inherits(sf_data, "sf")){
+    stop("Input `sf_data` must be an sf data frame.")
+  }
+  if(!all(sf::st_geometry_type(sf_data) %in% c("POLYGON", "MULTIPOLYGON"))) {
+    stop("Input `sf_data` must contain polygon geometries.")
+  }
+  # # terra list
+  # valid_cpp <- c(
+  #     "sum", "mean", "median", "min", "max",
+  #     "modal", "weighted.mean", "none"
+  #   )
+  valid_cpp <- c(
+      "min", "max", "count", "sum", "mean", "median",
+      "mode", "majority", "minority", "variety",
+      "stdev", "variance", "coefficient_of_variation",
+      "weighted_mean", "weighted_sum"
+    )
+  if(
+    !inherits(fun_agg,"character") ||
+    !(fun_agg %in% valid_cpp)
+  ) {
+    stop(paste0("`fun_agg` must be one of: ",paste0(valid_cpp,collapse = ",")))
+  }
+  # crs
+  sf_data <- sf_data %>% sf::st_transform(terra::crs(rast))
+
+  # extract values for each layer within each polygon
+  # extracted_values <- terra::extract(
+  #   x = rast
+  #   , y = sf_data
+  #   , fun = fun_agg
+  #   , na.rm = TRUE
+  # )
+  extracted_values <- exactextractr::exact_extract(
+    x = rast
+    , y = sf_data
+    , fun = fun_agg # "median" # passing as a string uses the optimized c++ backend
+    # , append_cols = "ID" # unique identifier in the output
+  )
+
+  # clean data
+  extracted_values <-
+    extracted_values %>%
+    dplyr::select( -dplyr::any_of(c(
+      "hey_xxxxxxxxxx"
+      , "ID"
+    ))) %>%
+    dplyr::rename_with(
+      ~ paste0(
+        "rast_agg_"
+        , stringr::str_remove(.x,paste0("^",fun_agg,"."))
+        , recycle0 = TRUE
+      )
+    )
+
+  # Merge the extracted values back to the original sf data frame
+  # The row order is preserved by terra::extract, so a direct cbind is safe
+  # if no rows were dropped due to spatial mismatch.
+  # For robustness, we can explicitly join by row ID if needed, but for simple cases, cbind works.
+  # Assuming sf_data has a unique ID column or row order is stable:
+  sf_data_with_indices <- sf_data %>% dplyr::bind_cols(extracted_values)
+
+  return(sf_data_with_indices)
+}
+###############################################################################
+# voting system
+###############################################################################
+rgb_indices_threshold_voting <- function(
+  rgb_indices_df
+  # define ranges to *keep* piles
+  , th_grvi = c(-Inf,0)
+  , th_rgri = c((0.7+0.001),Inf) # increase each by 0.001 since we'll be checking lower<=x<=upper
+  , th_vdvi = c(-Inf,(0.03+0.001)) # increase each by 0.001 since we'll be checking lower<=x<=upper
+  , th_exgr = c(-Inf,0)
+  , th_a = c(-5+0.001,Inf)
+  , th_hue = list(c(0,50-0.001), c(150+0.001,Inf))
+){
+  # checks
+  if(!inherits(rgb_indices_df, "data.frame")){
+      stop("Input `rgb_indices_df` must be an data.frame.")
+  }
+  # names
+  agg_cols <- c("rast_agg_grvi","rast_agg_exgr","rast_agg_rgri","rast_agg_vdvi","rast_agg_Lab_a","rast_agg_hsv_hue") # "rast_agg_rgbvi",
+  nm_diff <- base::setdiff(
+    agg_cols
+    , names(rgb_indices_df)
+  )
+  if(length(nm_diff)>0){
+    stop(paste0("required variables missing:\n", "... ", paste(nm_diff, collapse = ", ") ))
+  }
+  # thresholds
+  safe_validate_thresholds_fn <- purrr::safely(validate_thresholds_fn)
+    # th_grvi
+    chk_grvi <- safe_validate_thresholds_fn(th_grvi)
+    if(is.null(chk_grvi$result)){
+      stop(paste0("Input `th_grvi`: ", chk_grvi$error))
+    }
+    # th_rgri
+    chk_rgri <- safe_validate_thresholds_fn(th_rgri)
+    if(is.null(chk_rgri$result)){
+      stop(paste0("Input `th_rgri`: ", chk_rgri$error))
+    }
+    # th_vdvi
+    chk_vdvi <- safe_validate_thresholds_fn(th_vdvi)
+    if(is.null(chk_vdvi$result)){
+      stop(paste0("Input `th_vdvi`: ", chk_vdvi$error))
+    }
+    # th_exgr
+    chk_exgr <- safe_validate_thresholds_fn(th_exgr)
+    if(is.null(chk_exgr$result)){
+      stop(paste0("Input `th_exgr`: ", chk_exgr$error))
+    }
+    # th_a
+    chk_a <- safe_validate_thresholds_fn(th_a)
+    if(is.null(chk_a$result)){
+      stop(paste0("Input `th_a`: ", chk_a$error))
+    }
+    # th_hue
+    chk_hue <- safe_validate_thresholds_fn(th_hue)
+    if(is.null(chk_hue$result)){
+      stop(paste0("Input `th_hue`: ", chk_hue$error))
+    }
+
+  # get rid of columns we'll create
+  rgb_indices_df <- rgb_indices_df %>%
+    # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+    dplyr::select( -dplyr::any_of(c(
+      "hey_xxxxxxxxxx"
+      , "is_inrange"
+      , "inrange_th_grvi"
+      , "inrange_th_rgri"
+      , "inrange_th_vdvi"
+      , "inrange_th_exgr"
+      , "inrange_th_Lab_a"
+      , "inrange_th_hsv_hue"
+    )))
+
+  # check threshold
+  ret_df <- rgb_indices_df %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_grvi", th_list = th_grvi) %>%
+    dplyr::rename(inrange_th_grvi=is_inrange) %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_rgri", th_list = th_rgri) %>%
+    dplyr::rename(inrange_th_rgri=is_inrange) %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_vdvi", th_list = th_vdvi) %>%
+    dplyr::rename(inrange_th_vdvi=is_inrange) %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_exgr", th_list = th_exgr) %>%
+    dplyr::rename(inrange_th_exgr=is_inrange) %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_Lab_a", th_list = th_a) %>%
+    dplyr::rename(inrange_th_Lab_a=is_inrange) %>%
+    filter_by_thresholds_fn(target_col = "rast_agg_hsv_hue", th_list = th_hue) %>%
+    dplyr::rename(inrange_th_hsv_hue=is_inrange) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      inrange_th_votes = sum(
+        dplyr::c_across(tidyselect::starts_with("inrange_th_"))
+        , na.rm = T
+      ) %>%
+      dplyr::coalesce(0)
+    ) %>%
+    dplyr::ungroup()
+
+  #return
+  return(ret_df)
+}
+##########################################################
+#### function to validate threshold vector or list pair
+##########################################################
+validate_thresholds_fn <- function(th_list) {
+  # input is a list or a numeric vector
+  if (!is.list(th_list) && !is.numeric(th_list)) {
+    stop("Validation Error: Input must be a list of pairs or a single numeric vector pair.")
+  }
+
+  # to a list to standardize the purrr::map iteration
+  items_to_check <- if(is.list(th_list)){
+    th_list
+  }else{
+    list(th_list)
+  }
+
+  # validate logic on each pair
+  purrr::map(items_to_check, function(x) {
+    # numeric type
+    if (!is.numeric(x)) {
+      stop("Validation Error: Threshold elements must be numeric.")
+    }
+
+    # length is exactly 2
+    if (length(x) != 2) {
+      stop(paste("Validation Error: Pair must have exactly 2 values. Found length:", length(x)))
+    }
+
+    # order (lower < upper)
+    if (x[1] >= x[2]) {
+      stop(paste0("Validation Error: Lower limit must be smaller than upper limit. Found: [", x[1], ", ", x[2], "]"))
+    }
+  })
+
+  # 4. If all checks passed (no stop triggered), return the original input
+  return(th_list)
+}
+
+##########################################################
+# function to filter a data frame by a list pair and column
+##########################################################
+filter_by_thresholds_fn <- function(df, target_col, th_list) {
+  # col exists?
+  if (!(target_col %in% names(df))) {
+    stop(paste0("Column '", target_col, "' not found in the data frame"))
+  }
+
+  # validate the thresholds using previous function
+  valid_th <- validate_thresholds_fn(th_list)
+
+  # thresholds to a list if a single vector was provided
+  th_pairs <-
+    if(is.list(valid_th)){
+      valid_th
+    }else{
+      list(valid_th)
+    }
+
+  # use purrr::map to create a list of logical vectors (one for each pair)
+  # then reduce them with '|' so any row hitting any range is kept
+  df %>%
+    dplyr::mutate(
+      is_inrange = purrr::map(th_pairs, function(x) {
+        dplyr::between(.data[[target_col]], x[1], x[2])
+      }) %>%
+      purrr::reduce(`|`) %>%
+      as.integer()
+    )
+    # dplyr::filter(
+    #   purrr::map(
+    #     th_pairs
+    #     , function(x) {
+    #       dplyr::between(.data[[target_col]], x[1], x[2])
+    #     }
+    #   ) %>%
+    #   purrr::reduce(`|`)
+    # )
 }
