@@ -1,5 +1,11 @@
 # Changelog
 
+## cloud2trees 0.7.8
+
+- New: adds utility functions for working with geometries and adds new
+  internal workflow relevant to forest management for potential future
+  release
+
 ## cloud2trees 0.7.7
 
 - Change/Fix:
@@ -231,7 +237,7 @@ tested in two different SPCS zones with no issues identified and all
 unit tests are passing but issues may persist for novel point cloud
 data.
 
-- New:
+- Change:
   [`raster2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/raster2trees.md),
   and by extension
   [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md),
@@ -398,12 +404,9 @@ performs cross-validation internally for each `mtry` value it tries.
 With large model training data (e.g. 100k+ observations), each of these
 cross-validation runs involves building and evaluating many random
 forest trees, making the process very time-consuming. This update adds
-the internal function
-[`rf_tune_subsample()`](https://georgewoolsey.github.io/cloud2trees/reference/rf_tune_subsample.md)
-to implement steps to mitigate very long run-times when tuning random
-forests models.
-[`rf_tune_subsample()`](https://georgewoolsey.github.io/cloud2trees/reference/rf_tune_subsample.md)
-mitigates very long run-times by:
+the internal function `rf_tune_subsample()` to implement steps to
+mitigate very long run-times when tuning random forests models.
+`rf_tune_subsample()` mitigates very long run-times by:
 
 1.  Reducing the `ntreeTry` parameter to a smaller value. Tuning will be
     less precise, but it will finish in a reasonable time. The `ntree`
@@ -414,19 +417,13 @@ mitigates very long run-times by:
 
 - Change:
   [`trees_hmd()`](https://georgewoolsey.github.io/cloud2trees/reference/trees_hmd.md)
-  implements
-  [`rf_tune_subsample()`](https://georgewoolsey.github.io/cloud2trees/reference/rf_tune_subsample.md)
-  to mitigate very long run-times
+  implements `rf_tune_subsample()` to mitigate very long run-times
 - Change:
   [`trees_cbh()`](https://georgewoolsey.github.io/cloud2trees/reference/trees_cbh.md)
-  implements
-  [`rf_tune_subsample()`](https://georgewoolsey.github.io/cloud2trees/reference/rf_tune_subsample.md)
-  to mitigate very long run-times
+  implements `rf_tune_subsample()` to mitigate very long run-times
 - Change:
   [`trees_dbh()`](https://georgewoolsey.github.io/cloud2trees/reference/trees_dbh.md)
-  implements
-  [`rf_tune_subsample()`](https://georgewoolsey.github.io/cloud2trees/reference/rf_tune_subsample.md)
-  to mitigate very long run-times
+  implements `rf_tune_subsample()` to mitigate very long run-times
 
 ## cloud2trees 0.5.7
 
