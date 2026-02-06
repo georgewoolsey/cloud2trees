@@ -1,3 +1,5 @@
+# cloud2trees 0.7.8
+
 # cloud2trees 0.7.7
 
 - Change/Fix: `cloud2raster()` now filters all of the following classes from the raw point cloud data (if classified as such) prior to processing. Previously, only class "18" was removed prior to processing using `lasR::drop_noise()`. Classes were identified using the [USGS data standards](https://www.usgs.gov/ngp-standards-and-specifications/lidar-base-specification-tables).

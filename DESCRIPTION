@@ -1,7 +1,7 @@
 Type: Package
 Package: cloud2trees
 Title: Aerial point cloud data to forest inventory tree lists
-Version: 0.7.7
+Version: 0.7.8
 Authors@R: 
     person("George", "Woolsey", , "george.woolsey@colostate.edu", role = c("aut", "cre"))
 Description: Extract a tree list, CHM, DTM, and more from .las|.laz point
