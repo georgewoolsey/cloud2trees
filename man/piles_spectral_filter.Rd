@@ -158,5 +158,6 @@ with appended spectral metrics for diagnostic purposes.
    terra::vect() \%>\%
    terra::plot(border = "red", lwd = 2, col = NA, add = T)
 }
+
 }
 \keyword{internal}

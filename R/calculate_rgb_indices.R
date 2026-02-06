@@ -34,6 +34,8 @@
 #' @return A SpatRaster object containing the 13 calculated spectral and color
 #' space layers.
 #'
+#' @keywords internal
+#'
 #' @examples
 #' \dontrun{
 #'  # load rgb data
@@ -61,7 +63,6 @@
 #'      , legend = F
 #'    )
 #' }
-#' @keywords internal
 #'
 calculate_rgb_indices <- function(rgb_rast, red_band_idx, green_band_idx, blue_band_idx) {
   # call individual index functions

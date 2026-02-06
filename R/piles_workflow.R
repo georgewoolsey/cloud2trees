@@ -23,7 +23,7 @@
 #' based on `filter_return`). If `outfile` is a character string, returns
 #' the character string of the saved file path.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -87,7 +87,6 @@
 #'    terra::vect() %>%
 #'    terra::plot(border = "red", lwd = 2, col = NA, add = T)
 #' }
-#' @keywords internal
 #'
 piles_workflow <- function(
   # # piles_detect

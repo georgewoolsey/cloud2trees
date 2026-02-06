@@ -24,6 +24,8 @@
 #' a subset of the input data or the full input data with appended
 #' spectral voting columns.
 #'
+#' @keywords internal
+#'
 #' @examples
 #' \dontrun{
 #'  ###########################################
@@ -135,7 +137,6 @@
 #'    terra::vect() %>%
 #'    terra::plot(border = "red", lwd = 2, col = NA, add = T)
 #' }
-#' @keywords internal
 #'
 piles_spectral_filter <- function(
   sf_data

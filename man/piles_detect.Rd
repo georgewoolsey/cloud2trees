@@ -136,5 +136,7 @@ structural pile detection process and is intended to be used prior to
    terra::vect() \%>\%
    terra::plot(border = "magenta", lwd = 2, col = NA, add = T)
 }
+
+
 }
 \keyword{internal}

@@ -74,5 +74,6 @@ spectral shifts.
      , legend = F
    )
 }
+
 }
 \keyword{internal}

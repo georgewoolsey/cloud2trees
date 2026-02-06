@@ -50,6 +50,8 @@
 #' If `outfile` is a character string, returns the character string of the
 #' saved file path.
 #'
+#' @keywords internal
+#'
 #' @examples
 #' \dontrun{
 #'  ###########################################
@@ -107,7 +109,6 @@
 #'    terra::vect() %>%
 #'    terra::plot(border = "magenta", lwd = 2, col = NA, add = T)
 #' }
-#' @keywords internal
 #'
 #'
 piles_detect <- function(

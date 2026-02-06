@@ -16,7 +16,6 @@ Depends:
 Imports: 
     brms,
     dplyr,
-    exactextractr,
     ForestTools,
     ggplot2,
     LadderFuelsR (>= 0.0.7),
@@ -24,10 +23,7 @@ Imports:
     leafR (>= 0.3.5),
     lidR,
     lifecycle,
-    lwgeom,
     magrittr,
-    patchwork,
-    posterior,
     purrr,
     randomForest,
     readr,
@@ -45,8 +41,13 @@ Imports:
     utils,
     viridis
 Suggests: 
+    dbscan,
+    exactextractr,
     forcats,
     knitr,
+    lwgeom,
+    patchwork,
+    posterior,
     rgl,
     rmarkdown,
     testthat (>= 3.0.0)
