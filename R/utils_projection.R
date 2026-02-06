@@ -4,7 +4,7 @@
 #'
 #' @return A data.frame with the units and scale factor for the vertical projection
 #'
-#' @keywords internal
+#' @noRd
 #'
 get_vertical_crs <- function(x) {
   xcrs <- sf::st_crs(x)

@@ -1,3 +1,7 @@
+# cloud2trees 0.7.8
+
+- New: adds utility functions for working with geometries and adds new internal workflow relevant to forest management for potential future release
+
 # cloud2trees 0.7.7
 
 - Change/Fix: `cloud2raster()` now filters all of the following classes from the raw point cloud data (if classified as such) prior to processing. Previously, only class "18" was removed prior to processing using `lasR::drop_noise()`. Classes were identified using the [USGS data standards](https://www.usgs.gov/ngp-standards-and-specifications/lidar-base-specification-tables).
@@ -88,7 +92,7 @@ Saving models used to estimate missing HMD and CBH values. Note, in the actual m
 
 Some point cloud data -- mostly USGS ALS acquisitions -- are made publicly available in State Plane Coordinate System (SPCS) zone projections which use U.S. survey feet to express eastings and northings (e.g. [EPSG:6430](https://epsg.io/6430)). Furthermore, some of these data utilize a coordinate system that combines two or more other coordinate systems, such as a horizontal and a vertical system by defining a Well-Known Text (WKT) using a Compound Coordinate System ("COMPD_CS"). For example, "NAD83(2011) / Colorado North (ftUS) + NAVD88 height - Geoid18 (ftUS)". None of the `cloud2trees` methods nor methods utilized by the program are designed to work with U.S. survey feet units. Furthermore, there is no simple way to transform data projected utilizing a compound coordinate system and transformations require manipulation of the full point cloud XYZ data ([see here](https://github.com/r-lidar/lidR/issues/372)). This update implements steps to look specifically for data projected using a horizontal projection in U.S. survey feet units, if detected, the program manipulates the full point cloud data to perform transformation. This transformation applies the [EPSG:5070](https://epsg.io/5070) projection, or "NAD83/Conus Albers", a coordinate reference system (CRS) with units in meters spanning the continental US (thus, from feet transformation will not work elsewhere). After transformation, the `cloud2trees` methods and methods utilized by the program work as designed on data projected using metric units. This workflow has been tested in two different SPCS zones with no issues identified and all unit tests are passing but issues may persist for novel point cloud data.
 
-- New:  `raster2trees()`, and by extension `cloud2trees()`, implements steps to look specifically for data projected using a horizontal projection in U.S. survey feet units, if detected, the program manipulates the full point cloud data to perform transformation without any input from the user.
+- Change:  `raster2trees()`, and by extension `cloud2trees()`, implements steps to look specifically for data projected using a horizontal projection in U.S. survey feet units, if detected, the program manipulates the full point cloud data to perform transformation without any input from the user.
 - New: all utility functions for manipulation of feet projections are in R/utils_projection.R
 
 # cloud2trees 0.6.5
