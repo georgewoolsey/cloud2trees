@@ -49,8 +49,30 @@ spectral shifts.
 }
 \examples{
 \dontrun{
-# Internal use only
-rgb_index_rast <- calculate_rgb_indices(my_rgb, 1, 2, 3)
+ # load rgb data
+ rgb_fnm <- system.file(package = "cloud2trees", "extdata", "piles_rgb.tif")
+ my_rgb <- terra::rast(rgb_fnm)
+ my_rgb
+ terra::plotRGB(my_rgb)
+ # calculate_rgb_indices() that
+ calculate_rgb_indices_ans <- calculate_rgb_indices(
+   rgb_rast = my_rgb
+   , red_band_idx = 1
+   , green_band_idx = 2
+   , blue_band_idx = 3
+ )
+ # what?
+ terra::nlyr(calculate_rgb_indices_ans)
+ names(calculate_rgb_indices_ans)
+ # look at all these indices
+ calculate_rgb_indices_ans \%>\%
+   terra::plot(
+     nc = 5
+     , col = grDevices::gray.colors(111, start = 0, end = 1)
+     , mar = c(0.2,0.2,1.6,0.2)
+     , axes = FALSE
+     , legend = F
+   )
 }
 }
 \keyword{internal}

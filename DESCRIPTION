@@ -16,6 +16,7 @@ Depends:
 Imports: 
     brms,
     dplyr,
+    exactextractr,
     ForestTools,
     ggplot2,
     LadderFuelsR (>= 0.0.7),
@@ -23,6 +24,7 @@ Imports:
     leafR (>= 0.3.5),
     lidR,
     lifecycle,
+    lwgeom,
     magrittr,
     patchwork,
     posterior,

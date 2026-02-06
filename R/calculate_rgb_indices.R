@@ -36,16 +36,38 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Internal use only
-#' rgb_index_rast <- calculate_rgb_indices(my_rgb, 1, 2, 3)
+#'  # load rgb data
+#'  rgb_fnm <- system.file(package = "cloud2trees", "extdata", "piles_rgb.tif")
+#'  my_rgb <- terra::rast(rgb_fnm)
+#'  my_rgb
+#'  terra::plotRGB(my_rgb)
+#'  # calculate_rgb_indices() that
+#'  calculate_rgb_indices_ans <- calculate_rgb_indices(
+#'    rgb_rast = my_rgb
+#'    , red_band_idx = 1
+#'    , green_band_idx = 2
+#'    , blue_band_idx = 3
+#'  )
+#'  # what?
+#'  terra::nlyr(calculate_rgb_indices_ans)
+#'  names(calculate_rgb_indices_ans)
+#'  # look at all these indices
+#'  calculate_rgb_indices_ans %>%
+#'    terra::plot(
+#'      nc = 5
+#'      , col = grDevices::gray.colors(111, start = 0, end = 1)
+#'      , mar = c(0.2,0.2,1.6,0.2)
+#'      , axes = FALSE
+#'      , legend = F
+#'    )
 #' }
 #' @keywords internal
 #'
 calculate_rgb_indices <- function(rgb_rast, red_band_idx, green_band_idx, blue_band_idx) {
   # call individual index functions
+  vdvi_layer <- spectral_index_vdvi(rgb_rast, red_band_idx, green_band_idx, blue_band_idx)
   grvi_layer <- spectral_index_grvi(rgb_rast, red_band_idx, green_band_idx)
   rgri_layer <- spectral_index_rgri(rgb_rast, red_band_idx, green_band_idx)
-  vdvi_layer <- spectral_index_vdvi(rgb_rast, red_band_idx, green_band_idx, blue_band_idx)
   rgbvi_layer <- spectral_index_rgbvi(rgb_rast, red_band_idx, green_band_idx, blue_band_idx)
   exg_layer <- spectral_index_exg(rgb_rast, red_band_idx, green_band_idx, blue_band_idx)
   exr_layer <- spectral_index_exr(rgb_rast, red_band_idx, green_band_idx, blue_band_idx)
@@ -90,7 +112,7 @@ calculate_rgb_indices <- function(rgb_rast, red_band_idx, green_band_idx, blue_b
 ###############################################################################
 # check raster bands and extract rgb layers
 ###############################################################################
-check_raster_bands <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
+check_rgb_raster_bands <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
   # convert to SpatRaster if input is from 'raster' package
   if(
     inherits(rast, "RasterStack")
@@ -98,7 +120,7 @@ check_raster_bands <- function(rast, red_band_idx, green_band_idx, blue_band_idx
   ){
     rast <- terra::rast(rast)
   }else if(!inherits(rast, "SpatRaster")){
-    stop("Input 'rast' must be a SpatRaster from the `terra` package")
+    stop("Input rgb raster must be a SpatRaster from the `terra` package")
   }
 
   # check if band indices are valid
@@ -115,7 +137,7 @@ check_raster_bands <- function(rast, red_band_idx, green_band_idx, blue_band_idx
     || ( blue_band_idx!=cheat_code &&  blue_band_idx < 1 )
     || length(unique(c(red_band_idx,green_band_idx,blue_band_idx)))!=3
   ){
-    stop("Invalid band index provided. Band indices must correspond to existing, unique layers in the raster object.")
+    stop("Invalid band index provided. Band indices must correspond to existing, unique layers in the rgb raster object.")
   }
 
   # extract bands
@@ -125,13 +147,13 @@ check_raster_bands <- function(rast, red_band_idx, green_band_idx, blue_band_idx
 
   return(list(R = R, G = G, B = B))
 }
-# check_raster_bands(ortho_rast, red_band_idx=1, green_band_idx=3, blue_band_idx = 999999)
+# check_rgb_raster_bands(ortho_rast, red_band_idx=1, green_band_idx=3, blue_band_idx = 999999)
 ###############################################################################
 # convert RGB to HSV color space
 ###############################################################################
 spectral_rgb_to_hsv <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
   # check
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -156,7 +178,7 @@ spectral_rgb_to_hsv <- function(rast, red_band_idx, green_band_idx, blue_band_id
 ###############################################################################
 spectral_rgb_to_lab <- function(rast, red_band_idx, green_band_idx, blue_band_idx, max_dn = 255) {
   # check
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -188,7 +210,7 @@ spectral_rgb_to_lab <- function(rast, red_band_idx, green_band_idx, blue_band_id
 # calculate green red vegetation index (GRVI)
 # (G - R) / (G + R)
 spectral_index_grvi <- function(rast, red_band_idx, green_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx = 999999) # blue_band_idx is dummy here
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx = 999999) # blue_band_idx is dummy here
   R <- bands$R
   G <- bands$G
 
@@ -201,7 +223,7 @@ spectral_index_grvi <- function(rast, red_band_idx, green_band_idx) {
 # red green ratio index (RGRI)
 # R/G
 spectral_index_rgri <- function(rast, red_band_idx, green_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx = 999999) # blue_band_idx is dummy here
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx = 999999) # blue_band_idx is dummy here
   R <- bands$R
   G <- bands$G
 
@@ -214,7 +236,7 @@ spectral_index_rgri <- function(rast, red_band_idx, green_band_idx) {
 # calculate visible band-difference vegetation index (VDVI)
 # (2G - R - B) / (2G + R + B)
 spectral_index_vdvi <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -228,7 +250,7 @@ spectral_index_vdvi <- function(rast, red_band_idx, green_band_idx, blue_band_id
 # calculate red green blue vegetation index (RGBVI)
 # (G^2 - (B * R)) / (G^2 + (B * R))
 spectral_index_rgbvi <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -243,7 +265,7 @@ spectral_index_rgbvi <- function(rast, red_band_idx, green_band_idx, blue_band_i
 # (2G - R - B) / (R + G + B) (using normalized RGB values)
 # 2G - R - B (using raw values, then normalized by sum of R+G+B)
 spectral_index_exg <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -263,7 +285,7 @@ spectral_index_exg <- function(rast, red_band_idx, green_band_idx, blue_band_idx
 # calculate brightness index (BI)
 # sqrt((R^2 + G^2 + B^2) / 3)
 spectral_index_bi <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -286,7 +308,7 @@ spectral_index_bi <- function(rast, red_band_idx, green_band_idx, blue_band_idx)
 # calculate excessive red (ExR)
 # 1.4r - g, where r and g are normalized RGB values.
 spectral_index_exr <- function(rast, red_band_idx, green_band_idx, blue_band_idx){
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -305,7 +327,7 @@ spectral_index_exr <- function(rast, red_band_idx, green_band_idx, blue_band_idx
 # 3g - 2.4r - b, where r, g, b are normalized RGB values.
 # equivalent to ExG - ExR.
 spectral_index_exgr <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
@@ -324,7 +346,7 @@ spectral_index_exgr <- function(rast, red_band_idx, green_band_idx, blue_band_id
 # calculate saturation (SAT)
 # (max(R,G,B) - min(R,G,B)) / max(R,G,B)
 spectral_index_saturation <- function(rast, red_band_idx, green_band_idx, blue_band_idx) {
-  bands <- check_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
+  bands <- check_rgb_raster_bands(rast, red_band_idx, green_band_idx, blue_band_idx)
   R <- bands$R
   G <- bands$G
   B <- bands$B
