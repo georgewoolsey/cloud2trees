@@ -1,3 +1,7 @@
+# cloud2trees 0.7.9
+
+- Change: updates utility functions for working with very large raster data in internal workflow for potential future release
+
 # cloud2trees 0.7.8
 
 - New: adds utility functions for working with geometries and adds new internal workflow relevant to forest management for potential future release

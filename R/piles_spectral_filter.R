@@ -197,6 +197,199 @@ piles_spectral_filter <- function(
       , rgb_indices_rast = NA
     ))
   }
+  # memory check and direct processing
+  mem_info_temp <- terra::mem_info(rgb_rast, n = 4, print = F)
+  # mem_info_temp[["fits_mem"]]
+  #################################################################################
+  # if the raster is already in memory, process directly to avoid tiling
+  #################################################################################
+  if(
+    terra::inMemory(rgb_rast)
+    || dplyr::coalesce(mem_info_temp[["fits_mem"]],0)==1
+  ) {
+    message("RGB raster is already in memory. Processing directly.")
+    rgb_to_df_full_process_ans <- rgb_to_df_full_process(
+        rgb_rast = rgb_rast
+        , red_band_idx = red_band_idx
+        , green_band_idx = green_band_idx
+        , blue_band_idx = blue_band_idx
+        , sf_data = sf_data
+      )
+    rgb_indices_df <- rgb_to_df_full_process_ans[["rgb_indices_df"]]
+    all_rgb_indices_rast <- rgb_to_df_full_process_ans[["all_rgb_indices_rast"]]
+  }else{
+    #################################################################################
+    # tiling
+    #################################################################################
+    message("raster is on disk (not inMemory). tile processing and `rgb_indices_rast` return will be NULL.\n  see `calculate_rgb_indices()`")
+    # get_tile_size()...might work for realllllly huge rasters
+    # get_tile_size(rgb_rast, memory_risk = 0.65)
+    tile_size_pixels <- get_tile_size(rgb_rast, memory_risk = 0.7)[["tile_size"]]
+    # tile_size_pixels
+
+    # make grid to split up piles and so we only process where piles exist
+    grid_temp <- sf::st_make_grid(
+        x =
+          sf_data %>%
+          sf::st_transform(terra::crs(rgb_rast)) %>%
+          sf::st_bbox() %>%
+          sf::st_as_sfc()
+        , cellsize = floor(tile_size_pixels*terra::res(rgb_rast)[1])
+      ) %>%
+      sf::st_as_sf() %>%
+      sf::st_set_geometry("geometry") %>%
+      dplyr::mutate(
+        grid_id = dplyr::row_number()
+        # , area_xxx = sf::st_area(geometry) %>% as.numeric()
+      )
+
+    # add row index to input sf_data for tracking
+    sf_data <- sf_data %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(
+        sf_data_row_xxx = dplyr::row_number()
+      ) %>%
+      # throw in hey_xxxxxxxxxx to test it works if we include non-existant columns
+      dplyr::select( -dplyr::any_of(c(
+        "hey_xxxxxxxxxx"
+        , "is_inrange"
+        , "inrange_th_grvi"
+        , "inrange_th_rgri"
+        , "inrange_th_vdvi"
+        , "inrange_th_exgr"
+        , "inrange_th_Lab_a"
+        , "inrange_th_hsv_hue"
+        , "rast_agg_grvi"
+        , "rast_agg_rgri"
+        , "rast_agg_vdvi"
+        , "rast_agg_exgr"
+        , "rast_agg_Lab_a"
+        , "rast_agg_hsv_hue"
+      )))
+
+    # save old names for selecting
+    old_names <- names(sf_data)
+    # old_names
+
+    # attach grid to pile data
+    process_data_temp <-
+      sf_data %>%
+      sf::st_transform(terra::crs(rgb_rast)) %>%
+      sf::st_point_on_surface() %>%
+      dplyr::select(sf_data_row_xxx) %>%
+      sf::st_intersection(grid_temp) %>%
+      sf::st_drop_geometry() %>%
+      dplyr::group_by(sf_data_row_xxx) %>%
+      dplyr::slice_head(n=1) %>%
+      dplyr::ungroup()
+    # process_data_temp %>% dplyr::glimpse()
+
+    # map over the grid tiles
+    rgb_indices_df_temp <-
+      unique(process_data_temp$grid_id) %>%
+      # .[1:10] %>%
+      purrr::map(function(grd){
+        # piles index
+        sf_idx <- process_data_temp %>%
+          dplyr::filter(grid_id==grd) %>%
+          dplyr::select(sf_data_row_xxx)
+        # piles in the grid
+        sf_data_polys <- sf_data %>%
+          dplyr::inner_join(sf_idx, by = "sf_data_row_xxx")
+        # extent of piles in the grid so we know the full pile extent is included
+        sf_ext <- sf_data_polys %>%
+          sf::st_bbox() %>%
+          sf::st_as_sfc() %>%
+          sf::st_transform(terra::crs(rgb_rast)) %>%
+          sf::st_buffer(terra::res(rgb_rast)[1]*2) %>%
+          terra::vect()
+
+        # check overlap
+        # Returns TRUE if any part of the vector geometry intersects the raster extent
+        if(
+          !any(terra::is.related(
+            x = sf_ext
+            , y = terra::ext(rgb_rast)
+            , relation = "intersects"
+          ))
+        ){
+          # stop("is.related error")
+          return(NULL)
+        }
+
+        # crop raster
+        grid_rgb_rast <- terra::crop(
+          rgb_rast
+          , sf_ext
+          , filename = tempfile(fileext = ".tif")
+        )
+
+        # do it with the piles
+        safe_rgb_to_df_full_process <- purrr::safely(rgb_to_df_full_process)
+        ans_temp <- safe_rgb_to_df_full_process(
+            rgb_rast = grid_rgb_rast
+            , red_band_idx = red_band_idx
+            , green_band_idx = green_band_idx
+            , blue_band_idx = blue_band_idx
+            , sf_data = sf_data_polys
+          )
+        if(is.null(ans_temp$error)){
+          ans_temp <- ans_temp$result
+          tile_rgb_indices_df <- ans_temp[["rgb_indices_df"]] %>%
+            sf::st_drop_geometry()
+          if(nrow(tile_rgb_indices_df)==0){return(NULL)}
+          # get new data
+          tile_rgb_indices_df <- tile_rgb_indices_df %>%
+            dplyr::select(
+              unique(c(
+                "sf_data_row_xxx"
+                , base::setdiff(names(tile_rgb_indices_df),old_names)
+              ))
+            )
+          return(tile_rgb_indices_df)
+        }else{
+          # stop("safe_rgb_to_df_full_process error")
+          return(NULL)
+        }
+      }) %>%
+      dplyr::bind_rows()
+
+    # rgb_indices_df_temp %>% dplyr::glimpse()
+    if(nrow(rgb_indices_df_temp)==0){
+      stop("could not find overlapping RGB data for input polygons")
+    }
+
+    rgb_indices_df <-
+      sf_data %>%
+      dplyr::left_join(rgb_indices_df_temp, by = "sf_data_row_xxx") %>%
+      dplyr::mutate(inrange_th_votes = dplyr::coalesce(inrange_th_votes,0)) %>%
+      dplyr::select(-c(sf_data_row_xxx))
+
+    all_rgb_indices_rast <- NULL
+  }
+
+  ##################################################
+  # filtering
+  ##################################################
+  if(filter_return){
+    rgb_indices_df <- rgb_indices_df %>% dplyr::filter(inrange_th_votes>=spectral_weight)
+  }
+  # return
+  return(list(
+    segs_sf = rgb_indices_df
+    , rgb_indices_rast = all_rgb_indices_rast
+  ))
+}
+###############################################################################
+# rgb_to_df_full_process
+###############################################################################
+rgb_to_df_full_process <- function(
+  rgb_rast
+  , red_band_idx
+  , green_band_idx
+  , blue_band_idx
+  , sf_data
+) {
   ##################################################
   # calculate_rgb_indices
   ##################################################
@@ -243,18 +436,12 @@ piles_spectral_filter <- function(
     # , th_a = th_a
     # , th_hue = th_hue
   )
-  ##################################################
-  # filtering
-  ##################################################
-  if(filter_return){
-    rgb_indices_df <- rgb_indices_df %>% dplyr::filter(inrange_th_votes>=spectral_weight)
-  }
-  # return
   return(list(
-    segs_sf = rgb_indices_df
-    , rgb_indices_rast = all_rgb_indices_rast
+    rgb_indices_df = rgb_indices_df
+    , all_rgb_indices_rast = all_rgb_indices_rast
   ))
 }
+
 ###############################################################################
 # extract_rast_values
 ###############################################################################
@@ -301,6 +488,7 @@ extract_rast_values <- function(sf_data, rast, fun_agg = "mean") {
     , y = sf_data
     , fun = fun_agg # "median" # passing as a string uses the optimized c++ backend
     # , append_cols = "ID" # unique identifier in the output
+    , progress = F
   )
 
   # clean data
