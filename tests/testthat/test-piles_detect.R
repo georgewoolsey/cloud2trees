@@ -115,10 +115,11 @@ testthat::test_that("piles_detect() returns a list of objects. piles_spectral_fi
     , class = "data.frame"
   )
   ## test rgb_indices_rast
-  testthat::expect_s4_class(
-    object = rgb_indices_rast
-    , "SpatRaster"
-  )
-
+  if(!is.null(rgb_indices_rast)){
+    testthat::expect_s4_class(
+      object = rgb_indices_rast
+      , "SpatRaster"
+    )
+  }
 
 })

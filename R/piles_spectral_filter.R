@@ -198,10 +198,15 @@ piles_spectral_filter <- function(
     ))
   }
   # memory check and direct processing
+  mem_info_temp <- terra::mem_info(rgb_rast, n = 4, print = F)
+  # mem_info_temp[["fits_mem"]]
   #################################################################################
   # if the raster is already in memory, process directly to avoid tiling
   #################################################################################
-  if(terra::inMemory(rgb_rast)) {
+  if(
+    terra::inMemory(rgb_rast)
+    || dplyr::coalesce(mem_info_temp[["fits_mem"]],0)==1
+  ) {
     message("RGB raster is already in memory. Processing directly.")
     rgb_to_df_full_process_ans <- rgb_to_df_full_process(
         rgb_rast = rgb_rast
@@ -483,6 +488,7 @@ extract_rast_values <- function(sf_data, rast, fun_agg = "mean") {
     , y = sf_data
     , fun = fun_agg # "median" # passing as a string uses the optimized c++ backend
     # , append_cols = "ID" # unique identifier in the output
+    , progress = F
   )
 
   # clean data
