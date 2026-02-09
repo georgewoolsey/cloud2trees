@@ -1,3 +1,5 @@
+# cloud2trees 0.7.9
+
 # cloud2trees 0.7.8
 
 - New: adds utility functions for working with geometries and adds new internal workflow relevant to forest management for potential future release
