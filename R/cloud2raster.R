@@ -7,7 +7,7 @@
 #'
 #' * Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using [chunk_las_catalog()]
 #' * Classify the point cloud using [lasR::classify_with_csf()]
-#' * Remove outlier points using [lasR::classify_with_ivf()]
+#' * Remove outlier points using [lasR::classify_with_sor()]
 #' * Produce a triangulation of the ground points (meshed DTM) using [lasR::triangulate()]
 #' * Rasterize the result of the Delaunay triangulation using [lasR::rasterize()] to create a DTM
 #' * Height normalize the point cloud using either the DTM or the triangulation [lasR::transform_with()]

@@ -111,7 +111,14 @@ lasr_pipeline <- function(
     # denoise
     ###################
       # classify isolated points
-      lasr_denoise <- lasR::classify_with_ivf(res =  5, n = 9L) + lasR::delete_noise()
+      lasr_denoise <-
+        # # coarse-scale filter with 50 neighbors to find points/clusters
+        # # statistically far from the main cloud mass
+        # lasR::classify_with_sor(k =  50, m = 4) +
+        # # fine-scale filter with 15 neighbors and a tighter threshold of 3 sd's
+        # # (3-sigma rule) to find outlier points based on local neighborhood
+        lasR::classify_with_sor(k =  15, m = 3) +
+        lasR::delete_noise()
     ###################
     # write
     ###################
@@ -135,7 +142,6 @@ lasr_pipeline <- function(
       lasr_pipeline_temp <- lasr_read +
         lasr_denoise +
         lasr_classify +
-        lasr_denoise +
         lasr_write_classify +
         lasr_dtm_norm(
           dtm_file_name = dtm_file_name
@@ -156,7 +162,6 @@ lasr_pipeline <- function(
       lasr_pipeline_temp <- lasr_read +
         lasr_denoise +
         lasr_classify +
-        lasr_denoise +
         lasr_dtm_norm(
           dtm_file_name = dtm_file_name
           , frac_for_tri = frac_for_tri

@@ -71,7 +71,7 @@ The order of operations is:
 \itemize{
 \item Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
 \item Classify the point cloud using \code{\link[lasR:classify_with_csf]{lasR::classify_with_csf()}}
-\item Remove outlier points using \code{\link[lasR:classify_with_ivf]{lasR::classify_with_ivf()}}
+\item Remove outlier points using \code{\link[lasR:classify_with_sor]{lasR::classify_with_sor()}}
 \item Produce a triangulation of the ground points (meshed DTM) using \code{\link[lasR:triangulate]{lasR::triangulate()}}
 \item Rasterize the result of the Delaunay triangulation using \code{\link[lasR:rasterize]{lasR::rasterize()}} to create a DTM
 \item Height normalize the point cloud using either the DTM or the triangulation \code{\link[lasR:transform_with]{lasR::transform_with()}}
