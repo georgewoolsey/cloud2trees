@@ -235,7 +235,9 @@ trees_dbh <- function(
       sf::st_buffer(boundary_buffer)
   }
   #check trees vs boundary
-  nintersect <- tree_tops %>% sf::st_intersection(buff) %>% nrow() %>% dplyr::coalesce(0)
+  nintersect <- suppressWarnings(
+    tree_tops %>% sf::st_intersection(buff) %>% nrow() %>% dplyr::coalesce(0)
+  )
   if(nintersect==0){
     stop(paste0(
       "No trees in `tree_list` are within the `study_boundary`. DBH not estimated.\n"
@@ -422,15 +424,17 @@ trees_dbh <- function(
       )
 
       # non-linear model form with Gamma distribution for strictly positive response variable dbh
-      mod_nl_pop <- brms::brm(
-        formula = dbh_formula
-        , data = treemap_trees_df
-        , prior = dbh_priors
-        , family = brms::brmsfamily("Gamma")
-        , iter = 6000, warmup = 3000, chains = 4
-        , cores = lasR::half_cores()
-        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
-        , file_refit = "always"
+      mod_nl_pop <- suppressWarnings(
+        brms::brm(
+          formula = dbh_formula
+          , data = treemap_trees_df
+          , prior = dbh_priors
+          , family = brms::brmsfamily("Gamma")
+          , iter = 6000, warmup = 3000, chains = 4
+          , cores = lasR::half_cores()
+          , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+          , file_refit = "always"
+        )
       )
       # plot(mod_nl_pop)
       # summary(mod_nl_pop)
@@ -462,16 +466,18 @@ trees_dbh <- function(
         # as trees get larger, the variance in their diameter typically increases.
         # the lognormal distribution naturally accounts for this because it assumes the
         # error is multiplicative rather than additive, and it ensures that predicted DBH values are always strictly positive.
-      mod_nl_pop <- brms::brm(
-        formula = dbh_formula
-        , data = treemap_trees_df
-        , prior = dbh_priors
-        , family = brms::lognormal()
-        , iter = 6000, warmup = 3000, chains = 4
-        , cores = lasR::half_cores()
-        , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
-        , file_refit = "always"
-        , control = list(adapt_delta = 0.98)
+      mod_nl_pop <- suppressWarnings(
+        brms::brm(
+          formula = dbh_formula
+          , data = treemap_trees_df
+          , prior = dbh_priors
+          , family = brms::lognormal()
+          , iter = 6000, warmup = 3000, chains = 4
+          , cores = lasR::half_cores()
+          , file = paste0(normalizePath(outfolder), "/regional_dbh_height_model")
+          , file_refit = "always"
+          , control = list(adapt_delta = 0.98)
+        )
       )
       # plot(mod_nl_pop)
       # summary(mod_nl_pop)
@@ -586,7 +592,8 @@ trees_dbh <- function(
       ###________________________________________________________###
         ### Join the top down crowns with the stem location points
         ## !! Note that one crown can have multiple stems within its bounds
-      crowns_sf_joined_stems_temp <- tree_list %>%
+      crowns_sf_joined_stems_temp <- suppressWarnings(
+        tree_list %>%
         sf::st_join(
           treels_dbh_locations %>%
             # rename all columns to have "stem" prefix
@@ -599,6 +606,7 @@ trees_dbh <- function(
               ]
             )
         )
+      )
       if(
         max(grepl("tree_x", names(crowns_sf_joined_stems_temp)))==0
         | max(grepl("tree_y", names(crowns_sf_joined_stems_temp)))==0
@@ -731,16 +739,18 @@ trees_dbh <- function(
           }else{
             # population model with no random effects (i.e. no group-level variation)
             # Gamma distribution for strictly positive response variable dbh
-            stem_prediction_model <- brms::brm(
-              formula = stem_dbh_cm ~ 1 + tree_height_m
-              , data = dbh_training_data_temp %>%
-                  dplyr::select(stem_dbh_cm, tree_height_m)
-              , family = brms::brmsfamily("Gamma", link = "log")
-              , prior = c(brms::prior(gamma(0.01, 0.01), class = shape))
-              , iter = 4000, warmup = 2000, chains = 4
-              , cores = lasR::half_cores()
-              , file = paste0(normalizePath(outfolder), "/local_dbh_height_model")
-              , file_refit = "always"
+            stem_prediction_model <- suppressWarnings(
+              brms::brm(
+                formula = stem_dbh_cm ~ 1 + tree_height_m
+                , data = dbh_training_data_temp %>%
+                    dplyr::select(stem_dbh_cm, tree_height_m)
+                , family = brms::brmsfamily("Gamma", link = "log")
+                , prior = c(brms::prior(gamma(0.01, 0.01), class = shape))
+                , iter = 4000, warmup = 2000, chains = 4
+                , cores = lasR::half_cores()
+                , file = paste0(normalizePath(outfolder), "/local_dbh_height_model")
+                , file_refit = "always"
+              )
             )
           }
           ###___________________________________________________________________###

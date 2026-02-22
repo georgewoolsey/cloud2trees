@@ -125,6 +125,7 @@ cloud2trees <- function(
   , chm_res_m = 0.25
   , min_height = 2
   , max_height = 70
+  , noise_level = 2
   , ws = itd_ws_functions()[["log_fn"]]
   , estimate_tree_dbh = FALSE
   , max_dbh = 2
@@ -266,6 +267,7 @@ cloud2trees <- function(
       , chm_res_m = chm_res_m
       , min_height = min_height
       , max_height = max_height
+      , noise_level = noise_level
       , overwrite = overwrite
   )
   # cloud2raster_ans %>% names()
@@ -1016,6 +1018,7 @@ cloud2trees <- function(
             , sttng_chm_res_m = chm_res_m
             , sttng_min_height = min_height
             , sttng_max_height = max_height
+            , sttng_noise_level = noise_level
             , sttng_ws = as.character(deparse(ws)) %>% paste(collapse = "") %>% stringr::str_trim()
             , sttng_estimate_tree_dbh = estimate_tree_dbh
             , sttng_max_dbh = max_dbh

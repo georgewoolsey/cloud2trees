@@ -22,6 +22,14 @@
 #' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
 #' @param min_height numeric. Set the minimum height (m) for individual tree detection
 #' @param max_height numeric. Set the maximum height (m) for the canopy height model
+#' @param noise_level numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+#'    which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+#'    The default level of 2 has similar processing time compared to level to 1
+#'    but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40% longer to process.
+#'   * noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise
+#'   * noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise
+#'   * noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+#'    to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise
 #' @param overwrite logical. Should the output files in the `point_cloud_processing_delivery` directory from previous iterations be deleted?
 #'
 #' @references
@@ -72,6 +80,7 @@ cloud2raster <- function(
   , chm_res_m = 0.25
   , min_height = 2
   , max_height = 70
+  , noise_level = 2
   , overwrite = TRUE
 ){
   ######################################
@@ -170,6 +179,7 @@ cloud2raster <- function(
           , chm_res_m = chm_res_m
           , min_height = min_height
           , max_height = max_height
+          , noise_level = noise_level
           , dtm_dir = config$dtm_dir
           , chm_dir = config$chm_dir
           , classify_dir = config$las_classify_dir
@@ -246,11 +256,7 @@ cloud2raster <- function(
             chunk_las_catalog_ans$las_ctg@data$geometry %>%
               sf::st_union() %>%
               terra::vect()
-          ) %>%
-          terra::mask(
-            chunk_las_catalog_ans$las_ctg@data$geometry %>%
-              sf::st_union() %>%
-              terra::vect()
+            , mask = T
           ) %>%
           terra::focal(
             w = 3
@@ -264,7 +270,7 @@ cloud2raster <- function(
           )
         # chm_rast %>% terra::crs()
         # chm_rast %>% terra::plot()
-
+      names(chm_rast) <- "chm"
       # write to delivery directory
         terra::writeRaster(
           chm_rast

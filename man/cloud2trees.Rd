@@ -21,6 +21,7 @@ cloud2trees(
   chm_res_m = 0.25,
   min_height = 2,
   max_height = 70,
+  noise_level = 2,
   ws = itd_ws_functions()[["log_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
@@ -91,6 +92,17 @@ accuracy_level = 3 uses triangulation with very high point density (100 pts/m2) 
 \item{min_height}{numeric. Set the minimum height (m) for individual tree detection}
 
 \item{max_height}{numeric. Set the maximum height (m) for the canopy height model}
+
+\item{noise_level}{numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+The default level of 2 has similar processing time compared to level to 1
+but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40\% longer to process.
+\itemize{
+\item noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise
+\item noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise
+\item noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise
+}}
 
 \item{ws}{numeric or function. Length or diameter of the moving window used to detect the local
 maxima in the units of the input data (usually meters). If it is numeric a fixed window size is used.
