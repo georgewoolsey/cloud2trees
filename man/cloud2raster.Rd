@@ -20,6 +20,7 @@ cloud2raster(
   chm_res_m = 0.25,
   min_height = 2,
   max_height = 70,
+  noise_level = 2,
   overwrite = TRUE
 )
 }
@@ -57,6 +58,17 @@ accuracy_level = 3 uses triangulation with very high point density (100 pts/m2) 
 
 \item{max_height}{numeric. Set the maximum height (m) for the canopy height model}
 
+\item{noise_level}{numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+The default level of 2 has similar processing time compared to level to 1
+but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40\% longer to process.
+\itemize{
+\item noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise
+\item noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise
+\item noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise
+}}
+
 \item{overwrite}{logical. Should the output files in the \code{point_cloud_processing_delivery} directory from previous iterations be deleted?}
 }
 \value{
@@ -71,7 +83,7 @@ The order of operations is:
 \itemize{
 \item Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using \code{\link[=chunk_las_catalog]{chunk_las_catalog()}}
 \item Classify the point cloud using \code{\link[lasR:classify_with_csf]{lasR::classify_with_csf()}}
-\item Remove outlier points using \code{\link[lasR:classify_with_ivf]{lasR::classify_with_ivf()}}
+\item Remove outlier points using \code{\link[lasR:classify_with_sor]{lasR::classify_with_sor()}}
 \item Produce a triangulation of the ground points (meshed DTM) using \code{\link[lasR:triangulate]{lasR::triangulate()}}
 \item Rasterize the result of the Delaunay triangulation using \code{\link[lasR:rasterize]{lasR::rasterize()}} to create a DTM
 \item Height normalize the point cloud using either the DTM or the triangulation \code{\link[lasR:transform_with]{lasR::transform_with()}}

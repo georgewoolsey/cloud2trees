@@ -10,6 +10,14 @@
 #' @param chm_res_m numeric. The desired resolution of the CHM produced in meters.
 #' @param min_height numeric. Set the minimum height (m) for individual tree detection
 #' @param max_height numeric. Set the maximum height (m) for the canopy height model
+#' @param noise_level numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+#'    which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+#'    The default level of 2 has similar processing time compared to level to 1
+#'    but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40% longer to process.
+#'   * noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise
+#'   * noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise
+#'   * noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+#'    to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise
 #' @param dtm_dir string. The path of a folder to write the tiled DTM files to.
 #' @param chm_dir string. The path of a folder to write the tiled CHM files to.
 #' @param classify_dir string. The path of a folder to write the classified .las files to.
@@ -31,6 +39,7 @@ lasr_pipeline <- function(
   , chm_res_m = 0.25
   , min_height = 2
   , max_height = 70
+  , noise_level = 2
   , dtm_dir = getwd()
   , chm_dir = getwd()
   , classify_dir = getwd()
@@ -110,8 +119,30 @@ lasr_pipeline <- function(
     ###################
     # denoise
     ###################
-      # classify isolated points
-      lasr_denoise <- lasR::classify_with_ivf(res =  5, n = 9L) + lasR::delete_noise()
+      if(as.numeric(noise_level)==1){
+        # classify isolated points
+        lasr_denoise <-
+          lasR::classify_with_ivf(res = 5, n = 9L) +
+          lasR::delete_noise()
+      }else if(as.numeric(noise_level)==3){
+        # classify isolated points
+        lasr_denoise <-
+          # # coarse-scale filter with 50 neighbors to find points/clusters
+          # # statistically far from the main cloud mass
+          lasR::classify_with_sor(k =  50, m = 4) +
+          lasR::delete_noise() +
+          # # fine-scale filter with 15 neighbors and a tighter threshold of 3 sd's
+          # # (3-sigma rule) to find outlier points based on local neighborhood
+          lasR::classify_with_sor(k =  15, m = 3) +
+          lasR::delete_noise()
+      }else{
+        # classify isolated points
+        lasr_denoise <-
+          # # fine-scale filter with 15 neighbors and a tighter threshold of 3 sd's
+          # # (3-sigma rule) to find outlier points based on local neighborhood
+          lasR::classify_with_sor(k =  15, m = 3) +
+          lasR::delete_noise()
+      }
     ###################
     # write
     ###################
@@ -135,7 +166,6 @@ lasr_pipeline <- function(
       lasr_pipeline_temp <- lasr_read +
         lasr_denoise +
         lasr_classify +
-        lasr_denoise +
         lasr_write_classify +
         lasr_dtm_norm(
           dtm_file_name = dtm_file_name
@@ -156,7 +186,6 @@ lasr_pipeline <- function(
       lasr_pipeline_temp <- lasr_read +
         lasr_denoise +
         lasr_classify +
-        lasr_denoise +
         lasr_dtm_norm(
           dtm_file_name = dtm_file_name
           , frac_for_tri = frac_for_tri
