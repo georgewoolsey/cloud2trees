@@ -1,3 +1,5 @@
+# cloud2trees 0.8.0
+
 # cloud2trees 0.7.9
 
 - Change: updates utility functions for working with very large raster data in internal workflow for potential future release
