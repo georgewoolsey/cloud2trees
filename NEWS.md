@@ -1,5 +1,16 @@
 # cloud2trees 0.8.0
 
+- Change: introduces `noise_level` parameter to `cloud2raster()` and `cloud2trees()` to update the point cloud noise filtering workflow and gives users control over the algorithm and strictness used to better address persistent raster artifacts.
+- Change: `cloud2trees()` checks to ensure alignment between the `*_estimate_missing_*` and `estimate_tree_*` parameters. If `cbh_estimate_missing_cbh = T`, then the program automatically enables `estimate_tree_cbh` and the same applies for the `hmd_` settings. Users should still define a sample size (`*_tree_sample_n` or `*_tree_sample_prop`) for estimating these tree attributes, if none is defined the default is to use a small sample for estimation to limit processing time.
+
+`noise_level` is a tiered parameter added to `cloud2raster()` and `cloud2trees()` which gives users control over the noise detection algorithm and strictness used to resolve artifacts in rasterized data products. The new options include a statistical outlier removal (SOR) algorithm which identifies noise by calculating the mean distance from each point to its nearest neighbors. The workflow continues to remove all vendor-classified noise from the raw point cloud prior to subsequent processing. The `noise_level` allows users to control additional noise cleaning based on the specific quality of the dataset. This provides users with a way to mitigate issues if initial rasterized outputs (CHM, DTM) include persistent pits or spikes. `noise_level = 2` (the default) uses a fine-scale SOR filter with 15 neighbors and a 3 standard deviation threshold (3-sigma rule) to find outliers based on the local neighborhood. `noise_level = 3` adds a global noise detection pass prior to the local pass by first using 50 neighbors to identify points or clusters that are statistically far from the main cloud mass. While `noise_level = 2` does not consistently increase processing time, `noise_level = 3` will generally result in longer runtimes, especially for high-density data, because it is a multi-scale noise removal routine that analyzes larger groups of points simultaneously.
+
+**`noise_level` settings:**
+
+1. `noise_level = 1` (legacy): uses `lasR::classify_with_ivf(res = 5, n = 9)` and is maintained for legacy consistency and backward compatibility.
+2. `noise_level = 2` (fine-scale SOR): the default setting implements `lasR::classify_with_sor()` with a neighborhood of 15 points (k = 15) and a threshold of 3 standard deviations (m = 3) is used for standard cleaning across varying point densities.
+3. `noise_level = 3` (multi-scale SOR): uses a dual-pass noise filtering approach by first applying a coarse-scale filter (k = 50, m = 4) to identify points or clusters that are far from the main cloud mass and then a fine-scale filter (k = 15, m = 3) for local cleaning.
+
 # cloud2trees 0.7.9
 
 - Change: updates utility functions for working with very large raster data in internal workflow for potential future release
