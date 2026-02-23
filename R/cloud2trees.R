@@ -56,7 +56,7 @@
 #' who found the dry bulk density of the tree crown was 2.6 kilograms per cubed meter
 #' using Douglas-fir trees grown on Christmas tree farms.
 #' Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.
-#' @param estimate_tree_cbh logical. Should tree DBH be estimated? See [trees_cbh()].
+#' @param estimate_tree_cbh logical. Should tree CBH be estimated? See [trees_cbh()].
 #'   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.
 #' @param cbh_tree_sample_n,cbh_tree_sample_prop numeric. Provide either `tree_sample_n`, the number of trees, or `tree_sample_prop`, the
 #'   proportion of the trees to attempt to extract a CBH from the point cloud for.
@@ -197,6 +197,13 @@ cloud2trees <- function(
     }
     if(any(stringr::str_equal(which_biomass_methods, "cruz"))){
       estimate_tree_type <- T
+    }
+    ### for HMD and CBH, make sure T/F switches match
+    if(cbh_estimate_missing_cbh){
+      estimate_tree_cbh <- T
+    }
+    if(hmd_estimate_missing_hmd){
+      estimate_tree_hmd <- T
     }
   ####################################################################
   # check external data

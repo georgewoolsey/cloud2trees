@@ -130,6 +130,7 @@ lasr_pipeline <- function(
           # # coarse-scale filter with 50 neighbors to find points/clusters
           # # statistically far from the main cloud mass
           lasR::classify_with_sor(k =  50, m = 4) +
+          lasR::delete_noise() +
           # # fine-scale filter with 15 neighbors and a tighter threshold of 3 sd's
           # # (3-sigma rule) to find outlier points based on local neighborhood
           lasR::classify_with_sor(k =  15, m = 3) +

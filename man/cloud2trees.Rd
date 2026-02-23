@@ -158,7 +158,7 @@ who found the dry bulk density of the tree crown was 2.6 kilograms per cubed met
 using Douglas-fir trees grown on Christmas tree farms.
 Set this parameter to a large value (e.g. 1e10) or NULL to avoid limiting tree crown CBD.}
 
-\item{estimate_tree_cbh}{logical. Should tree DBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
+\item{estimate_tree_cbh}{logical. Should tree CBH be estimated? See \code{\link[=trees_cbh]{trees_cbh()}}.
 Make sure to set \code{cbh_estimate_missing_cbh = TRUE} if you want to obtain CBH values for cases when CBH cannot be extracted from the point cloud.}
 
 \item{cbh_tree_sample_n, cbh_tree_sample_prop}{numeric. Provide either \code{tree_sample_n}, the number of trees, or \code{tree_sample_prop}, the
