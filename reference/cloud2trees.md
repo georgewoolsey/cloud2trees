@@ -58,6 +58,7 @@ cloud2trees(
   chm_res_m = 0.25,
   min_height = 2,
   max_height = 70,
+  noise_level = 2,
   ws = itd_ws_functions()[["log_fn"]],
   estimate_tree_dbh = FALSE,
   max_dbh = 2,
@@ -178,6 +179,27 @@ cloud2trees(
 - max_height:
 
   numeric. Set the maximum height (m) for the canopy height model
+
+- noise_level:
+
+  numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a
+  higher noise level for point clouds with more noise which tend to
+  produce raster outputs with pits or spikes that are too severe to be
+  filled with standard post-processing. The default level of 2 has
+  similar processing time compared to level to 1 but uses a more broadly
+  applicable noise detection algorithm. Level 3 takes 10-40% longer to
+  process.
+
+  - noise_level = 1 uses isolated voxel filter (IVF) with a resolution
+    of 5 voxels and 9 other points to identify noise
+
+  - noise_level = 2 uses a single-pass, fine-scale statistical outlier
+    removal (SOR) that primarily targets local noise
+
+  - noise_level = 3 uses a muli-pass statistical outlier removal (SOR)
+    that first applies a coarse-scale filter to find points/clusters far
+    from the main cloud mass and then applies a fine-scale filter to
+    identify local noise
 
 - ws:
 
@@ -300,7 +322,7 @@ cloud2trees(
 
 - estimate_tree_cbh:
 
-  logical. Should tree DBH be estimated? See
+  logical. Should tree CBH be estimated? See
   [`trees_cbh()`](https://georgewoolsey.github.io/cloud2trees/reference/trees_cbh.md).
   Make sure to set `cbh_estimate_missing_cbh = TRUE` if you want to
   obtain CBH values for cases when CBH cannot be extracted from the

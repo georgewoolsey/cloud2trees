@@ -196,9 +196,9 @@ cloud2raster_ans$chm_rast
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
 #> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
 #> source      : chm_0.25m.tif 
-#> name        : focal_mean 
-#> min value   :       2.01 
-#> max value   :      32.02
+#> name        :   chm 
+#> min value   :  2.01 
+#> max value   : 32.02
 ```
 
 The CHM was created at the

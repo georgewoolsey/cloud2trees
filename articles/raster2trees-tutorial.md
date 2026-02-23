@@ -114,12 +114,12 @@ we can also get a summary of the CHM cell values
 terra::summary(cloud2raster_ans$chm_rast %>% setNames("CHM.meters"))
 #>    CHM.meters   
 #>  Min.   : 0.05  
-#>  1st Qu.:11.50  
-#>  Median :15.55  
-#>  Mean   :15.00  
-#>  3rd Qu.:19.22  
+#>  1st Qu.:11.80  
+#>  Median :15.70  
+#>  Mean   :15.15  
+#>  3rd Qu.:19.28  
 #>  Max.   :32.02  
-#>  NA's   :5242
+#>  NA's   :5408
 ```
 
 Now, we’ll run the
@@ -141,17 +141,17 @@ polygon geometries
 
 ``` r
 raster2trees_ans %>% dplyr::glimpse()
-#> Rows: 477
+#> Rows: 474
 #> Columns: 6
 #> $ treeID        <chr> "1_481278.4_3813010.7", "2_481281.5_3813010.7", "3_48129…
-#> $ tree_height_m <dbl> 24.430000, 22.230000, 15.850000, 13.440000, 22.070000, 2…
-#> $ tree_x        <dbl> 481278.4, 481281.5, 481294.7, 481312.7, 481325.0, 481336…
+#> $ tree_height_m <dbl> 24.410000, 22.219999, 15.850000, 13.440000, 22.070000, 2…
+#> $ tree_x        <dbl> 481278.4, 481281.5, 481294.7, 481312.7, 481325.0, 481333…
 #> $ tree_y        <dbl> 3813011, 3813011, 3813011, 3813011, 3813011, 3813011, 38…
-#> $ crown_area_m2 <dbl> 9.4864, 12.1968, 15.4880, 4.4528, 7.7440, 25.5552, 24.00…
-#> $ geometry      <GEOMETRY [m]> POLYGON ((481276.4 3813011,..., MULTIPOLYGON ((…
+#> $ crown_area_m2 <dbl> 9.0992, 11.6160, 15.1008, 5.0336, 7.5504, 11.4224, 17.61…
+#> $ geometry      <GEOMETRY [m]> POLYGON ((481276.4 3813011,..., POLYGON ((48127…
 ```
 
-The CHM-based tree detection process yielded 477 unique trees (data
+The CHM-based tree detection process yielded 474 unique trees (data
 rows) with 6 tree attributes (data columns). Let’s break down what these
 attributes are:
 
@@ -368,8 +368,8 @@ ggplot2::ggplot() +
 ![](raster2trees-tutorial_files/figure-html/unnamed-chunk-17-1.png)
 
 A few areas of difference are apparent. Using the `exp_fn` for the
-window search function resulted in 422 detected trees whereas the
-default, `log_fn` yielded 477 trees (change of -11.5%)
+window search function resulted in 419 detected trees whereas the
+default, `log_fn` yielded 474 trees (change of -11.6%)
 
 to really see what is going on, let’s look at the height distribution of
 the detected trees

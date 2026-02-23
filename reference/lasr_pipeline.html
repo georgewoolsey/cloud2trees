@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@
 <span>  chm_res_m <span class="op">=</span> <span class="fl">0.25</span>,</span>
 <span>  min_height <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  max_height <span class="op">=</span> <span class="fl">70</span>,</span>
+<span>  noise_level <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  dtm_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  chm_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  classify_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -94,6 +95,17 @@
 
 <dt id="arg-max-height">max_height<a class="anchor" aria-label="anchor" href="#arg-max-height"></a></dt>
 <dd><p>numeric. Set the maximum height (m) for the canopy height model</p></dd>
+
+
+<dt id="arg-noise-level">noise_level<a class="anchor" aria-label="anchor" href="#arg-noise-level"></a></dt>
+<dd><p>numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+The default level of 2 has similar processing time compared to level to 1
+but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40% longer to process.</p><ul><li><p>noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise</p></li>
+<li><p>noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise</p></li>
+<li><p>noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise</p></li>
+</ul></dd>
 
 
 <dt id="arg-dtm-dir">dtm_dir<a class="anchor" aria-label="anchor" href="#arg-dtm-dir"></a></dt>

@@ -214,9 +214,9 @@ cloud2trees_ans$chm_rast
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
 #> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
 #> source      : chm_0.25m.tif 
-#> name        : focal_mean 
-#> min value   :       2.01 
-#> max value   :      32.02
+#> name        :   chm 
+#> min value   :  2.01 
+#> max value   : 32.02
 ```
 
 The CHM was created at the
@@ -240,11 +240,11 @@ individual points
 
 ``` r
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
-#> Rows: 340
+#> Rows: 346
 #> Columns: 25
 #> $ treeID                    <chr> "1_481294.4_3813010.9", "2_481312.9_3813010.…
-#> $ tree_height_m             <dbl> 15.85, 13.44, 22.07, 22.93, 24.43, 22.23, 11…
-#> $ crown_area_m2             <dbl> 10.8750, 6.4375, 6.3750, 26.6875, 10.1250, 1…
+#> $ tree_height_m             <dbl> 15.85, 13.44, 22.07, 22.48, 22.92, 24.41, 22…
+#> $ crown_area_m2             <dbl> 10.0625, 6.2500, 6.1875, 11.3125, 17.0000, 1…
 #> $ fia_est_dbh_cm            <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ fia_est_dbh_cm_lower      <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ fia_est_dbh_cm_upper      <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
@@ -269,9 +269,9 @@ cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> $ geometry                  <POINT [m]> POINT (481294.4 3813011), POINT (48131…
 ```
 
-The tree list contains 340 rows and 25 columns. The 340 rows means that
+The tree list contains 346 rows and 25 columns. The 346 rows means that
 [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md)
-detected 340 trees across this 0.81 hectare area. The default use of
+detected 346 trees across this 0.81 hectare area. The default use of
 [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md)
 provides the height, crown area, and location (X and Y coordinate) for
 each of the trees it identified. However, we also see there are many
@@ -285,13 +285,13 @@ polygons
 
 ``` r
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
-#> Rows: 340
+#> Rows: 346
 #> Columns: 27
 #> $ treeID                    <chr> "1_481294.4_3813010.9", "2_481312.9_3813010.…
-#> $ tree_height_m             <dbl> 15.85, 13.44, 22.07, 22.93, 24.43, 22.23, 11…
-#> $ tree_x                    <dbl> 481294.4, 481312.9, 481325.1, 481335.9, 4812…
+#> $ tree_height_m             <dbl> 15.85, 13.44, 22.07, 22.48, 22.92, 24.41, 22…
+#> $ tree_x                    <dbl> 481294.4, 481312.9, 481325.1, 481333.4, 4813…
 #> $ tree_y                    <dbl> 3813011, 3813011, 3813011, 3813011, 3813011,…
-#> $ crown_area_m2             <dbl> 10.8750, 6.4375, 6.3750, 26.6875, 10.1250, 1…
+#> $ crown_area_m2             <dbl> 10.0625, 6.2500, 6.1875, 11.3125, 17.0000, 1…
 #> $ geometry                  <GEOMETRY [m]> POLYGON ((481292.5 3813011,..., POL…
 #> $ fia_est_dbh_cm            <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
 #> $ fia_est_dbh_cm_lower      <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
@@ -436,12 +436,12 @@ stand_summary
 #> # A tibble: 1 × 5
 #>   mean_tree_height_m n_trees stand_area_m2 stand_area_ha trees_per_ha
 #>                <dbl>   <int>         <dbl>         <dbl>        <dbl>
-#> 1               14.2     152         4000.         0.400         380.
+#> 1               13.9     158         4000.         0.400         395.
 ```
 
 [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md)
-identified 152 trees in the 0.40 ha stand resulting in 380.0 trees per
-hectare (TPH). Based on these 152 trees, the mean stand height is 14.2
+identified 158 trees in the 0.40 ha stand resulting in 395.0 trees per
+hectare (TPH). Based on these 158 trees, the mean stand height is 13.9
 m.
 
 ### Height Distributions

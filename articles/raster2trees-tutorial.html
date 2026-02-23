@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,12 +155,12 @@ settings since we know how to setup the function to get what we want (<a href="c
 <code class="sourceCode R"><span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="st">"CHM.meters"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    CHM.meters   </span></span>
 <span><span class="co">#&gt;  Min.   : 0.05  </span></span>
-<span><span class="co">#&gt;  1st Qu.:11.50  </span></span>
-<span><span class="co">#&gt;  Median :15.55  </span></span>
-<span><span class="co">#&gt;  Mean   :15.00  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:19.22  </span></span>
+<span><span class="co">#&gt;  1st Qu.:11.80  </span></span>
+<span><span class="co">#&gt;  Median :15.70  </span></span>
+<span><span class="co">#&gt;  Mean   :15.15  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:19.28  </span></span>
 <span><span class="co">#&gt;  Max.   :32.02  </span></span>
-<span><span class="co">#&gt;  NA's   :5242</span></span></code></pre></div>
+<span><span class="co">#&gt;  NA's   :5408</span></span></code></pre></div>
 <p>Now, we’ll run the <code><a href="../reference/raster2trees.html">raster2trees()</a></code> function to segment
 trees from the CHM that we just generated which is passed to the
 <code>chm_rast</code> argument. This argument expects a
@@ -175,15 +175,15 @@ package.</p>
 segmented and delineated via polygon geometries</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raster2trees_ans</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Rows: 477</span></span>
+<span><span class="co">#&gt; Rows: 474</span></span>
 <span><span class="co">#&gt; Columns: 6</span></span>
 <span><span class="co">#&gt; $ treeID        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> "1_481278.4_3813010.7"<span style="color: #949494;">, </span>"2_481281.5_3813010.7"<span style="color: #949494;">, </span>"3_48129…</span></span>
-<span><span class="co">#&gt; $ tree_height_m <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 24.430000<span style="color: #949494;">, </span>22.230000<span style="color: #949494;">, </span>15.850000<span style="color: #949494;">, </span>13.440000<span style="color: #949494;">, </span>22.070000<span style="color: #949494;">, </span>2…</span></span>
-<span><span class="co">#&gt; $ tree_x        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 481278.4<span style="color: #949494;">, </span>481281.5<span style="color: #949494;">, </span>481294.7<span style="color: #949494;">, </span>481312.7<span style="color: #949494;">, </span>481325.0<span style="color: #949494;">, </span>481336…</span></span>
+<span><span class="co">#&gt; $ tree_height_m <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 24.410000<span style="color: #949494;">, </span>22.219999<span style="color: #949494;">, </span>15.850000<span style="color: #949494;">, </span>13.440000<span style="color: #949494;">, </span>22.070000<span style="color: #949494;">, </span>2…</span></span>
+<span><span class="co">#&gt; $ tree_x        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 481278.4<span style="color: #949494;">, </span>481281.5<span style="color: #949494;">, </span>481294.7<span style="color: #949494;">, </span>481312.7<span style="color: #949494;">, </span>481325.0<span style="color: #949494;">, </span>481333…</span></span>
 <span><span class="co">#&gt; $ tree_y        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 3813011<span style="color: #949494;">, </span>3813011<span style="color: #949494;">, </span>3813011<span style="color: #949494;">, </span>3813011<span style="color: #949494;">, </span>3813011<span style="color: #949494;">, </span>3813011<span style="color: #949494;">, </span>38…</span></span>
-<span><span class="co">#&gt; $ crown_area_m2 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 9.4864<span style="color: #949494;">, </span>12.1968<span style="color: #949494;">, </span>15.4880<span style="color: #949494;">, </span>4.4528<span style="color: #949494;">, </span>7.7440<span style="color: #949494;">, </span>25.5552<span style="color: #949494;">, </span>24.00…</span></span>
-<span><span class="co">#&gt; $ geometry      <span style="color: #949494; font-style: italic;">&lt;GEOMETRY [m]&gt;</span> POLYGON ((481276.4 3813011,...<span style="color: #949494;">, </span>MULTIPOLYGON ((…</span></span></code></pre></div>
-<p>The CHM-based tree detection process yielded 477 unique trees (data
+<span><span class="co">#&gt; $ crown_area_m2 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 9.0992<span style="color: #949494;">, </span>11.6160<span style="color: #949494;">, </span>15.1008<span style="color: #949494;">, </span>5.0336<span style="color: #949494;">, </span>7.5504<span style="color: #949494;">, </span>11.4224<span style="color: #949494;">, </span>17.61…</span></span>
+<span><span class="co">#&gt; $ geometry      <span style="color: #949494; font-style: italic;">&lt;GEOMETRY [m]&gt;</span> POLYGON ((481276.4 3813011,...<span style="color: #949494;">, </span>POLYGON ((48127…</span></span></code></pre></div>
+<p>The CHM-based tree detection process yielded 474 unique trees (data
 rows) with 6 tree attributes (data columns). Let’s break down what these
 attributes are:</p>
 <ol style="list-style-type: decimal">
@@ -375,9 +375,9 @@ using the <code>itd_ws_functions</code> function list</p>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span>, legend.direction <span class="op">=</span> <span class="st">"horizontal"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="raster2trees-tutorial_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="" width="100%"></p>
 <p>A few areas of difference are apparent. Using the <code>exp_fn</code>
-for the window search function resulted in 422 detected trees whereas
-the default, <code>log_fn</code> yielded 477 trees (change of
--11.5%)</p>
+for the window search function resulted in 419 detected trees whereas
+the default, <code>log_fn</code> yielded 474 trees (change of
+-11.6%)</p>
 <p>to really see what is going on, let’s look at the height distribution
 of the detected trees</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">

@@ -4,7 +4,7 @@ to generate a CHM raster (.tif), a DTM raster (.tif), and .las files which have 
 The order of operations is:
 Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using chunk_las_catalog()
 Classify the point cloud using lasR::classify_with_csf()
-Remove outlier points using lasR::classify_with_ivf()
+Remove outlier points using lasR::classify_with_sor()
 Produce a triangulation of the ground points (meshed DTM) using lasR::triangulate()
 Rasterize the result of the Delaunay triangulation using lasR::rasterize() to create a DTM
 Height normalize the point cloud using either the DTM or the triangulation lasR::transform_with()
@@ -17,7 +17,7 @@ to generate a CHM raster (.tif), a DTM raster (.tif), and .las files which have 
 The order of operations is:
 Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using chunk_las_catalog()
 Classify the point cloud using lasR::classify_with_csf()
-Remove outlier points using lasR::classify_with_ivf()
+Remove outlier points using lasR::classify_with_sor()
 Produce a triangulation of the ground points (meshed DTM) using lasR::triangulate()
 Rasterize the result of the Delaunay triangulation using lasR::rasterize() to create a DTM
 Height normalize the point cloud using either the DTM or the triangulation lasR::transform_with()
@@ -33,7 +33,7 @@ Smooth the CHM raster tile gaps using terra::focal()
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,7 @@ Smooth the CHM raster tile gaps using terra::focal()
 to generate a CHM raster (.tif), a DTM raster (.tif), and .las files which have been height normalized.
 The order of operations is:</p><ul><li><p>Tile the raw point cloud to work with smaller chunks and reduce the potential for memory issues with high density clouds using <code><a href="chunk_las_catalog.html">chunk_las_catalog()</a></code></p></li>
 <li><p>Classify the point cloud using <code><a href="https://rdrr.io/pkg/lasR/man/classify_with_csf.html" class="external-link">lasR::classify_with_csf()</a></code></p></li>
-<li><p>Remove outlier points using <code><a href="https://rdrr.io/pkg/lasR/man/classify_with_ivf.html" class="external-link">lasR::classify_with_ivf()</a></code></p></li>
+<li><p>Remove outlier points using <code><a href="https://rdrr.io/pkg/lasR/man/classify_with_sor.html" class="external-link">lasR::classify_with_sor()</a></code></p></li>
 <li><p>Produce a triangulation of the ground points (meshed DTM) using <code><a href="https://rdrr.io/pkg/lasR/man/triangulate.html" class="external-link">lasR::triangulate()</a></code></p></li>
 <li><p>Rasterize the result of the Delaunay triangulation using <code><a href="https://rdrr.io/pkg/lasR/man/rasterize.html" class="external-link">lasR::rasterize()</a></code> to create a DTM</p></li>
 <li><p>Height normalize the point cloud using either the DTM or the triangulation <code><a href="https://rdrr.io/pkg/lasR/man/transform_with.html" class="external-link">lasR::transform_with()</a></code></p></li>
@@ -101,6 +101,7 @@ The order of operations is:</p><ul><li><p>Tile the raw point cloud to work with 
 <span>  chm_res_m <span class="op">=</span> <span class="fl">0.25</span>,</span>
 <span>  min_height <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  max_height <span class="op">=</span> <span class="fl">70</span>,</span>
+<span>  noise_level <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -170,6 +171,17 @@ accuracy_level = 3 uses triangulation with very high point density (100 pts/m2) 
 
 <dt id="arg-max-height">max_height<a class="anchor" aria-label="anchor" href="#arg-max-height"></a></dt>
 <dd><p>numeric. Set the maximum height (m) for the canopy height model</p></dd>
+
+
+<dt id="arg-noise-level">noise_level<a class="anchor" aria-label="anchor" href="#arg-noise-level"></a></dt>
+<dd><p>numeric. Choose point cloud noise reduction level 1, 2, or 3. Use a higher noise level for point clouds with more noise
+which tend to produce raster outputs with pits or spikes that are too severe to be filled with standard post-processing.
+The default level of 2 has similar processing time compared to level to 1
+but uses a more broadly applicable noise detection algorithm. Level 3 takes 10-40% longer to process.</p><ul><li><p>noise_level = 1 uses isolated voxel filter (IVF) with a resolution of 5 voxels and 9 other points to identify noise</p></li>
+<li><p>noise_level = 2 uses a single-pass, fine-scale statistical outlier removal (SOR) that primarily targets local noise</p></li>
+<li><p>noise_level = 3 uses a muli-pass statistical outlier removal (SOR) that first applies a coarse-scale filter
+to find points/clusters far from the main cloud mass and then applies a fine-scale filter to identify local noise</p></li>
+</ul></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>

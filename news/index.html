@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,19 @@
       <small>Source: <a href="https://github.com/georgewoolsey/cloud2trees/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="cloud2trees-080">cloud2trees 0.8.0<a class="anchor" aria-label="anchor" href="#cloud2trees-080"></a></h2>
+<ul><li>Change: introduces <code>noise_level</code> parameter to <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> and <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> to update the point cloud noise filtering workflow and gives users control over the algorithm and strictness used to better address persistent raster artifacts.</li>
+<li>Change: <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> checks to ensure alignment between the <code>*_estimate_missing_*</code> and <code>estimate_tree_*</code> parameters. If <code>cbh_estimate_missing_cbh = T</code>, then the program automatically enables <code>estimate_tree_cbh</code> and the same applies for the <code>hmd_</code> settings. Users should still define a sample size (<code>*_tree_sample_n</code> or <code>*_tree_sample_prop</code>) for estimating these tree attributes, if none is defined the default is to use a small sample for estimation to limit processing time.</li>
+</ul><p><code>noise_level</code> is a tiered parameter added to <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> and <code><a href="../reference/cloud2trees.html">cloud2trees()</a></code> which gives users control over the noise detection algorithm and strictness used to resolve artifacts in rasterized data products. The new options include a statistical outlier removal (SOR) algorithm which identifies noise by calculating the mean distance from each point to its nearest neighbors. The workflow continues to remove all vendor-classified noise from the raw point cloud prior to subsequent processing. The <code>noise_level</code> allows users to control additional noise cleaning based on the specific quality of the dataset. This provides users with a way to mitigate issues if initial rasterized outputs (CHM, DTM) include persistent pits or spikes. <code>noise_level = 2</code> (the default) uses a fine-scale SOR filter with 15 neighbors and a 3 standard deviation threshold (3-sigma rule) to find outliers based on the local neighborhood. <code>noise_level = 3</code> adds a global noise detection pass prior to the local pass by first using 50 neighbors to identify points or clusters that are statistically far from the main cloud mass. While <code>noise_level = 2</code> does not consistently increase processing time, <code>noise_level = 3</code> will generally result in longer runtimes, especially for high-density data, because it is a multi-scale noise removal routine that analyzes larger groups of points simultaneously.</p>
+<p><strong><code>noise_level</code> settings:</strong></p>
+<ol style="list-style-type: decimal"><li>
+<code>noise_level = 1</code> (legacy): uses <code>lasR::classify_with_ivf(res = 5, n = 9)</code> and is maintained for legacy consistency and backward compatibility.</li>
+<li>
+<code>noise_level = 2</code> (fine-scale SOR): the default setting implements <code><a href="https://rdrr.io/pkg/lasR/man/classify_with_sor.html" class="external-link">lasR::classify_with_sor()</a></code> with a neighborhood of 15 points (k = 15) and a threshold of 3 standard deviations (m = 3) is used for standard cleaning across varying point densities.</li>
+<li>
+<code>noise_level = 3</code> (multi-scale SOR): uses a dual-pass noise filtering approach by first applying a coarse-scale filter (k = 50, m = 4) to identify points or clusters that are far from the main cloud mass and then a fine-scale filter (k = 15, m = 3) for local cleaning.</li>
+</ol></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.9" id="cloud2trees-079">cloud2trees 0.7.9<a class="anchor" aria-label="anchor" href="#cloud2trees-079"></a></h2>
 <ul><li>Change: updates utility functions for working with very large raster data in internal workflow for potential future release</li>
