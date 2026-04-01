@@ -1,4 +1,4 @@
-#' @title Spectral filtering of candidate slash piles
+#' @title CHM-based quantification of polygon objects
 #'
 #' @description Calculates area and diameter from the input polygons
 #' and height, and bulk volume using the CHM data within the input polygon footprints.
