@@ -257,10 +257,10 @@ piles_detect <- function(
   ########################################################################################
   ## 5) calculate CHM-based structural metrics for the candidate piles
   ########################################################################################
-    # we'll use our `get_structural_metrics()` with the height-filtered CHM to compute the structural metrics for the candidate piles
+    # we'll use our `piles_quantify()` with the height-filtered CHM to compute the structural metrics for the candidate piles
     segs_sf <-
-      get_structural_metrics(
-        sf_data = segs_sf
+      piles_quantify(
+        sf_poly = segs_sf
         , chm_rast = slice_chm_rast
       ) %>%
       purrr::pluck("sf_data") %>%
@@ -328,11 +328,16 @@ piles_detect <- function(
           , "\n     try with `smooth_segs = F`"
         ))
       }
-    }
 
-    # calculate diameter
-    # st_calculate_diameter in utils_projection.R
-    segs_sf <- st_calculate_diameter(segs_sf)
+      # RE-calculate diameter
+      # st_calculate_diameter in utils_projection.R
+      segs_sf <- segs_sf %>%
+        dplyr::select( -dplyr::any_of(c(
+          "hey_xxxxxxxxxx"
+          , "diameter_m"
+        ))) %>%
+        st_calculate_diameter()
+    }
 
   # check for write
     if(
@@ -1279,159 +1284,6 @@ st_circularity_filter <- function(
       dplyr::select(-c(area_xxxx,mbc_area_xxxx))
     return(area_comp)
   }
-}
-########################################################################################
-## calculate raster-based area, height, and volume using zonal stats
-########################################################################################
-get_structural_metrics <- function(
-    sf_data
-    , chm_rast
-    # , sf_id = NA
-) {
-  # check polygons
-  if(!inherits(sf_data, "sf")){stop("must include `sf` data object in 'sf_data'")}
-  if( !all(sf::st_is(sf_data, type = c("POLYGON", "MULTIPOLYGON"))) ){
-    stop(paste0(
-      "`sf_data` data must be an `sf` class object with POLYGON geometry (see [sf::st_geometry_type()])"
-    ))
-  }
-  sf_data <- sf_data %>% dplyr::ungroup()
-
-  # check raster
-  # convert to SpatRaster if input is from 'raster' package
-  if(
-    inherits(chm_rast, "RasterStack")
-    || inherits(chm_rast, "RasterBrick")
-  ){
-    chm_rast <- terra::rast(chm_rast)
-  }else if(!inherits(chm_rast, "SpatRaster")){
-    stop("Input 'chm_rast' must be a SpatRaster from the `terra` package")
-  }
-  chm_rast <- chm_rast %>% terra::subset(subset = 1)
-  if(
-    as.numeric(terra::global(chm_rast, fun = "isNA")) == terra::ncell(chm_rast)
-    # || as.numeric(terra::global(chm_rast, fun = "isNA")) >= round(terra::ncell(chm_rast)*0.98)
-  ){
-    stop("Input 'chm_rast' has all missing values")
-  }
-
-  # # check id
-  # if(!inherits(sf_id, "character")){
-  #   # stop("must include 'sf_id' as the unique identifier")
-  #   sf_data <- sf_data %>%
-  #     dplyr::mutate(idxxxxx = dplyr::row_number())
-  #   sf_id <- "idxxxxx"
-  # }else{
-  #   if( !any( stringr::str_equal(names(sf_data), sf_id) ) ){
-  #     stop(paste0("could not locate '",sf_id,"' in sf_data"))
-  #   }
-  # }
-
-  # check overlap
-  # Returns TRUE if any part of the vector geometry intersects the raster extent
-  if(
-    !any(terra::is.related(
-      x = sf_data %>%
-        sf::st_transform(terra::crs(chm_rast)) %>%
-        terra::vect()
-      , y = terra::ext(chm_rast)
-      , relation = "intersects"
-    ))
-  ){
-    stop("Input 'sf_data' does not overlap with 'chm_rast'")
-  }
-  #################################
-  # area, volume of each cell
-  #################################
-  area_rast_temp <- terra::cellSize(chm_rast)
-  names(area_rast_temp) <- "area_m2"
-  # area_rast_temp %>% terra::plot()
-  # then, multiply area by the CHM (elevation) for each cell to get a raster with cell volumes
-  vol_rast_temp <- area_rast_temp*chm_rast
-  names(vol_rast_temp) <- "volume_m3"
-  # vol_rast_temp %>% terra::plot()
-  #################################
-  # zonal stats
-  #################################
-  # sum area within each segment to get the total area
-  area_df_temp <- terra::zonal(
-      x = area_rast_temp
-      , z = sf_data %>%
-        sf::st_transform(terra::crs(chm_rast)) %>%
-        terra::vect()
-      , fun = "sum", na.rm = T
-    ) %>%
-    setNames("area_m2") %>%
-    dplyr::mutate(area_m2 = dplyr::na_if(area_m2, NaN))
-  # area_df_temp %>% dplyr::glimpse()
-  # sum volume within each segment to get the total volume
-  vol_df_temp <- terra::zonal(
-      x = vol_rast_temp
-      , z = sf_data %>%
-        sf::st_transform(terra::crs(chm_rast)) %>%
-        terra::vect()
-      , fun = "sum", na.rm = T
-    ) %>%
-    setNames("volume_m3") %>%
-    dplyr::mutate(volume_m3 = dplyr::na_if(volume_m3, NaN))
-  # vol_df_temp %>% dplyr::glimpse()
-  # max ht within each segment to get the max ht
-  ht_df_temp <- terra::zonal(
-      x = chm_rast
-      , z = sf_data %>%
-        sf::st_transform(terra::crs(chm_rast)) %>%
-        terra::vect()
-      , fun = "max", na.rm = T
-    ) %>%
-    setNames("max_height_m") %>%
-    dplyr::mutate(max_height_m = dplyr::na_if(max_height_m, NaN))
-  #################################
-  # attach to sf
-  #################################
-  if(
-    !identical(
-      nrow(sf_data)
-      , nrow(area_df_temp)
-      , nrow(vol_df_temp)
-      , nrow(ht_df_temp)
-    )
-  ){
-    stop("unable to find data in raster for given vectors")
-  }
-
-  ret_dta <- sf_data %>%
-    dplyr::select( -dplyr::any_of(c(
-      "hey_xxxxxxxxxx"
-      , "area_m2"
-      , "volume_m3"
-      , "max_height_m"
-      , "volume_per_area"
-    ))) %>%
-    dplyr::bind_cols(
-      area_df_temp
-      , vol_df_temp
-      , ht_df_temp
-    ) %>%
-    dplyr::mutate(
-      volume_per_area = volume_m3/area_m2
-    )
-  # ret_dta <- sf_data %>%
-  #   purrr::reduce(
-  #     list(sf_data, area_df_temp, vol_df_temp, ht_df_temp)
-  #     , dplyr::left_join
-  #     , by = sf_id
-  #   ) %>%
-  #   dplyr::mutate(
-  #     volume_per_area = volume_m3/area_m2
-  #   )
-
-  return(
-    list(
-      sf_data = ret_dta
-      , area_rast = area_rast_temp
-      , volume_rast = vol_rast_temp
-    )
-  )
 }
 ###############################################################################
 # make a function to remove overlapping polygons from a sf data frame
