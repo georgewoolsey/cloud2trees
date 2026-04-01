@@ -1,3 +1,7 @@
+# cloud2trees 0.8.1
+
+- New: adds new internal workflow relevant to forest management for potential future release
+
 # cloud2trees 0.8.0
 
 - Change: introduces `noise_level` parameter to `cloud2raster()` and `cloud2trees()` to update the point cloud noise filtering workflow and gives users control over the algorithm and strictness used to better address persistent raster artifacts.

@@ -121,5 +121,45 @@ testthat::test_that("piles_detect() returns a list of objects. piles_spectral_fi
       , "SpatRaster"
     )
   }
-
+  ###########################################
+  # piles_quantify
+  ###########################################
+  suppressWarnings(suppressMessages({
+      piles_quantify_ans <- piles_quantify(
+        sf_poly = segs_sf
+        , chm_rast = my_chm
+      )
+    }))
+  ####################
+  # tests
+  ####################
+  ## includes the named list?
+  testthat::expect_named(piles_quantify_ans, expected = c("sf_data", "area_rast","volume_rast"), ignore.order = TRUE)
+  # get the things
+  segs_sf <- piles_quantify_ans[["sf_data"]]
+  area_rast <- piles_quantify_ans[["area_rast"]]
+  volume_rast <- piles_quantify_ans[["volume_rast"]]
+  ## test segs_sf
+  testthat::expect_s3_class(
+    object = segs_sf
+    , class = "sf"
+  )
+  testthat::expect_s3_class(
+    object = segs_sf
+    , class = "data.frame"
+  )
+  ## test area_rast
+  if(!is.null(area_rast)){
+    testthat::expect_s4_class(
+      object = area_rast
+      , "SpatRaster"
+    )
+  }
+  ## test volume_rast
+  if(!is.null(volume_rast)){
+    testthat::expect_s4_class(
+      object = volume_rast
+      , "SpatRaster"
+    )
+  }
 })
