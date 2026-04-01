@@ -12,7 +12,9 @@
 #'
 #' @return Returns a list of objects:
 #'
-#' * sf_data = spatial data frame with the input polygons and these columns added: `area_m2`, `diameter_m`, `volume_m3` , `max_height_m`
+#' * sf_data = spatial data frame with the input polygons and these columns added: `area_m2`, `diameter_m`, `volume_m3` , `max_height_m`, `pct_chm_coverarge`, `volume_per_area`
+#'    - where,  `pct_chm_coverarge` represents the proportion of the CHM cells within the polygon boundary that are not NA. If this value is very low (e.g. <50%), volume and height estimates are potentially not reliable.
+#'    - and,  `volume_m3` is always adjusted using `volume_per_area` to represent the bulk volume based on the non-NA data within the polygon
 #' * area_rast = an area raster adjusted for variations in pixel area caused by the curvature of the Earth and the coordinate reference system
 #' * volume_rast = a raster where values represent the cell area multiplied by the CHM height to create a volume raster
 #'
@@ -43,7 +45,9 @@
 #'  piles_quantify_ans
 #'  # here are pile polygons
 #'  dplyr::glimpse(piles_quantify_ans$sf_data)
-#'  # define plot fn for each plot to have its own fill scale
+#'  # how was our CHM coverage within the piles?
+#'  summary(piles_quantify_ans$sf_data$pct_chm_coverarge)
+#'  # define plot fn for each added metric to have its own fill scale
 #'  my_plot_fn <- function(data, fill_var, pal = "Blues", plot_title) {
 #'    ggplot2::ggplot(data = data) +
 #'      ggplot2::geom_sf(mapping=ggplot2::aes(fill = .data[[fill_var]])) +
@@ -54,15 +58,30 @@
 #'        legend.position = "top"
 #'        , axis.text = ggplot2::element_blank()
 #'        , axis.ticks = ggplot2::element_blank()
-#'        , grid.panel = ggplot2::element_blank()
 #'        , plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold")
 #'      )
 #'  }
 #'  # plot for each metric returned
-#'  p1 <- my_plot_fn(piles_quantify_ans$sf_data, fill_var = "area_m2", pal = "Blues", plot_title = "Area")
-#'  p2 <- my_plot_fn(piles_quantify_ans$sf_data, fill_var = "max_height_m", pal = "Oranges", plot_title = "Height")
-#'  p3 <- my_plot_fn(piles_quantify_ans$sf_data, fill_var = "diameter_m", pal = "Purples", plot_title = "Diameter")
-#'  p4 <- my_plot_fn(piles_quantify_ans$sf_data, fill_var = "volume_m3", pal = "Greys", plot_title = "Volume")
+#'  p1 <- my_plot_fn(
+#'    piles_quantify_ans$sf_data
+#'    , fill_var = "area_m2", pal = "Blues"
+#'    , plot_title = "Area"
+#'  )
+#'  p2 <- my_plot_fn(
+#'    piles_quantify_ans$sf_data
+#'    , fill_var = "max_height_m", pal = "Oranges"
+#'    , plot_title = "Height"
+#'  )
+#'  p3 <- my_plot_fn(
+#'    piles_quantify_ans$sf_data
+#'    , fill_var = "diameter_m", pal = "Purples"
+#'    , plot_title = "Diameter"
+#'  )
+#'  p4 <- my_plot_fn(
+#'    piles_quantify_ans$sf_data
+#'    , fill_var = "volume_m3", pal = "Greys"
+#'    , plot_title = "Volume"
+#'  )
 #'  # combine with patchwork
 #'  library(patchwork)
 #'  patchwork::wrap_plots(p1, p2, p3, p4, ncol = 2, nrow = 2)
@@ -170,6 +189,25 @@ piles_quantify <- function(
     ) %>%
     setNames("max_height_m") %>%
     dplyr::mutate(max_height_m = dplyr::na_if(max_height_m, NaN))
+  # NA check within each segment
+  na_df_temp <- terra::zonal(
+      x = chm_rast
+      , z = sf_poly %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , fun = "isNA"
+    ) %>%
+    setNames("xxx_cnt_na") %>%
+    dplyr::mutate(xxx_cnt_na = dplyr::na_if(xxx_cnt_na, NaN))
+  nonna_df_temp <- terra::zonal(
+      x = chm_rast
+      , z = sf_poly %>%
+        sf::st_transform(terra::crs(chm_rast)) %>%
+        terra::vect()
+      , fun = "notNA"
+    ) %>%
+    setNames("xxx_cnt_notna") %>%
+    dplyr::mutate(xxx_cnt_notna = dplyr::na_if(xxx_cnt_notna, NaN))
   #################################
   # attach to sf
   #################################
@@ -179,10 +217,29 @@ piles_quantify <- function(
       , nrow(area_df_temp)
       , nrow(vol_df_temp)
       , nrow(ht_df_temp)
+      , nrow(na_df_temp)
+      , nrow(nonna_df_temp)
     )
   ){
     stop("unable to find data in raster for given polygons")
   }
+
+  # get area and diameter of polygons in same CRS as chm
+  diam_df_temp <-sf_poly %>%
+    sf::st_transform(terra::crs(chm_rast)) %>%
+    dplyr::mutate(
+      # area from the polygon
+      xxx_area_m2 = sf::st_area(.) %>% as.numeric()
+    ) %>%
+    # calculate diameter
+    # st_calculate_diameter in utils_projection.R
+    dplyr::select( -dplyr::any_of(c(
+      "hey_xxxxxxxxxx"
+      , "diameter_m"
+    ))) %>%
+    st_calculate_diameter() %>%
+    sf::st_drop_geometry() %>%
+    dplyr::select(xxx_area_m2, diameter_m)
 
   ret_dta <- sf_poly %>%
     dplyr::select( -dplyr::any_of(c(
@@ -191,20 +248,34 @@ piles_quantify <- function(
       , "volume_m3"
       , "max_height_m"
       , "volume_per_area"
+      , "xxx_area_m2"
+      , "diameter_m"
+      , "is_volume_scaled"
+      , "xxx_cnt_na"
+      , "xxx_cnt_notna"
+      , "pct_chm_coverarge"
     ))) %>%
     dplyr::bind_cols(
       area_df_temp
       , vol_df_temp
       , ht_df_temp
+      , na_df_temp
+      , nonna_df_temp
+      , diam_df_temp
     ) %>%
     dplyr::mutate(
       # use area of raster so we know where the volume came from
       volume_per_area = volume_m3/area_m2
-      # now return area from the polygon
-      , area_m2 = sf::st_area(.) %>% as.numeric()
-      # adjust the volume to account for missing chm data
-      , volume_m3 = area_m2*volume_per_area
-    )
+      # adjust the volume to account for missing chm cells
+      , volume_m3 = xxx_area_m2*volume_per_area
+      , pct_chm_coverarge = dplyr::case_when(
+        dplyr::coalesce(xxx_cnt_notna,0)==0 ~ 0
+        , T ~ dplyr::coalesce(xxx_cnt_notna,0)/(dplyr::coalesce(xxx_cnt_na,0)+dplyr::coalesce(xxx_cnt_notna,0))
+      )
+    ) %>%
+    # use area of polygon
+    dplyr::select(-c(area_m2,xxx_cnt_notna,xxx_cnt_na)) %>%
+    dplyr::rename(area_m2=xxx_area_m2)
   # ret_dta <- sf_poly %>%
   #   purrr::reduce(
   #     list(sf_poly, area_df_temp, vol_df_temp, ht_df_temp)
@@ -215,14 +286,6 @@ piles_quantify <- function(
   #     volume_per_area = volume_m3/area_m2
   #   )
 
-  # calculate diameter
-  # st_calculate_diameter in utils_projection.R
-  ret_dta <- ret_dta %>%
-    dplyr::select( -dplyr::any_of(c(
-      "hey_xxxxxxxxxx"
-      , "diameter_m"
-    ))) %>%
-    st_calculate_diameter()
 
   return(
     list(
