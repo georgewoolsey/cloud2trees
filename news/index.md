@@ -1,5 +1,10 @@
 # Changelog
 
+## cloud2trees 0.8.1
+
+- New: adds new internal workflow relevant to forest management for
+  potential future release
+
 ## cloud2trees 0.8.0
 
 - Change: introduces `noise_level` parameter to
