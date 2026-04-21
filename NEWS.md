@@ -1,5 +1,20 @@
 # cloud2trees 0.8.2
 
+Updates to use LANDFIRE CBD 2024 vintage ([https://landfire.gov/fuel/cbd](https://landfire.gov/fuel/cbd)) and eliminates need to users to process the data post-download to convert factor raster to numeric values by hosting a pre-cleaned variant on [Zenodo](https://zenodo.org/records/19684623).
+
+Users should update to this new data using: 
+
+```r
+get_landfire(force = T)
+```
+
+- Change: to enable `cloud2trees_to_lanl_trees()` generation of LANL inputs without a DTM file, setting `topofile = 'flat'` no longer requires a DTM file to exist within the folder path of `input_dir`. The updates result in the following outcomes:
+
+  * `topofile = 'flat'` and DTM raster file (e.g. 'dtm_*.tif') not found within `input_dir`: 'topo.dat' file is not created and `topofile` is set to 'flat' in the fuellist file.
+  * `topofile = 'flat'` and DTM raster file (e.g. 'dtm_*.tif') found within `input_dir`: 'topo.dat' file is created and `topofile` is set to 'flat' in the fuellist file.
+  * `topofile = 'dtm'` and DTM raster file (e.g. 'dtm_*.tif') not found within `input_dir`: ERROR.
+  * `topofile = 'dtm'` and DTM raster file (e.g. 'dtm_*.tif') found within `input_dir`: 'topo.dat' file is created and `topofile` is set to the path of the 'topo.dat' in the fuellist file.
+
 # cloud2trees 0.8.1
 
 - New: adds new internal workflow relevant to forest management for potential future release
