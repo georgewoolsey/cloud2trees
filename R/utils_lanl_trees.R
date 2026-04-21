@@ -224,12 +224,14 @@ quicfire_define_domain <- function(
   # write it
   # writes to geojson in WGS84
   fp <- file.path(normalizePath(outdir),"Lidar_Bounds.geojson")
-  sf::st_write(
-    bbox
-    , fp
-    , driver = "GeoJSON"
-    , delete_dsn = TRUE
-  )
+  suppressWarnings(suppressMessages({
+    sf::st_write(
+      bbox
+      , fp
+      , driver = "GeoJSON"
+      , delete_dsn = TRUE
+    )
+  }))
 
   message(paste0(
     "exported QUIC-Fire domain to:"

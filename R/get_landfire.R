@@ -22,7 +22,7 @@ get_landfire <- function(
   # filename !!!!!!!!!!!!! landfire only
   ff_name <- "lc23_cbd_240.tif"
   # set up parameters to pass to get_url_data()
-  my_eval_url <- "https://landfire.gov/data-downloads/US_240/LF2023_CBD_240_CONUS.zip"
+  my_eval_url <- "https://zenodo.org/records/19684623/files/landfire_cbd_numeric.zip?download=1"
   my_my_name <- "landfire"
   my_req_file_list <- c(ff_name)
   my_cleanup_zip <- T
@@ -53,27 +53,13 @@ get_landfire <- function(
     # where was this written?
     fff <- file.path(my_savedir, my_my_name)
     # write a csv to package directory with location of data
-    dplyr::tibble(location = fff) %>%
-      write.csv(
-        file.path(pkg_dir, "location_landfire.csv")
-        , row.names = F
-        , append = F
-      )
-
-    ##### !!!!!!!!! for landfire only...
-    ##### !!!!!!!!! the original data is factor type
-    ##### !!!!!!!!! the first time we download this data we'll clean it
-    ##### !!!!!!!!! by converting the data to numeric and transforming the values
-    # reclass_landfire_rast() defined in utils_rast_points.R
-    fff_name <- file.path(fff, ff_name)
-    safe_reclass_landfire_rast <- purrr::safely(reclass_landfire_rast)
-    rcl <- safe_reclass_landfire_rast(rast = terra::rast(fff_name))
-    if(is.null(rcl$error)){
-      message("unpacking LANDFIRE data...this might take a while (24-98 mins.)")
-      terra::writeRaster(rcl$result, filename = fff_name, overwrite = T)
-      message("LANDFIRE raster successfully downloaded and unpacked")
-    }else{
-      warning("LANDFIRE raster successfully downloaded and but not fully unpacked...proceed with caution")
-    }
+    suppressWarnings(suppressMessages({
+      dplyr::tibble(location = fff) %>%
+        write.csv(
+          file.path(pkg_dir, "location_landfire.csv")
+          , row.names = F
+          , append = F
+        )
+    }))
   }
 }

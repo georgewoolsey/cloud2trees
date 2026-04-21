@@ -57,11 +57,13 @@ get_foresttype <- function(
     # where was this written?
     fff <- file.path(my_savedir, my_my_name)
     # write a csv to package directory with location of data
-    dplyr::tibble(location = fff) %>%
-      write.csv(
-        file.path(pkg_dir, "location_foresttype.csv")
-        , row.names = F
-        , append = F
-      )
+    suppressWarnings(suppressMessages({
+      dplyr::tibble(location = fff) %>%
+        write.csv(
+          file.path(pkg_dir, "location_foresttype.csv")
+          , row.names = F
+          , append = F
+        )
+    }))
   }
 }

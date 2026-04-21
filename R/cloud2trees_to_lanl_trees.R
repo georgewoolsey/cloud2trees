@@ -143,6 +143,7 @@ cloud2trees_to_lanl_trees <- function(
       ))}
     #### dtm
       if(
+        topofile=="dtm" &&
         is.null(search_dir_final_detected_ans$dtm_flist)
       ){stop(paste0(
         "could not locate DTM raster in:\n    "
@@ -258,13 +259,24 @@ cloud2trees_to_lanl_trees <- function(
   #######################################
   # quicfire_dtm_topofile
   #######################################
-    # don't forget the fortran flipped over rast
-    quicfire_dtm_topofile_ans <- quicfire_dtm_topofile(
-      dtm_rast = search_dir_final_detected_ans$dtm_flist[1]
-      , horizontal_resolution = horizontal_res
-      , study_boundary = quicfire_domain_df$quicfire_domain_df
-      , outdir = outdir
-    )
+    if(
+      topofile=="dtm" ||
+      !is.null(search_dir_final_detected_ans$dtm_flist[1])
+    ){
+      # don't forget the fortran flipped over rast
+      quicfire_dtm_topofile_ans <- quicfire_dtm_topofile(
+        dtm_rast = search_dir_final_detected_ans$dtm_flist[1]
+        , horizontal_resolution = horizontal_res
+        , study_boundary = quicfire_domain_df$quicfire_domain_df
+        , outdir = outdir
+      )
+    }else{
+      quicfire_dtm_topofile_ans <-
+        list(
+          dtm = NULL
+          , topofile_path = NULL
+        )
+    }
     # quicfire_dtm_topofile_ans
     # quicfire_dtm_topofile_ans$topofile_path
     # terra::plot(quicfire_dtm_topofile_ans$dtm)
