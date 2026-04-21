@@ -1,3 +1,5 @@
+# cloud2trees 0.8.2
+
 # cloud2trees 0.8.1
 
 - New: adds new internal workflow relevant to forest management for potential future release
