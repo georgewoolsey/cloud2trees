@@ -58,7 +58,8 @@ Remotes:
     github::olgaviedma/LadderFuelsR,
     github::r-lidar/lasR,
     github::tiagodc/TreeLS
-Config/Needs/website: rmarkdown
+Additional_repositories: https://r-universe.dev
+Config/Needs/website: lasR, lidR, rlas
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
