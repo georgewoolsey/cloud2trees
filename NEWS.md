@@ -1,3 +1,5 @@
+# cloud2trees 0.8.3
+
 # cloud2trees 0.8.2
 
 Updates to use LANDFIRE CBD 2024 vintage ([https://landfire.gov/fuel/cbd](https://landfire.gov/fuel/cbd)) and eliminates need to users to process the data post-download to convert factor raster to numeric values by hosting a pre-cleaned variant on [Zenodo](https://zenodo.org/records/19684623).
