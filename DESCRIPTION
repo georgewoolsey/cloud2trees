@@ -21,14 +21,14 @@ Imports:
     LadderFuelsR (>= 0.0.7),
     lasR (>= 0.13.1),
     leafR (>= 0.3.5),
-    lidR,
+    lidR (>= 4.2.3),
     lifecycle,
     magrittr,
     purrr,
     randomForest,
     readr,
     rlang,
-    rlas,
+    rlas (>= 1.8.4),
     scales,
     sf,
     stats,
@@ -57,9 +57,10 @@ Remotes:
     github::DRAAlmeida/leafR,
     github::olgaviedma/LadderFuelsR,
     github::r-lidar/lasR,
+    github::r-lidar/lidR,
+    github::r-lidar/rlas,
     github::tiagodc/TreeLS
-Additional_repositories: https://r-universe.dev
-Config/Needs/website: lasR, lidR, rlas
+Config/Needs/website: rmarkdown
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
