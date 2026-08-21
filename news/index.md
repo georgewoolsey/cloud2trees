@@ -1,5 +1,19 @@
 # Changelog
 
+## cloud2trees 0.8.3
+
+- Change/Fix: [TreeMap 2022](https://doi.org/10.2737/RDS-2025-0032)
+  download link updated in
+  [`get_treemap()`](https://georgewoolsey.github.io/cloud2trees/reference/get_treemap.md)
+  to match updated link in the “Research Data Archive”
+  ([@JosephSilva19](https://github.com/JosephSilva19),
+  [\#47](https://github.com/georgewoolsey/cloud2trees/issues/47)).
+
+  - **archive** as in *“a place in which public records or historical
+    materials (such as documents) are preserved”*
+    ([Merriam-Webster](https://www.merriam-webster.com/dictionary/archive),
+    accessed August 20, 2026)
+
 ## cloud2trees 0.8.2
 
 Updates to use LANDFIRE CBD 2024 vintage
@@ -11,6 +25,7 @@ values by hosting a pre-cleaned variant on
 Users should update to this new data using:
 
 ``` r
+
 get_landfire(force = T)
 ```
 
@@ -198,6 +213,7 @@ classification modeling and CBH allometric prediction.
 Users should update to this new data using:
 
 ``` r
+
 get_treemap(force = T)
 ```
 
@@ -768,6 +784,7 @@ application and updates FIA Forest Type data to 30m resolution. See
 To update your local copy of the FIA Forest Type data:
 
 ``` r
+
 cloud2trees::get_foresttype(force = T, res = 30)
 ```
 
@@ -814,6 +831,7 @@ See ([\#3](https://github.com/georgewoolsey/cloud2trees/issues/3),
 To update execute:
 
 ``` r
+
 # update lasR
 install.packages("lasR", repos = "https://r-lidar.r-universe.dev")
 # update cloud2trees

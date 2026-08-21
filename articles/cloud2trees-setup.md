@@ -27,6 +27,7 @@ during the installation process we’ll use the `pkgbuild` package to
 ensure Rtools is working correctly.
 
 ``` r
+
 # install pkgbuild
 install.packages("pkgbuild")
 ```
@@ -34,6 +35,7 @@ install.packages("pkgbuild")
 let’s check if Rtools is installed correctly
 
 ``` r
+
 # check for Rtools which is required to build packages
 pkgbuild::check_build_tools(debug = TRUE)
 ```
@@ -60,6 +62,7 @@ the RTools version matches your R version.
 Next, we need to install dependent packages from CRAN
 
 ``` r
+
 # install remotes package
 install.packages("remotes")
 # install tidyverse package
@@ -84,6 +87,7 @@ Now, we’ll install packages that are not from CRAN
   helps us extract CBH from the point cloud
 
 ``` r
+
 # install lasR for point cloud processing
 install.packages("lasR", repos = 'https://r-lidar.r-universe.dev')
 # install github package from "tiagodc/TreeLS"
@@ -99,6 +103,7 @@ these other tools and several others to enable end-to-end processing of
 point clouds to generate individual tree forest inventories
 
 ``` r
+
 # install github package from "georgewoolsey/cloud2trees"
 remotes::install_github(repo = "georgewoolsey/cloud2trees", upgrade = F)
 ```
@@ -108,6 +113,7 @@ also load some of the `tidyverse` and `terra` for working with raster
 data
 
 ``` r
+
 library(cloud2trees)
 library(ggplot2)
 library(magrittr)
@@ -131,6 +137,7 @@ TreeMap is a model of FIA plot locations imputed throughout forested
 areas of the Contiguous United States at 30 m spatial resolution.
 
 ``` r
+
 cloud2trees::get_treemap()
 ```
 
@@ -147,6 +154,7 @@ from the FIA program. This raster layer has 30-meter resolution and
 covers the forested extent of the Contiguous United States.
 
 ``` r
+
 cloud2trees::get_foresttype()
 ```
 
@@ -158,6 +166,7 @@ estimates (“CONUS LF 2023”) at 30-meter resolution over the Contiguous
 United States.
 
 ``` r
+
 cloud2trees::get_landfire()
 ```
 
@@ -177,6 +186,7 @@ we’ll use the `MixedConifer.laz` file that ships with the `lidR` package
 for the demonstration
 
 ``` r
+
 # path to las data
 # a test las file but this could also be a directory path with >1 .las|.laz files
 ## ... notice, we didn't directly install "lidR" above
@@ -189,6 +199,7 @@ let’s try to process this point cloud using all defaults in the
 function
 
 ``` r
+
 # run it
 cloud2trees_ans <- cloud2trees::cloud2trees(
   output_dir = tempdir()
@@ -199,6 +210,7 @@ cloud2trees_ans <- cloud2trees::cloud2trees(
 what did we get back?
 
 ``` r
+
 # did it do it?
 cloud2trees_ans %>% names()
 #> [1] "crowns_sf"       "treetops_sf"     "dtm_rast"        "chm_rast"       
@@ -208,6 +220,7 @@ cloud2trees_ans %>% names()
 is there a DTM?
 
 ``` r
+
 cloud2trees_ans$dtm_rast %>%
   terra::plot(axes = F)
 ```
@@ -217,6 +230,7 @@ cloud2trees_ans$dtm_rast %>%
 is there a CHM?
 
 ``` r
+
 cloud2trees_ans$chm_rast %>%
   terra::plot(col = viridis::plasma(100), axes = F)
 ```
@@ -226,6 +240,7 @@ cloud2trees_ans$chm_rast %>%
 is there a tree inventory?
 
 ``` r
+
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> Rows: 346
 #> Columns: 25
@@ -259,6 +274,7 @@ cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 would a CHM with tree crowns overlaid look neat?
 
 ``` r
+
 cloud2trees_ans$chm_rast %>%
   terra::as.data.frame(xy=T) %>%
   dplyr::rename(f=3) %>%

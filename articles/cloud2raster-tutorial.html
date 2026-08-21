@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Creating DTM and CHM rasters • cloud2trees</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Creating DTM and CHM rasters">
 </head>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cloud2trees</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -191,14 +191,14 @@ the <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> fun
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a DTM</span></span>
 <span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">dtm_rast</span></span>
-<span><span class="co">#&gt; class       : SpatRaster </span></span>
+<span><span class="co">#&gt; class       : SpatRaster</span></span>
 <span><span class="co">#&gt; size        : 90, 90, 1  (nrow, ncol, nlyr)</span></span>
 <span><span class="co">#&gt; resolution  : 1, 1  (x, y)</span></span>
 <span><span class="co">#&gt; extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)</span></span>
-<span><span class="co">#&gt; coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) </span></span>
-<span><span class="co">#&gt; source      : dtm_1m.tif </span></span>
-<span><span class="co">#&gt; name        : 1_dtm_1m </span></span>
-<span><span class="co">#&gt; min value   : 0.000000 </span></span>
+<span><span class="co">#&gt; coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)</span></span>
+<span><span class="co">#&gt; source      : dtm_1m.tif</span></span>
+<span><span class="co">#&gt; name        : 1_dtm_1m</span></span>
+<span><span class="co">#&gt; min value   :        0</span></span>
 <span><span class="co">#&gt; max value   : 0.622001</span></span></code></pre></div>
 <p>The DTM was created at the <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> default 1 m
 resolution and that the elevations vary between 0.00 and 0.62 m.</p>
@@ -214,14 +214,14 @@ small fluctuations.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># there's a CHM</span></span>
 <span><span class="va">cloud2raster_ans</span><span class="op">$</span><span class="va">chm_rast</span></span>
-<span><span class="co">#&gt; class       : SpatRaster </span></span>
+<span><span class="co">#&gt; class       : SpatRaster</span></span>
 <span><span class="co">#&gt; size        : 360, 360, 1  (nrow, ncol, nlyr)</span></span>
 <span><span class="co">#&gt; resolution  : 0.25, 0.25  (x, y)</span></span>
 <span><span class="co">#&gt; extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)</span></span>
-<span><span class="co">#&gt; coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) </span></span>
-<span><span class="co">#&gt; source      : chm_0.25m.tif </span></span>
-<span><span class="co">#&gt; name        :   chm </span></span>
-<span><span class="co">#&gt; min value   :  2.01 </span></span>
+<span><span class="co">#&gt; coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)</span></span>
+<span><span class="co">#&gt; source      : chm_0.25m.tif</span></span>
+<span><span class="co">#&gt; name        :   chm</span></span>
+<span><span class="co">#&gt; min value   :  2.01</span></span>
 <span><span class="co">#&gt; max value   : 32.02</span></span></code></pre></div>
 <p>The CHM was created at the <code><a href="../reference/cloud2raster.html">cloud2raster()</a></code> default 0.25 m
 resolution and that the elevations vary between 2.01 and 32.02 m.</p>
@@ -575,10 +575,10 @@ a minimum CHM resolution of approximately 0.24 m
 while ensuring at least one point per cell on average. Alternatively, to
 find the minimum point density needed to support a desired CHM
 resolution, use the formula
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><msup><mtext mathvariant="normal">desired_res</mtext><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">1/(\text{desired_res}^2)</annotation></semantics></math>.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mo stretchy="false" form="prefix">(</mo><msup><mtext mathvariant="normal">desired_res</mtext><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">1/(\text{desired_res}^2)</annotation></semantics></math>.
 For instance, creating a 0.3 m CHM raster requires point cloud data with
 at least 11.11 points m<sup>-2</sup>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><msup><mn>0.3</mn><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow><mo>≈</mo><mn>11.11</mn></mrow><annotation encoding="application/x-tex">1/(0.3^2) \approx 11.11</annotation></semantics></math>).</p>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mo stretchy="false" form="prefix">(</mo><msup><mn>0.3</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mn>11.11</mn></mrow><annotation encoding="application/x-tex">1/(0.3^2) \approx 11.11</annotation></semantics></math>).</p>
 <div class="section level3">
 <h3 id="unfiltered-maximum-chm">Unfiltered Maximum CHM<a class="anchor" aria-label="anchor" href="#unfiltered-maximum-chm"></a>
 </h3>
@@ -708,7 +708,7 @@ the resultant resolution in the X and Y horizontal</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

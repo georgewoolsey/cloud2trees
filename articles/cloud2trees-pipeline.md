@@ -24,5 +24,6 @@ its output files, and provide a quick demonstration of how to use those
 outputs to visualize or further analyze forest structure.
 
 ``` r
+
 library(cloud2trees)
 ```

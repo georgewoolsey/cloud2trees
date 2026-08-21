@@ -100,6 +100,7 @@ In addition to `cloud2trees`, we’ll be using the `tidyverse`, `sf`, and
 `terra` in the examples below.
 
 ``` r
+
 library(cloud2trees)
 # install.packages("tidyverse")
 library(tidyverse)
@@ -124,6 +125,7 @@ function defaults with a single .laz file and writing the output to a
 temporary directory is:
 
 ``` r
+
 # a test las file but this could also be a directory path with >1 .las|.laz files
 i <- system.file("extdata", "MixedConifer.laz", package="lidR")
 # run it
@@ -135,6 +137,7 @@ Let’s check out what is included in the return from the
 function.
 
 ``` r
+
 # what is it?
 cloud2trees_ans %>% names()
 #> [1] "crowns_sf"       "treetops_sf"     "dtm_rast"        "chm_rast"       
@@ -145,6 +148,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 # there's a DTM
 cloud2trees_ans$dtm_rast %>% terra::plot()
 ```
@@ -155,6 +159,7 @@ There is a canopy height model (CHM) raster which we can plot using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 # there's a CHM
 cloud2trees_ans$chm_rast %>% terra::plot()
 ```
@@ -164,6 +169,7 @@ cloud2trees_ans$chm_rast %>% terra::plot()
 A spatial data frame with tree crown polygons is returned.
 
 ``` r
+
 # there are tree crowns
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> Rows: 340
@@ -219,6 +225,7 @@ Let’s plot these tree crown polygons using
 with some custom plot settings.
 
 ``` r
+
 cloud2trees_ans$crowns_sf %>% 
   ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_height_m)) + 
   ggplot2::geom_sf() + 
@@ -232,6 +239,7 @@ cloud2trees_ans$crowns_sf %>%
 A spatial data frame with tree top points is returned.
 
 ``` r
+
 # there are tree top points
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> Rows: 340
@@ -272,6 +280,7 @@ Let’s plot these tree top points using
 with some custom plot settings.
 
 ``` r
+
 cloud2trees_ans$treetops_sf %>% 
   ggplot2::ggplot(mapping = ggplot2::aes(color = tree_height_m)) + 
   ggplot2::geom_sf() + 
@@ -286,6 +295,7 @@ It is also the case that the points in `cloud2trees_ans$treetops_sf`
 will match to exactly one crown polygon in `cloud2trees_ans$crowns_sf`.
 
 ``` r
+
 ggplot2::ggplot() + 
   ggplot2::geom_sf(data = cloud2trees_ans$crowns_sf, mapping = ggplot2::aes(fill = tree_height_m)) + 
   ggplot2::geom_sf(data = cloud2trees_ans$treetops_sf, shape = 20) + 
@@ -346,6 +356,7 @@ linear, and logarithmic (concave down) functions. We’ll run
 with all default options to start.
 
 ``` r
+
 itd_tuning_ans <- itd_tuning(input_las_dir = i, n_samples = 2)
 ```
 
@@ -354,6 +365,7 @@ Let’s check out what is included in the return from the
 function.
 
 ``` r
+
 # what is it?
 itd_tuning_ans %>% names()
 #> [1] "plot_samples"        "ws_fn_list"          "plot_sample_summary"
@@ -366,6 +378,7 @@ number of individual trees extracted shown outlined in gray overlaid on
 the canopy height model (CHM).
 
 ``` r
+
 itd_tuning_ans$plot_samples
 ```
 
@@ -389,6 +402,7 @@ trend suggesting a need for further tuning (e.g. small trees with
 unrealistically wide crowns).
 
 ``` r
+
 itd_tuning_ans$plot_sample_summary
 ```
 
@@ -402,6 +416,7 @@ and
 [`cloud2trees()`](https://georgewoolsey.github.io/cloud2trees/reference/cloud2trees.md)
 
 ``` r
+
 # get the best function
 best_ws <- itd_tuning_ans$ws_fn_list$lin_fn
 ```
@@ -409,6 +424,7 @@ best_ws <- itd_tuning_ans$ws_fn_list$lin_fn
 we can plot what the function looks like
 
 ``` r
+
 ggplot2::ggplot() +
   ggplot2::geom_function(fun = best_ws, color = "brown", lwd = 1) +
   ggplot2::xlim(-5,60) +
@@ -425,6 +441,7 @@ test a constant window size of 3 m and a custom function where the
 windows size is linearly related to the point height
 
 ``` r
+
 # a constant window size has to be defined as:
  ## rep(constant, times = length(x))
  ## x*0 + constant
@@ -447,6 +464,7 @@ with our custom window size definitions and try on two sample plots of
 0.1 ha
 
 ``` r
+
 # run it with custom functions
 itd_tuning_ans2 <- itd_tuning(
  input_las_dir = i
@@ -458,6 +476,7 @@ itd_tuning_ans2 <- itd_tuning(
 let’s check out that tuning plot
 
 ``` r
+
 # look at the tuning plot
 itd_tuning_ans2$plot_samples
 ```
@@ -467,6 +486,7 @@ itd_tuning_ans2$plot_samples
 we can also check out what our custom “my_linear” function looks like
 
 ``` r
+
 ggplot2::ggplot() +
   ggplot2::geom_function(
     fun = itd_tuning_ans2$ws_fn_list$my_linear
@@ -512,6 +532,7 @@ function parameters we’ll:
   `estimate_biomass_method`
 
 ``` r
+
 # make sure we know where the results are going
 my_dir <- tempdir()
 # run it
@@ -536,6 +557,7 @@ cloud2trees_ans_c <- cloud2trees::cloud2trees(
 Check how the digital terrain model (DTM) raster has changed
 
 ``` r
+
 paste(
   "Default DTM resolution:"
   , cloud2trees_ans$dtm_rast %>% terra::res() %>% paste(collapse = ",")
@@ -551,6 +573,7 @@ DBH (`dbh_*`), CBH (`tree_cbh_m`), HMD (`max_crown_diam_height_m`),
 LANDFIRE data (`landfire_*`).
 
 ``` r
+
 cloud2trees_ans_c$crowns_sf %>% dplyr::glimpse()
 #> Rows: 343
 #> Columns: 34
@@ -595,6 +618,7 @@ maxima for identifying tree tops so we got a few more trees compared to
 the default settings.
 
 ``` r
+
 paste(
   "Default trees extracted:"
   , cloud2trees_ans$crowns_sf %>% nrow()
@@ -608,6 +632,7 @@ Let’s look at the relationship between tree height and tree DBH
 estimated from the FIA plot data.
 
 ``` r
+
 cloud2trees_ans_c$crowns_sf %>%
   ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = dbh_cm)) + 
   ggplot2::geom_point(color = "navy", alpha = 0.6) +
@@ -626,6 +651,7 @@ height range because CBH is also determined spatially (e.g. as a fire
 moves through a stand).
 
 ``` r
+
 cloud2trees_ans_c$crowns_sf %>%
   dplyr::arrange(is_training_cbh) %>%
   ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
@@ -643,6 +669,7 @@ We can also plot height, diameter, and CBH of trees spatially and we’ll
 use the `patchwork` package to combine our plots.
 
 ``` r
+
 library(patchwork)
 # height plot
 plt_ht <-
@@ -685,6 +712,7 @@ function call to quantify tree competition metrics. We’ll use the
 spatial tree points data in `cloud2trees_ans_c$treetops_sf`.
 
 ``` r
+
 cloud2trees_ans_c$treetops_sf %>%
   ggplot2::ggplot(mapping = ggplot2::aes(color = comp_dist_to_nearest_m)) + 
   ggplot2::geom_sf() +
@@ -699,6 +727,7 @@ Let’s look at the FIA Forest Type Group data we extracted for the tree
 list.
 
 ``` r
+
 cloud2trees_ans_c$treetops_sf %>%
   sf::st_drop_geometry() %>% 
   dplyr::count(forest_type_group_code, forest_type_group)
@@ -722,6 +751,7 @@ our local machine (e.g. “C:”). Let’s check out the files that were
 delivered in the *point_cloud_processing_delivery* folder.
 
 ``` r
+
 # append the "point_cloud_processing_delivery"  to our output_dir
 cloud2trees_delivery_dir <- file.path(my_dir,"point_cloud_processing_delivery")
 # which files?
@@ -745,22 +775,22 @@ list.files( cloud2trees_delivery_dir )
 
 here is a description of each of those files:
 
-| File Name                                   | File Type            | Description                                                                                                  |
-|---------------------------------------------|----------------------|--------------------------------------------------------------------------------------------------------------|
-| cbh_height_model_estimates.rds              | R Data Serialization | saved R object of random forest model predicting tree crown base height                                      |
-| chm_0.25m_tif                               | GeoTif               | canopy height model derived at user-defined resolution                                                       |
-| dtm_1m.tif                                  | GeoTif               | digital terrain model derived at user-defined resolution                                                     |
-| fia_foresttype_raster.tif                   | GeoTif               | 30 m resolution raster of predicted forest type                                                              |
-| final_detected_crowns.gpkg                  | Geopackage           | polygons of individual tree crowns with appended tree level attributes                                       |
-| final_detected_tree_tops.gpkg               | Geopackage           | tree top point locations of individual trees with appended tree level attributes                             |
-| hmd_height_model_estimates.rds              | R Data Serialization | saved R object of random forest model predicting tree height to max crown diameter                           |
-| processed_tracking_data.csv                 | CSV                  | summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters |
-| raw_las_ctg_info.gpkg                       | Geopackage           | polygon of point cloud tiles tiles used in data processing                                                   |
-| regional_dbh_height_model.rds               | R Data Serialization | saved R object of polynomial regression to predict tree diameter at breast height                            |
-| regional_dbh_height_model_estimates.csv     | CSV                  | table of predicted coefficient values of polynomial regression to predict tree diameter at breast height     |
-| regional_dbh_height_model_predictions.csv   | CSV                  | predicted diameter at breast height from polynomial regression at 0.1 m height increments                    |
-| regional_dbh_height_model_training_data.csv | CSV                  | table of TreeMap tree data used to train diameter at breast height prediction model                          |
-| stand_cell_data_landfire.csv                | CSV                  | table of parameters used to convert LANDFIRE CBD to tree-level crown bulk density                            |
+| File Name | File Type | Description |
+|----|----|----|
+| cbh_height_model_estimates.rds | R Data Serialization | saved R object of random forest model predicting tree crown base height |
+| chm_0.25m_tif | GeoTif | canopy height model derived at user-defined resolution |
+| dtm_1m.tif | GeoTif | digital terrain model derived at user-defined resolution |
+| fia_foresttype_raster.tif | GeoTif | 30 m resolution raster of predicted forest type |
+| final_detected_crowns.gpkg | Geopackage | polygons of individual tree crowns with appended tree level attributes |
+| final_detected_tree_tops.gpkg | Geopackage | tree top point locations of individual trees with appended tree level attributes |
+| hmd_height_model_estimates.rds | R Data Serialization | saved R object of random forest model predicting tree height to max crown diameter |
+| processed_tracking_data.csv | CSV | summary table of data processing time for each step from DTM/CHM generation through modeling tree parameters |
+| raw_las_ctg_info.gpkg | Geopackage | polygon of point cloud tiles tiles used in data processing |
+| regional_dbh_height_model.rds | R Data Serialization | saved R object of polynomial regression to predict tree diameter at breast height |
+| regional_dbh_height_model_estimates.csv | CSV | table of predicted coefficient values of polynomial regression to predict tree diameter at breast height |
+| regional_dbh_height_model_predictions.csv | CSV | predicted diameter at breast height from polynomial regression at 0.1 m height increments |
+| regional_dbh_height_model_training_data.csv | CSV | table of TreeMap tree data used to train diameter at breast height prediction model |
+| stand_cell_data_landfire.csv | CSV | table of parameters used to convert LANDFIRE CBD to tree-level crown bulk density |
 
 # Format `cloud2trees()` output for LANL TREES
 
@@ -778,6 +808,7 @@ framework to generate all of the required fire modeling input variables,
 the minimum required settings are:
 
 ``` r
+
 cloud2trees::cloud2trees(
   ...
   , estimate_tree_dbh = TRUE
@@ -803,6 +834,7 @@ We’ll pretend our area of interest is the central 2,000 m² of our point
 cloud data
 
 ``` r
+
 my_aoi <-
   cloud2trees_ans_c$treetops_sf %>% 
     sf::st_union() %>% 
@@ -823,6 +855,7 @@ program to the same directory and the program will automatically create
 a new folder titled *lanl_trees_delivery*
 
 ``` r
+
 # run it with no customization
 cloud2trees_to_lanl_trees(
   input_dir = cloud2trees_delivery_dir
@@ -835,6 +868,7 @@ Let’s check out the files that were delivered in the
 *lanl_trees_delivery* folder.
 
 ``` r
+
 # append the "lanl_trees_delivery" to our cloud2trees_delivery_dir
 lanl_trees_delivery_dir <- file.path(cloud2trees_delivery_dir,"lanl_trees_delivery")
 # which files?
@@ -846,13 +880,13 @@ list.files( lanl_trees_delivery_dir )
 
 here is a description of each of those files:
 
-| File Name                | File Type                             | Description                                                                                                                                                                                |
-|--------------------------|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Cloud2Trees_TreeList.txt | text                                  | tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program                                                                                  |
-| dtm_Clipped.tif          | GeoTif                                | digital terrain model clipped to a rectangular extent and scaled to 2 m resolution for use in LANL TREES program                                                                           |
-| fuellist                 | raw                                   | file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program |
-| Lidar_Bounds.geojson     | Geographic JavaScript Object Notation | projected polygon delineating the data and simulation extent                                                                                                                               |
-| topo.dat                 | DAT                                   | digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program                                                                                                |
+| File Name | File Type | Description |
+|----|----|----|
+| Cloud2Trees_TreeList.txt | text | tree list with formatted spacing containing tree parameters necessary for input to the LANL TREES program |
+| dtm_Clipped.tif | GeoTif | digital terrain model clipped to a rectangular extent and scaled to 2 m resolution for use in LANL TREES program |
+| fuellist | raw | file describing treelist file and surface fuel litter and herbaceous bulk density, depth, surface area to volume, and moisture as user defined constants for use in the LANL TREES program |
+| Lidar_Bounds.geojson | Geographic JavaScript Object Notation | projected polygon delineating the data and simulation extent |
+| topo.dat | DAT | digital terrain model elevation data stored in FORTRAN format for use in LANL TREES program |
 
 ## Define surface fuel
 
@@ -890,6 +924,7 @@ here is what customizing these fuel loads would look like in the
 call
 
 ``` r
+
 # fuel_litter
 my_fuel_litter <- list(
   ilitter = 1
@@ -928,6 +963,7 @@ ensure to turn on the `keep_intrmdt` parameter and see the
 `point_cloud_processing_temp` directory nested in the `output_dir`.
 
 ``` r
+
 cloud2raster_ans <- cloud2trees::cloud2raster(output_dir = tempdir(), input_las_dir = i)
 ```
 
@@ -935,6 +971,7 @@ There is a digital terrain model (DTM) raster which we can plot using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 # there's a DTM
 cloud2raster_ans$dtm_rast %>% terra::plot()
 ```
@@ -945,6 +982,7 @@ There is a canopy height model (CHM) raster which we can plot using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 # there's a CHM
 cloud2raster_ans$chm_rast %>% terra::plot()
 ```
@@ -961,6 +999,7 @@ list.
 We’ll use the CHM example that ships with the `cloud2trees` package.
 
 ``` r
+
 # read example CHM raster
 f <- paste0(system.file(package = "cloud2trees"),"/extdata/chm.tif")
 r <- terra::rast(f)
@@ -971,6 +1010,7 @@ raster2trees_ans <- cloud2trees::raster2trees(chm_rast = r, outfolder = tempdir(
 A spatial data frame with tree crown polygons is returned.
 
 ``` r
+
 # there are tree crowns
 raster2trees_ans %>% dplyr::glimpse()
 #> Rows: 147
@@ -988,6 +1028,7 @@ Let’s plot these tree crown polygons using
 with some custom plot settings.
 
 ``` r
+
 raster2trees_ans %>% 
   ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_height_m)) + 
   ggplot2::geom_sf() + 
@@ -1012,6 +1053,7 @@ We just need to pass a data frame with the columns `treeID`, `tree_x`,
 function.
 
 ``` r
+
 set.seed(111)
 # a fake tree list
 tl <- dplyr::tibble(
@@ -1027,6 +1069,7 @@ Use the
 function to estimate DBH based on tree height and tree location.
 
 ``` r
+
 # call the function
 tl_dbh <- cloud2trees::trees_dbh(tree_list = tl, crs = "32613")
 ```
@@ -1034,6 +1077,7 @@ tl_dbh <- cloud2trees::trees_dbh(tree_list = tl, crs = "32613")
 What is this data?
 
 ``` r
+
 tl_dbh %>% dplyr::glimpse()
 #> Rows: 21
 #> Columns: 16
@@ -1059,6 +1103,7 @@ Let’s look at the relationship between tree height and tree DBH
 estimated from the FIA plot data.
 
 ``` r
+
 tl_dbh %>%
   ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = dbh_cm)) + 
   ggplot2::geom_point(color = "navy", alpha = 0.6) +
@@ -1073,6 +1118,7 @@ tl_dbh %>%
 We can look at this data spatially too.
 
 ``` r
+
 # height plot
 plt_ht2 <-
   tl_dbh %>% 
@@ -1123,6 +1169,7 @@ and the program will use the data “as-is” and only require the `treeID`
 column.
 
 ``` r
+
 # a fake tree list
 tl <- dplyr::tibble(
     treeID = c(1:66)
@@ -1140,6 +1187,7 @@ limit the search radius by setting the `max_search_dist_m` parameter to
 88 meters.
 
 ``` r
+
 # call the function
 tl_type <- cloud2trees::trees_type(tree_list = tl, crs = "32613", max_search_dist_m = 88)
 ```
@@ -1149,6 +1197,7 @@ well as the FIA Forest Types Group raster (`foresttype_rast`) of the
 area we searched.
 
 ``` r
+
 tl_type %>% names()
 #> [1] "tree_list"       "foresttype_rast"
 ```
@@ -1156,6 +1205,7 @@ tl_type %>% names()
 What is in the tree list data?
 
 ``` r
+
 tl_type$tree_list %>% dplyr::glimpse()
 #> Rows: 66
 #> Columns: 7
@@ -1172,6 +1222,7 @@ Let’s look at the FIA Forest Type Group data we extracted for the tree
 list.
 
 ``` r
+
 tl_type$tree_list %>%
   sf::st_drop_geometry() %>% 
   dplyr::count(forest_type_group_code, forest_type_group)
@@ -1187,6 +1238,7 @@ tl_type$tree_list %>%
 We can plot our spatial tree list
 
 ``` r
+
 # now plot
 tl_type$tree_list %>%
   ggplot2::ggplot() + 
@@ -1203,6 +1255,7 @@ Let’s check out the FIA Forest Types Group raster (`foresttype_rast`) of
 the area we searched
 
 ``` r
+
 r_plt <- 
   tl_type$foresttype_rast %>%
     as.data.frame(xy=T) %>% 
@@ -1225,6 +1278,7 @@ data (Wilson 2023) for a list of possible forest type group codes
 Let’s overlay our tree points on the raster data
 
 ``` r
+
 r_plt +
   ggplot2::geom_sf(
     data = tl_type$tree_list %>%  
@@ -1255,6 +1309,7 @@ cloud processing the `LadderFuelsR` package
 first.
 
 ``` r
+
 # install.packages("remotes")
 ## install LadderFuelsR
 remotes::install_github(repo = "olgaviedma/LadderFuelsR", upgrade = F)
@@ -1283,6 +1338,7 @@ with the same projection. Data generated by a `cloud2trees` pipeline
 will always have the same projection.
 
 ``` r
+
 # read example crown polygons
 f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
 p <- sf::st_read(f, quiet = T)
@@ -1300,6 +1356,7 @@ trees_cbh_ans <- cloud2trees::trees_cbh(
 What is this data?
 
 ``` r
+
 trees_cbh_ans %>% 
   dplyr::select(treeID, tree_height_m, tree_cbh_m, is_training_cbh) %>% 
   dplyr::glimpse()
@@ -1319,6 +1376,7 @@ height range because CBH is also determined spatially (e.g. as a fire
 moves through a stand).
 
 ``` r
+
 trees_cbh_ans %>%
   dplyr::arrange(is_training_cbh) %>%
   ggplot2::ggplot(mapping = ggplot2::aes(x = tree_height_m, y = tree_cbh_m, color=is_training_cbh)) + 
@@ -1335,6 +1393,7 @@ trees_cbh_ans %>%
 We can look at this data spatially too.
 
 ``` r
+
 trees_cbh_ans %>%
   dplyr::arrange(is_training_cbh) %>%
   ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_cbh_m, color=is_training_cbh)) + 
@@ -1375,6 +1434,7 @@ We’ll use the tree crown polygons and normalized point cloud data
 examples that ship with the `cloud2trees` package.
 
 ``` r
+
 # read example crown polygons
 f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
 p <- sf::st_read(f, quiet = T)
@@ -1391,6 +1451,7 @@ trees_hmd_ans <- cloud2trees::trees_hmd(
 What is this data?
 
 ``` r
+
 trees_hmd_ans %>% 
   dplyr::select(treeID, tree_height_m, max_crown_diam_height_m, is_training_hmd) %>% 
   dplyr::glimpse()
@@ -1410,6 +1471,7 @@ height range because HMD is also determined spatially (e.g. as a fire
 moves through a stand).
 
 ``` r
+
 trees_hmd_ans %>%
   dplyr::arrange(is_training_cbh) %>%
   ggplot2::ggplot(
@@ -1428,6 +1490,7 @@ trees_hmd_ans %>%
 We can look at this data spatially too.
 
 ``` r
+
 trees_hmd_ans %>%
   dplyr::arrange(is_training_hmd) %>%
   ggplot2::ggplot(mapping = ggplot2::aes(fill = max_crown_diam_height_m, color=is_training_hmd)) + 
@@ -1498,6 +1561,7 @@ We’ll use the tree crown polygons that ship with the `cloud2trees`
 package.
 
 ``` r
+
 # read example crown polygons
 f <- system.file(package = "cloud2trees","extdata", "crowns_poly.gpkg")
 tl <- sf::st_read(f, quiet = T)
@@ -1514,6 +1578,7 @@ package for estimating biomass. The following function calls are
 equivalent:
 
 ``` r
+
 # trees_biomass with method = "landfire"
 trees_biomass(tree_list, method = "landfire")
 # is equivalent to
@@ -1527,6 +1592,7 @@ estimates of tree crown biomass in kilograms with the argument
 `method = c("landfire","cruz")`
 
 ``` r
+
 # call trees_biomass and get multiple biomass estimates
 trees_biomass_ans <- trees_biomass(tree_list = tl, method = c("landfire","cruz"))
 ```
@@ -1534,6 +1600,7 @@ trees_biomass_ans <- trees_biomass(tree_list = tl, method = c("landfire","cruz")
 what did we get back?
 
 ``` r
+
 trees_biomass_ans %>% names()
 #> [1] "tree_list"                "stand_cell_data_landfire"
 #> [3] "stand_cell_data_cruz"
@@ -1542,6 +1609,7 @@ trees_biomass_ans %>% names()
 check out the tree list data
 
 ``` r
+
 trees_biomass_ans$tree_list %>% dplyr::glimpse()
 #> Rows: 196
 #> Columns: 36
@@ -1590,6 +1658,7 @@ biomass in kilograms that we are after
 plot tree LANDFIRE and Cruz crown biomass estimate
 
 ``` r
+
 library(patchwork)
 # plot tree landfire crown biomass estimate
 p1 <- trees_biomass_ans$tree_list %>%
@@ -1621,6 +1690,7 @@ the estimates look similar but not exactly the same. let’s plot them
 against each other
 
 ``` r
+
 # get the max for the upper limit scale
 ul <- max(
   trees_biomass_ans$tree_list$cruz_crown_biomass_kg
@@ -1645,6 +1715,7 @@ trees_biomass_ans$tree_list %>%
 let’s check out the LANDFIRE stand data
 
 ``` r
+
 trees_biomass_ans$stand_cell_data_landfire %>% dplyr::filter(trees>0) %>% dplyr::glimpse()
 #> Rows: 4
 #> Columns: 19
@@ -1676,6 +1747,7 @@ we can use this stand/cell data as raster data and overlay the tree
 points…let’s do this for the LANDFIRE data
 
 ``` r
+
 # get the projection for the stand cell data
 epsg_code <- trees_biomass_ans$stand_cell_data_landfire$rast_epsg_code[1] %>% as.numeric()
 # plot the stand cell data with trees overlaid

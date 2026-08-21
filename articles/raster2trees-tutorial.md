@@ -48,6 +48,7 @@ learn more on how to do this.
 Let’s load the libraries we’ll use
 
 ``` r
+
 library(cloud2trees)
 library(ggplot2)
 library(magrittr)
@@ -68,6 +69,7 @@ use a temporary directory but you’ll likely want to point to a permanent
 directory, for example: *C:/Data/MixedConifer*.
 
 ``` r
+
 # the path to a single .las|.laz file 
 #  -or- the directory to a folder with many .las|.laz files
 las_dir <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
@@ -84,6 +86,7 @@ what we want ([review
 here](https://georgewoolsey.github.io/cloud2trees/articles/cloud2raster-tutorial.md))
 
 ``` r
+
 cloud2raster_ans <- cloud2trees::cloud2raster(
   input_las_dir = las_dir
   , output_dir = out_dir
@@ -97,6 +100,7 @@ let’s look at the CHM really quick using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(
   cloud2raster_ans$chm_rast
   , col = grDevices::heat.colors(55, alpha = 0.88)
@@ -111,6 +115,7 @@ terra::plot(
 we can also get a summary of the CHM cell values
 
 ``` r
+
 terra::summary(cloud2raster_ans$chm_rast %>% setNames("CHM.meters"))
 #>    CHM.meters   
 #>  Min.   : 0.05  
@@ -119,7 +124,7 @@ terra::summary(cloud2raster_ans$chm_rast %>% setNames("CHM.meters"))
 #>  Mean   :15.15  
 #>  3rd Qu.:19.28  
 #>  Max.   :32.02  
-#>  NA's   :5408
+#>  NAs    :5408
 ```
 
 Now, we’ll run the
@@ -129,6 +134,7 @@ passed to the `chm_rast` argument. This argument expects a *SpatRaster*
 class object as loaded by the `terra` package.
 
 ``` r
+
 raster2trees_ans <- cloud2trees::raster2trees(
   chm_rast = cloud2raster_ans$chm_rast
   , outfolder = out_dir
@@ -140,6 +146,7 @@ returns a spatial data frame with crowns segmented and delineated via
 polygon geometries
 
 ``` r
+
 raster2trees_ans %>% dplyr::glimpse()
 #> Rows: 474
 #> Columns: 6
@@ -166,6 +173,7 @@ attributes are:
 Let’s take a look at the crown polygons colored by the tree heights:
 
 ``` r
+
 raster2trees_ans %>% 
   ggplot2::ggplot(mapping = ggplot2::aes(fill = tree_height_m)) + 
   ggplot2::geom_sf() + 
@@ -185,6 +193,7 @@ We’ll first demonstrate with
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(
   cloud2raster_ans$chm_rast
   , col = grDevices::heat.colors(55, alpha = 0.88)
@@ -207,6 +216,7 @@ Let’s look at a histogram of the tree heights to get a better feel for
 what is going on
 
 ``` r
+
 raster2trees_ans %>%
   ggplot2::ggplot() +
   ggplot2::geom_histogram(
@@ -230,6 +240,7 @@ against crown area with the expectation that shorter trees have smaller
 crowns while taller trees have larger crowns
 
 ``` r
+
 raster2trees_ans %>%
   ggplot2::ggplot() +
   ggplot2::geom_point(
@@ -275,6 +286,7 @@ and wish to retain the results, it is recommended you rename the
 *final_detected\_\*.gpkg* files before running the next iteration.
 
 ``` r
+
 list.files(out_dir, pattern = "*.gpkg$")
 #> [1] "final_detected_crowns.gpkg"    "final_detected_tree_tops.gpkg"
 ```
@@ -288,6 +300,7 @@ built into cloud2trees for tree detection. Should you want to select a
 different function to apply, we can see a list of them
 
 ``` r
+
 cloud2trees::itd_ws_functions() %>% names()
 #> [1] "lin_fn" "exp_fn" "log_fn"
 ```
@@ -296,6 +309,7 @@ we can quickly plot what shapes these take over a range of `x` values
 which represent CHM cell heights in the ITD algorithm
 
 ``` r
+
 ggplot2::ggplot() +
   ggplot2::geom_function(
     fun = cloud2trees::itd_ws_functions()$lin_fn
@@ -332,6 +346,7 @@ and directly specify the `exp_fn` using the `itd_ws_functions` function
 list
 
 ``` r
+
 raster2trees_ans_exp <- cloud2trees::raster2trees(
   chm_rast = cloud2raster_ans$chm_rast
   , outfolder = out_dir
@@ -342,6 +357,7 @@ raster2trees_ans_exp <- cloud2trees::raster2trees(
 Let’s spatially compare the detected crowns
 
 ``` r
+
 # make a custom color palette to mimic 
   # ...the RColorBrewer palette without needing to load that package
 cust_cols = c("seagreen3", "slateblue3")
@@ -375,6 +391,7 @@ to really see what is going on, let’s look at the height distribution of
 the detected trees
 
 ``` r
+
 ggplot2::ggplot() +
   ggplot2::geom_histogram(
     data = raster2trees_ans

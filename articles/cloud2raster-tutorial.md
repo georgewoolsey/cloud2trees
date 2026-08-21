@@ -32,6 +32,7 @@ reliability of subsequent Individual Tree Detection (ITD) steps.
 Let’s load the libraries we’ll use
 
 ``` r
+
 library(cloud2trees)
 library(ggplot2)
 library(magrittr)
@@ -63,6 +64,7 @@ but you’ll likely want to point to a permanent directory, for example:
 *C:/Data/MixedConifer*.
 
 ``` r
+
 # the path to a single .las|.laz file 
 #  -or- the directory to a folder with many .las|.laz files
 las_dir <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
@@ -75,6 +77,7 @@ First, we’ll run
 with all of the default settings
 
 ``` r
+
 cloud2raster_ans <- cloud2trees::cloud2raster(
   input_las_dir = las_dir
   , output_dir = out_dir
@@ -89,6 +92,7 @@ Now, let’s explore what
 created
 
 ``` r
+
 cloud2raster_ans %>% names()
 #> [1] "dtm_rast"                     "chm_rast"                    
 #> [3] "create_project_structure_ans" "chunk_las_catalog_ans"       
@@ -119,6 +123,7 @@ iteration.
 Let’s see what was written to the disk.
 
 ``` r
+
 file.path(out_dir, "point_cloud_processing_delivery") %>% 
   list.files()
 #> [1] "chm_0.25m.tif"         "dtm_1m.tif"            "raw_las_ctg_info.gpkg"
@@ -137,6 +142,7 @@ same as the `chunk_las_catalog_ans$process_data` return from the
 function.
 
 ``` r
+
 file.path(out_dir, "point_cloud_processing_delivery", "raw_las_ctg_info.gpkg") %>% 
   sf::st_read(quiet = T) %>% 
   ggplot2::ggplot() + 
@@ -153,16 +159,17 @@ file.path(out_dir, "point_cloud_processing_delivery", "raw_las_ctg_info.gpkg") %
 Let’s look at the digital terrain model (DTM) raster
 
 ``` r
+
 # there's a DTM
 cloud2raster_ans$dtm_rast
-#> class       : SpatRaster 
+#> class       : SpatRaster
 #> size        : 90, 90, 1  (nrow, ncol, nlyr)
 #> resolution  : 1, 1  (x, y)
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
-#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
-#> source      : dtm_1m.tif 
-#> name        : 1_dtm_1m 
-#> min value   : 0.000000 
+#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)
+#> source      : dtm_1m.tif
+#> name        : 1_dtm_1m
+#> min value   :        0
 #> max value   : 0.622001
 ```
 
@@ -175,6 +182,7 @@ we can plot the DTM using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(cloud2raster_ans$dtm_rast)
 ```
 
@@ -188,16 +196,17 @@ fluctuations.
 There is also a canopy height model (CHM) raster
 
 ``` r
+
 # there's a CHM
 cloud2raster_ans$chm_rast
-#> class       : SpatRaster 
+#> class       : SpatRaster
 #> size        : 360, 360, 1  (nrow, ncol, nlyr)
 #> resolution  : 0.25, 0.25  (x, y)
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
-#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
-#> source      : chm_0.25m.tif 
-#> name        :   chm 
-#> min value   :  2.01 
+#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)
+#> source      : chm_0.25m.tif
+#> name        :   chm
+#> min value   :  2.01
 #> max value   : 32.02
 ```
 
@@ -210,6 +219,7 @@ we can plot the CHM using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(cloud2raster_ans$chm_rast, col = grDevices::heat.colors(55, alpha = 0.88))
 ```
 
@@ -224,6 +234,7 @@ above to demonstrate, but the same
 color palette could be used if desired.
 
 ``` r
+
 cloud2raster_ans$chm_rast %>%
   terra::as.data.frame(xy=T) %>%
   dplyr::rename(f=3) %>%
@@ -249,6 +260,7 @@ If we really like this figure and want to share it, we can write it out
 to an image file
 
 ``` r
+
 ggplot2::ggsave(
   file.path(out_dir,"MixedConifer_chm_025m.jpg")
   , dpi = 300
@@ -289,6 +301,7 @@ differences
 First, the 2 m DTM
 
 ``` r
+
 # 2 m dtm
 cloud2raster_ans_dtm_2m <- cloud2trees::cloud2raster(
   input_las_dir = las_dir
@@ -301,6 +314,7 @@ We can confirm that we got the resolution expected by checking the
 resolution in the X and Y horizontal
 
 ``` r
+
 # 2 m dtm
 paste0(
   "The resolution of `cloud2raster_ans_dtm_2m` is: "
@@ -313,6 +327,7 @@ Let’s plot the DTM raster and store it. We won’t show it here as we’ll
 combine later using `patchwork`
 
 ``` r
+
 # plt_dtm_2m
 plt_dtm_2m <- cloud2raster_ans_dtm_2m$dtm_rast %>%
   terra::as.data.frame(xy=T) %>%
@@ -338,6 +353,7 @@ plt_dtm_2m <- cloud2raster_ans_dtm_2m$dtm_rast %>%
 Second, the 0.5 m DTM
 
 ``` r
+
 # 0.5 m dtm
 cloud2raster_ans_dtm_0.5m <- cloud2trees::cloud2raster(
   input_las_dir = las_dir
@@ -350,6 +366,7 @@ We can confirm that we got the resolution expected by checking the
 resolution in the X and Y horizontal
 
 ``` r
+
 # 0.5 m dtm
 paste0(
   "The resolution of `cloud2raster_ans_dtm_0.5m` is: "
@@ -362,6 +379,7 @@ Let’s plot the DTM raster and store it. We won’t show it here as we’ll
 combine later using `patchwork`
 
 ``` r
+
 # plt_dtm_0.5m
 plt_dtm_0.5m <- cloud2raster_ans_dtm_0.5m$dtm_rast %>%
   terra::as.data.frame(xy=T) %>%
@@ -388,6 +406,7 @@ combine with
 [`patchwork::wrap_plots()`](https://patchwork.data-imaginist.com/reference/wrap_plots.html)
 
 ``` r
+
 # patchwork
 patchwork::wrap_plots(plt_dtm_2m, plt_dtm_0.5m)
 ```
@@ -415,6 +434,7 @@ resolution raster using
 and we’ll display the resultant resolution in the X and Y horizontal
 
 ``` r
+
 terra::aggregate(
     cloud2raster_ans_dtm_0.5m$dtm_rast
     , fact = 4
@@ -469,6 +489,7 @@ which would otherwise be written and overwritten to the
 *point_cloud_processing_delivery* directory.
 
 ``` r
+
 # 0.6 m chm
 out_dir_0.6m <- file.path(out_dir,"chm_0.6m")
 dir.create(out_dir_0.6m)
@@ -499,6 +520,7 @@ We can confirm that we got the resolution expected by checking the
 resolution in the X and Y horizontal
 
 ``` r
+
 paste0(
   "The resolution of `cloud2raster_ans_chm_0.4m` is: "
   , terra::res(cloud2raster_ans_chm_0.4m$chm_rast) %>% 
@@ -511,6 +533,7 @@ paste0(
 Let’s plot the CHM rasters and combine them using `patchwork`
 
 ``` r
+
 # plt_chm_0.6m
 plt_chm_0.6m <- 
  cloud2raster_ans_chm_0.6m$chm_rast %>%
@@ -580,6 +603,7 @@ combine with
 [`patchwork::wrap_plots()`](https://patchwork.data-imaginist.com/reference/wrap_plots.html)
 
 ``` r
+
 # patchwork
 patchwork::wrap_plots(plt_chm_0.6m, plt_chm_0.4m, plt_chm_0.2m, ncol = 1)
 ```
@@ -607,14 +631,14 @@ A simple rule of thumb for determining how fine a CHM to generate is to
 ensure there is at least one point per cell in the target CHM. To find
 the minimum CHM resolution that could be created for a given point
 density (i.e. points m⁻²) while maintaining this threshold, use the
-formula $\sqrt{1/\text{point\_density}}$. For example, a point density
+formula $`\sqrt{1/\text{point_density}}`$. For example, a point density
 of 17 points m⁻² could generate a minimum CHM resolution of
-approximately 0.24 m ($\sqrt{1/17} \approx 0.24$) while ensuring at
+approximately 0.24 m ($`\sqrt{1/17} \approx 0.24`$) while ensuring at
 least one point per cell on average. Alternatively, to find the minimum
 point density needed to support a desired CHM resolution, use the
-formula $1/\left( \text{desired\_res}^{2} \right)$. For instance,
-creating a 0.3 m CHM raster requires point cloud data with at least
-11.11 points m⁻² ($1/\left( 0.3^{2} \right) \approx 11.11$).
+formula $`1/(\text{desired_res}^2)`$. For instance, creating a 0.3 m CHM
+raster requires point cloud data with at least 11.11 points m⁻²
+($`1/(0.3^2) \approx 11.11`$).
 
 ### Unfiltered Maximum CHM
 
@@ -657,6 +681,7 @@ The key settings to ensure the resulting CHM is unfiltered are the
 `min_height = 0` and `max_height = Inf` arguments
 
 ``` r
+
 # unfiltered chm
 cloud2raster_ans_chm_unfiltered <- cloud2trees::cloud2raster(
   input_las_dir = las_dir
@@ -672,6 +697,7 @@ we created which was height filtered based on the default
 `min_height = 2` and `max_height = 70` arguments
 
 ``` r
+
 plt_chm_unfiltered <- 
  cloud2raster_ans_chm_unfiltered$chm_rast %>%
   terra::as.data.frame(xy=T) %>%
@@ -700,6 +726,7 @@ combine with
 [`patchwork::wrap_plots()`](https://patchwork.data-imaginist.com/reference/wrap_plots.html)
 
 ``` r
+
 # patchwork
 patchwork::wrap_plots(plt_chm_unfiltered, plt_chm_0.2m, ncol = 2)
 ```
@@ -710,6 +737,7 @@ that might be difficult to see, so let’s create a difference raster for
 easier comparison
 
 ``` r
+
 # differnece raster
 terra::ifel(
     is.na(cloud2raster_ans_chm_0.2m$chm_rast)
@@ -729,6 +757,7 @@ vegetation between 0.3 m and 2.2 m that is not directly underneath
 taller objects (which would occlude these objects in the CHM)
 
 ``` r
+
 terra::ifel(
     cloud2raster_ans_chm_unfiltered$chm_rast >= 0.3 & 
     cloud2raster_ans_chm_unfiltered$chm_rast <= 2.2
@@ -746,6 +775,7 @@ finally, we can make the fine resolution (0.2 m) CHM raster more coarse
 and we’ll display the resultant resolution in the X and Y horizontal
 
 ``` r
+
 terra::aggregate(
     cloud2raster_ans_chm_unfiltered$chm_rast
     , fact = 2

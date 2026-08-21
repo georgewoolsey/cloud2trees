@@ -18,6 +18,7 @@ applications.
 Let’s load the libraries we’ll use
 
 ``` r
+
 library(cloud2trees)
 library(ggplot2)
 library(magrittr)
@@ -51,6 +52,7 @@ Let’s load the data for the tutorial which is a small data set that
 ships with the `lidR` package
 
 ``` r
+
 # the path to a single .las file
 las_fpath <- system.file(package = "lidR", "extdata", "MixedConifer.laz")
 # load the single file point cloud with lidR selecting only the primary information
@@ -60,6 +62,7 @@ las_data <- lidR::readLAS(las_fpath, select = "xyzic")
 what is this data?
 
 ``` r
+
 las_data
 #> class        : LAS (v1.2 format 1)
 #> memory       : 1.1 Mb 
@@ -75,6 +78,7 @@ that is very useful information and we can explore the actual data of
 the point cloud to get more detail
 
 ``` r
+
 las_data@data %>% dplyr::glimpse()
 #> Rows: 37,657
 #> Columns: 5
@@ -88,6 +92,7 @@ las_data@data %>% dplyr::glimpse()
 we can explore the X, Y, and Z data further
 
 ``` r
+
 las_data@data %>% dplyr::select(X,Y,Z) %>% summary()
 #>        X                Y                 Z        
 #>  Min.   :481260   Min.   :3812921   Min.   : 0.00  
@@ -102,6 +107,7 @@ because this is a relatively small data set, we can visualize the 3D
 data with the points colored by the Z measurement
 
 ``` r
+
 lidR::plot(
   x = las_data
   , color = "Z", bg = "white"
@@ -135,6 +141,7 @@ products like the Digital Terrain Model (DTM) and Canopy Height Model
 (CHM).
 
 ``` r
+
 cloud2trees_ans <- cloud2trees::cloud2trees(
   input_las_dir = las_fpath
   , output_dir = tempdir()
@@ -162,6 +169,7 @@ Let’s check out what is included in the return from the
 function.
 
 ``` r
+
 # what is it?
 cloud2trees_ans %>% names()
 #> [1] "crowns_sf"       "treetops_sf"     "dtm_rast"        "chm_rast"       
@@ -171,16 +179,17 @@ cloud2trees_ans %>% names()
 There is a digital terrain model (DTM) raster
 
 ``` r
+
 # there's a DTM
 cloud2trees_ans$dtm_rast
-#> class       : SpatRaster 
+#> class       : SpatRaster
 #> size        : 90, 90, 1  (nrow, ncol, nlyr)
 #> resolution  : 1, 1  (x, y)
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
-#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
-#> source      : dtm_1m.tif 
-#> name        : 1_dtm_1m 
-#> min value   : 0.000000 
+#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)
+#> source      : dtm_1m.tif
+#> name        : 1_dtm_1m
+#> min value   :        0
 #> max value   : 0.622001
 ```
 
@@ -193,6 +202,7 @@ we can plot the DTM using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(cloud2trees_ans$dtm_rast)
 ```
 
@@ -206,16 +216,17 @@ fluctuations.
 There is a canopy height model (CHM) raster
 
 ``` r
+
 # there's a CHM
 cloud2trees_ans$chm_rast
-#> class       : SpatRaster 
+#> class       : SpatRaster
 #> size        : 360, 360, 1  (nrow, ncol, nlyr)
 #> resolution  : 0.25, 0.25  (x, y)
 #> extent      : 481260, 481350, 3812921, 3813011  (xmin, xmax, ymin, ymax)
-#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912) 
-#> source      : chm_0.25m.tif 
-#> name        :   chm 
-#> min value   :  2.01 
+#> coord. ref. : NAD83 / UTM zone 12N (EPSG:26912)
+#> source      : chm_0.25m.tif
+#> name        :   chm
+#> min value   :  2.01
 #> max value   : 32.02
 ```
 
@@ -228,6 +239,7 @@ we can plot the CHM using
 [`terra::plot()`](https://rspatial.github.io/terra/reference/plot.html)
 
 ``` r
+
 terra::plot(cloud2trees_ans$chm_rast, col = grDevices::heat.colors(55, alpha = 0.88))
 ```
 
@@ -239,6 +251,7 @@ is a spatial data frame representing the extracted tree tops as
 individual points
 
 ``` r
+
 cloud2trees_ans$treetops_sf %>% dplyr::glimpse()
 #> Rows: 346
 #> Columns: 25
@@ -284,6 +297,7 @@ is a spatial data frame representing the extracted tree crowns as
 polygons
 
 ``` r
+
 cloud2trees_ans$crowns_sf %>% dplyr::glimpse()
 #> Rows: 346
 #> Columns: 27
@@ -325,6 +339,7 @@ Now let’s create a visual of the individual tree crowns stored in the
 `ggplot2` package
 
 ``` r
+
 cloud2trees_ans$chm_rast %>%
   terra::as.data.frame(xy = T) %>%
   dplyr::rename(f = 3) %>%
@@ -375,6 +390,7 @@ We’ll pretend our forest stand is the central 4,000 m² of the point
 cloud data and create a square polygon to use as our stand boundary
 
 ``` r
+
 my_stand <-
   cloud2trees_ans$treetops_sf %>% 
     sf::st_union() %>% 
@@ -388,6 +404,7 @@ in relation to the stand boundary. We’ll color the tree top points by
 tree height
 
 ``` r
+
 # what is this?
 ggplot2::ggplot() + 
   # tree tops
@@ -414,6 +431,7 @@ boundary and summarize. we’ll do this all in one tidy pipeline but you
 can break the pipes (`%>%`) to see what each step does.
 
 ``` r
+
 # first we'll crop the tree list to the stand
 treetops_in_stand <- cloud2trees_ans$treetops_sf %>% sf::st_intersection(my_stand)
 # summarize
@@ -452,6 +470,7 @@ height distribution.
 A simple density plot of heights can be generated quickly
 
 ``` r
+
 treetops_in_stand %>% 
   ggplot2::ggplot() + 
   ggplot2::geom_density(
@@ -470,6 +489,7 @@ those bins. again, this is one big tidy pipeline but you can break the
 pipes (`%>%`) to see what each step does.
 
 ``` r
+
 treetops_in_stand %>%
   sf::st_drop_geometry() %>%
   dplyr::mutate(
@@ -551,6 +571,7 @@ on a height threshold of 24 m across the entire extent of the point
 cloud data
 
 ``` r
+
 cloud2trees_ans$treetops_sf %>% 
   dplyr::mutate(
     tall_tree = ifelse(tree_height_m>=24,"Tall Tree", "Other")
