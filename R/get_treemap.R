@@ -21,9 +21,10 @@ get_treemap <- function(
   , force = F
 ){
   # set up parameters to pass to get_url_data()
-    # older url: "https://s3-us-west-2.amazonaws.com/fs.usda.rds/RDS-2021-0074/RDS-2021-0074_Data.zip"
-    # old url: "https://usfs-public.box.com/shared/static/yz7h8b8v92scoqfwukjyulokaevzo6v6.zip"
-  my_eval_url <- "https://usfs-public.box.com/shared/static/c4pv6jamvxjdbzgezztvs43bqudigwaq.zip" # updated 2025-07-24
+    # even older url: "https://s3-us-west-2.amazonaws.com/fs.usda.rds/RDS-2021-0074/RDS-2021-0074_Data.zip"
+    # older url: "https://usfs-public.box.com/shared/static/yz7h8b8v92scoqfwukjyulokaevzo6v6.zip"
+    # old url: "https://usfs-public.box.com/shared/static/c4pv6jamvxjdbzgezztvs43bqudigwaq.zip"
+  my_eval_url <- "https://usfs-public.box.com/shared/static/jaayceyk4i5vl484fuopbnssy017r6v9.zip" # updated 2025-08-21
   my_my_name <- "treemap"
   my_req_file_list <- treemap2022() # c("treemap2022_conus.tif", "treemap2022_conus_tree_table.csv")
   my_cleanup_zip <- T

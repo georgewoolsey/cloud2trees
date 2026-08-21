@@ -2,7 +2,7 @@
 % Please edit documentation in R/piles_quantify.R
 \name{piles_quantify}
 \alias{piles_quantify}
-\title{Spectral filtering of candidate slash piles}
+\title{CHM-based quantification of polygon objects}
 \usage{
 piles_quantify(sf_poly, chm_rast)
 }

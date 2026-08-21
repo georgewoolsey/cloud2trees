@@ -1,3 +1,9 @@
+# cloud2trees 0.8.3
+
+- Change/Fix: [TreeMap 2022](https://doi.org/10.2737/RDS-2025-0032) download link updated in `get_treemap()` to match updated link in the "Research Data Archive" (@JosephSilva19, #47).
+
+  * **archive** as in *"a place in which public records or historical materials (such as documents) are preserved"* ([Merriam-Webster](https://www.merriam-webster.com/dictionary/archive), accessed August 20, 2026)
+
 # cloud2trees 0.8.2
 
 Updates to use LANDFIRE CBD 2024 vintage ([https://landfire.gov/fuel/cbd](https://landfire.gov/fuel/cbd)) and eliminates need to users to process the data post-download to convert factor raster to numeric values by hosting a pre-cleaned variant on [Zenodo](https://zenodo.org/records/19684623).
