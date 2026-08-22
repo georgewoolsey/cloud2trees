@@ -28,7 +28,7 @@ Imports:
     randomForest,
     readr,
     rlang,
-    rlas (>= 1.8.4),
+    rlas (>= 1.8.0),
     scales,
     sf,
     stats,
